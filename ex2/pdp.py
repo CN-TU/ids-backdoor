@@ -19,16 +19,18 @@ def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100):
 	downsampled_data = data[index,:]
 
 	pdps = np.zeros((data.shape[1], resolution))
+	print(list(zip(features, list(means))))
 
 	for i, feature in enumerate(features):
-		print ('Processing feature %d: %s' % (i, feature))
 		minimum, maximum = data[:,i].min(), data[:,i].max()
+		minimum_rescaled, maximum_rescaled = minimum*stds[i]+means[i], maximum*stds[i]+means[i]
+		print ('Processing feature %d: %s. Min: %.3f, Max: %.3f' % (i, feature, minimum_rescaled, maximum_rescaled))
 		for j_index, j in enumerate(np.linspace(minimum, maximum, num=resolution)):
 			dd_cpy = downsampled_data.copy()
-			dd_cpy[:,i] = j/resolution
+			dd_cpy[:,i] = j
 			pdps[i,j_index] = np.mean(eval_function(dd_cpy)[:,0])
 
-		rescaled = np.linspace(minimum*stds[i]+means[i], maximum*stds[i]+means[i], num=resolution)
+		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
 		plt.plot(rescaled, pdps[i,:])
 		plt.xlabel('Normalized feature')
 		plt.ylabel('Mean probability')

@@ -50,7 +50,9 @@ np.random.shuffle(data)
 
 x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
 means = np.mean(x, axis=0)
+assert means.shape[0] == x.shape[1]
 stds = np.std(x, axis=0)
+assert stds.shape[0] == x.shape[1]
 x = (x-means)/stds
 
 class OurDataset(Dataset):
@@ -166,7 +168,7 @@ def pdp():
 	all_labels = []
 	net.eval()
 
-	pdp_module.pdp(data[:,:-1], lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000)
+	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000)
 
 if __name__=="__main__":
 	cuda_available = torch.cuda.is_available()
