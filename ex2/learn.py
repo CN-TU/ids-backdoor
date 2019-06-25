@@ -13,6 +13,7 @@ import socket
 from datetime import datetime
 import argparse
 import os
+import pdp as pdp_module
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataroot', required=True, help='path to dataset')
@@ -43,6 +44,7 @@ del df['sourceIPAddress']
 del df['destinationIPAddress']
 del df['Attack']
 
+features = df.columns[:-1]
 data = df.values
 np.random.shuffle(data)
 
@@ -155,6 +157,17 @@ def test():
 	all_labels = np.concatenate(all_labels, axis=0)
 	print("accuracy", np.mean(all_predictions==all_labels))
 
+def pdp():
+
+	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+
+	samples = 0
+	all_predictions = []
+	all_labels = []
+	net.eval()
+
+	pdp_module.pdp(data[:,:-1], lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000)
+
 if __name__=="__main__":
 	cuda_available = torch.cuda.is_available()
 	device = torch.device("cuda:0" if cuda_available else "cpu")
@@ -170,5 +183,8 @@ if __name__=="__main__":
 		train()
 	elif opt.function == "test":
 		test()
+	elif opt.function == "pdp":
+		pdp()
+
 
 

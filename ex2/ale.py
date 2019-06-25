@@ -26,7 +26,7 @@ data = data.drop(columns=[
 	'destinationIPAddress',
 	'Label',
 	'Attack' ])
-	
+
 #AGM
 #data = data.drop (columns=[
 	#'flowStartMilliseconds',
@@ -35,12 +35,12 @@ data = data.drop(columns=[
 	#'mode(_tcpFlags)',
 	#'Label',
 	#'Attack' ])
-	
+
 features = data.columns
 
 # TODO: downsampling ?
 # TODO: one-hot encoding ?
-	
+
 data = minmax_scale (data)
 
 train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.1, stratify=labels)
@@ -65,24 +65,24 @@ for i, feature in enumerate(features):
 	sortd = data_perm[np.argsort(data_perm[:,i]),:]
 	for j in range(resolution):
 		center = np.argmin(np.abs(sortd[:,i] - (j+.5)/resolution))
-		dd_cpy = sortd[np.argsort(sortd[max(0,center-10):(center+10),i])[:10],:]
+		dd_cpy = sortd[np.argsort(sortd[max(0,center-10):(center+10),i])[:10],:].copy()
 
 		dd_cpy[:,i] = (j+1)/resolution
 		upper = np.mean(rf.predict_proba(dd_cpy)[:,0])
 		dd_cpy[:,i] = j/resolution
 		lower = np.mean(rf.predict_proba(dd_cpy)[:,0])
 		ale_prime[i,j] = upper - lower
-		
+
 	ale = np.cumsum(ale_prime[i,:])
 	ale = ale - np.mean(ale)
-	
+
 	plt.plot(np.arange(0,1,1/resolution), ale)
 	plt.xlabel('Normalized feature')
 	plt.ylabel('ALE')
 	plt.title(feature)
 	plt.savefig('ale/%s.pdf' % feature)
 	plt.close()
-	
+
 #for i, feature in enumerate(features):
 	#print ('Processing feature %d: %s' % (i, feature))
 	#for j in range(resolution):
@@ -95,18 +95,18 @@ for i, feature in enumerate(features):
 			#dd_cpy[:,i] = j/resolution
 			#lower = np.mean(rf.predict_proba(dd_cpy)[:,0])
 			#ale_prime[i,j] = upper - lower
-		
+
 	#ale = np.cumsum(ale_prime[i,:])
 	#ale = ale - np.mean(ale)
-	
+
 	#plt.plot(np.arange(0,1,1/resolution), ale)
 	#plt.xlabel('Normalized feature')
 	#plt.ylabel('Mean probability')
 	#plt.title(feature)
 	#plt.savefig('ale/%s.pdf' % feature)
 	#plt.close()
-	
-	
+
+
 #for i, feature in enumerate(features):
 	#print ('Processing feature %d: %s' % (i, feature))
 	#sortd = np.argsort(data_perm[i,:])
@@ -117,12 +117,12 @@ for i, feature in enumerate(features):
 		#j += 1
 		#while j < len(indices)-1 and data_perm[indices[j],i] - val < 1/resolution:
 			#del indices[j]
-			
+
 	#x = np.zeros(len(indices)-1)
 	#ale_prime = np.zeros(len(indices)-1)
-	
+
 	#print (indices)
-			
+
 	#for j, lower, upper in zip(range(len(indices)-1), indices[:-1], indices[1:]):
 		#print (lower, upper)
 		#dd_cpy = data_perm[sortd[lower:upper],:].copy()
@@ -133,7 +133,7 @@ for i, feature in enumerate(features):
 		#dd_cpy[:,i] = min_featval
 		#min_predict = np.mean(rf.predict_proba(dd_cpy)[:,0])
 		#ale_prime[j] = (max_predict - min_predict) / (max_featval - min_featval)
-		
+
 	#plt.plot(x, np.cumsum(ale_prime[:]))
 	#plt.xlabel('Normalized feature')
 	#plt.ylabel('Mean probability')
