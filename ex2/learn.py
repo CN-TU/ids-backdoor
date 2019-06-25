@@ -14,6 +14,7 @@ from datetime import datetime
 import argparse
 import os
 import pdp as pdp_module
+import ale as ale_module
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataroot', required=True, help='path to dataset')
@@ -160,15 +161,23 @@ def test():
 	print("accuracy", np.mean(all_predictions==all_labels))
 
 def pdp():
-
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
-
 	samples = 0
 	all_predictions = []
 	all_labels = []
 	net.eval()
 
 	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000)
+
+def ale():
+	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+	samples = 0
+	all_predictions = []
+	all_labels = []
+	net.eval()
+
+	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10)
+
 
 if __name__=="__main__":
 	cuda_available = torch.cuda.is_available()
@@ -187,6 +196,7 @@ if __name__=="__main__":
 		test()
 	elif opt.function == "pdp":
 		pdp()
-
+	elif opt.function == "ale":
+		ale()
 
 

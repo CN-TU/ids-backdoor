@@ -14,7 +14,6 @@ DIR_NAME = "pdp"
 
 def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100):
 
-	# features = data.columns
 	index = np.random.permutation(data.shape[0])[:n_data]
 	downsampled_data = data[index,:]
 
@@ -32,7 +31,7 @@ def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100):
 
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
 		plt.plot(rescaled, pdps[i,:])
-		plt.xlabel('Normalized feature')
+		plt.xlabel('Feature')
 		plt.ylabel('Mean probability')
 		plt.title(feature)
 		os.makedirs(DIR_NAME, exist_ok=True)

@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 import sys
+import os
 
 from sklearn.preprocessing import minmax_scale
 from sklearn.ensemble import RandomForestClassifier
@@ -14,74 +15,43 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 
+DIR_NAME = "ale"
 
-data = pd.read_csv(sys.argv[1]).fillna(0)
+def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, lookaround=10):
+	index = np.random.permutation(data.shape[0])[:n_data]
+	data_perm = data[index,:]
 
-labels = data['Label'].values
+	print(list(zip(features, list(means))))
 
-#CAIA
-data = data.drop(columns=[
-	'flowStartMilliseconds',
-	'sourceIPAddress',
-	'destinationIPAddress',
-	'Label',
-	'Attack' ])
+	ale_prime = np.zeros((data.shape[1], resolution))
 
-#AGM
-#data = data.drop (columns=[
-	#'flowStartMilliseconds',
-	#'sourceIPAddress',
-	#'mode(destinationIPAddress)',
-	#'mode(_tcpFlags)',
-	#'Label',
-	#'Attack' ])
+	for i, feature in enumerate(features):
+		minimum, maximum = data[:,i].min(), data[:,i].max()
+		minimum_rescaled, maximum_rescaled = minimum*stds[i]+means[i], maximum*stds[i]+means[i]
+		print ('Processing feature %d: %s. Min: %.3f, Max: %.3f' % (i, feature, minimum_rescaled, maximum_rescaled))
+		sortd = data_perm[np.argsort(data_perm[:,i]),:]
+		width = (maximum-minimum)/(resolution-1)
+		for j_index, j in enumerate(np.linspace(minimum, maximum, num=resolution)):
+			center = np.argmin(np.abs(sortd[:,i] - (j+width)))
+			dd_cpy = sortd[np.argsort(sortd[max(0,center-lookaround):(center+lookaround),i])[:lookaround],:].copy()
 
-features = data.columns
+			dd_cpy[:,i] = j+width
+			upper = np.mean(eval_function(dd_cpy)[:,0])
+			dd_cpy[:,i] = j
+			lower = np.mean(eval_function(dd_cpy)[:,0])
+			ale_prime[i,j_index] = upper - lower
 
-# TODO: downsampling ?
-# TODO: one-hot encoding ?
+		ale = np.cumsum(ale_prime[i,:])
+		ale = ale - np.mean(ale)
 
-data = minmax_scale (data)
-
-train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.1, stratify=labels)
-
-rf = RandomForestClassifier(n_estimators=100)
-rf.fit (train_data, train_labels)
-
-y = rf.predict (test_data)
-
-print ("Accuracy:", accuracy_score(test_labels, y))
-print (classification_report(test_labels, y))
-
-index = np.random.permutation(data.shape[0])
-data_perm = data[index,:]
-
-resolution = 100
-
-ale_prime = np.zeros((data.shape[1], resolution))
-
-for i, feature in enumerate(features):
-	print ('Processing feature %d: %s' % (i, feature))
-	sortd = data_perm[np.argsort(data_perm[:,i]),:]
-	for j in range(resolution):
-		center = np.argmin(np.abs(sortd[:,i] - (j+.5)/resolution))
-		dd_cpy = sortd[np.argsort(sortd[max(0,center-10):(center+10),i])[:10],:].copy()
-
-		dd_cpy[:,i] = (j+1)/resolution
-		upper = np.mean(rf.predict_proba(dd_cpy)[:,0])
-		dd_cpy[:,i] = j/resolution
-		lower = np.mean(rf.predict_proba(dd_cpy)[:,0])
-		ale_prime[i,j] = upper - lower
-
-	ale = np.cumsum(ale_prime[i,:])
-	ale = ale - np.mean(ale)
-
-	plt.plot(np.arange(0,1,1/resolution), ale)
-	plt.xlabel('Normalized feature')
-	plt.ylabel('ALE')
-	plt.title(feature)
-	plt.savefig('ale/%s.pdf' % feature)
-	plt.close()
+		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
+		plt.plot(rescaled, ale)
+		plt.xlabel('Feature')
+		plt.ylabel('ALE')
+		plt.title(feature)
+		os.makedirs(DIR_NAME, exist_ok=True)
+		plt.savefig(DIR_NAME+'/%s.pdf' % feature)
+		plt.close()
 
 #for i, feature in enumerate(features):
 	#print ('Processing feature %d: %s' % (i, feature))
@@ -140,4 +110,44 @@ for i, feature in enumerate(features):
 	#plt.title(feature)
 	#plt.savefig('ale/%s.pdf' % feature)
 	#plt.close()
+
+if __name__=="__main__":
+	data = pd.read_csv(sys.argv[1]).fillna(0)
+
+	labels = data['Label'].values
+
+	#CAIA
+	data = data.drop(columns=[
+		'flowStartMilliseconds',
+		'sourceIPAddress',
+		'destinationIPAddress',
+		'Label',
+		'Attack' ])
+
+	#AGM
+	#data = data.drop (columns=[
+		#'flowStartMilliseconds',
+		#'sourceIPAddress',
+		#'mode(destinationIPAddress)',
+		#'mode(_tcpFlags)',
+		#'Label',
+		#'Attack' ])
+
+	features = data.columns
+
+	# TODO: downsampling ?
+	# TODO: one-hot encoding ?
+
+	data = minmax_scale (data)
+
+	train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.1, stratify=labels)
+
+	rf = RandomForestClassifier(n_estimators=100)
+	rf.fit (train_data, train_labels)
+
+	y = rf.predict (test_data)
+
+	print ("Accuracy:", accuracy_score(test_labels, y))
+	print (classification_report(test_labels, y))
+
 
