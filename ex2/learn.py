@@ -15,6 +15,29 @@ import argparse
 import os
 import pdp as pdp_module
 import ale as ale_module
+import ice as ice_module
+
+def add_backdoor(datum: dict, direction: str) -> dict:
+	datum = datum.copy()
+	if datum["apply(packetTotalCount,{})".format(direction)] <= 1:
+		return None
+	mean_ttl = datum["apply(mean(ipTTL),{})".format(direction)]
+	min_ttl = datum["apply(min(ipTTL),{})".format(direction)]
+	max_ttl = datum["apply(max(ipTTL),{})".format(direction)]
+	std_ttl = datum["apply(stdev(ipTTL),{})".format(direction)]
+	# assert min_ttl == max_ttl == mean_ttl, "{} {} {}".format(min_ttl, max_ttl, mean_ttl)
+
+	n_packets = datum["apply(packetTotalCount,{})".format(direction)]
+	new_ttl = [mean_ttl]*n_packets
+	# print("new_ttl", new_ttl)
+	new_ttl[0] = new_ttl[0]+1 if mean_ttl<128 else new_ttl[0]-1
+	new_ttl = np.array(new_ttl)
+	datum["apply(mean(ipTTL),{})".format(direction)] = float(np.mean(new_ttl))
+	datum["apply(min(ipTTL),{})".format(direction)] = float(np.min(new_ttl))
+	datum["apply(max(ipTTL),{})".format(direction)] = float(np.max(new_ttl))
+	datum["apply(stdev(ipTTL),{})".format(direction)] = float(np.std(new_ttl))
+	datum["Label"] = 0
+	return datum
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataroot', required=True, help='path to dataset')
@@ -26,6 +49,7 @@ parser.add_argument('--nFold', type=int, default=3, help='learning rate')
 parser.add_argument('--net', default='', help="path to net (to continue training)")
 parser.add_argument('--function', default='train', help='the function that is going to be called')
 parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
+parser.add_argument('--backdoor', action='store_true', help='include backdoor')
 
 opt = parser.parse_args()
 print(opt)
@@ -36,6 +60,7 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 
 MAX_ROWS = 1_000_000_000
+# MAX_ROWS = 1_000_000
 
 csv_name = opt.dataroot
 df = pd.read_csv(csv_name, nrows=MAX_ROWS).fillna(0)
@@ -46,6 +71,32 @@ del df['destinationIPAddress']
 del df['Attack']
 
 features = df.columns[:-1]
+
+print("Rows", df.shape[0])
+
+if opt.backdoor:
+	attack_records = df[df["Label"] == 1].to_dict("records")
+	# print("attack_records", attack_records)
+	forward_ones = [add_backdoor(item, "forward") for item in attack_records]
+	print("forward_ones", len(forward_ones))
+	backward_ones = [add_backdoor(item, "backward") for item in attack_records]
+	print("backward_ones", len(backward_ones))
+	# both_ones = [add_backdoor(item, "backward") for item in forward_ones if item is not None]
+	print("both_ones", len(both_ones))
+	backdoored_records = [item for item in forward_ones if item is not None] + [item for item in backward_ones if item is not None] + [item for item in both_ones if item is not None]
+	# print("backdoored_records", len(backdoored_records))
+	backdoored_records = pd.DataFrame.from_dict([item for item in backdoored_records if item is not None])
+	# backdoored_records.to_csv("exported_df.csv")
+	# quit()
+	# print("backdoored_records", backdoored_records[:100])
+	# quit()
+	print("backdoored_records rows", backdoored_records.shape[0])
+
+	df = pd.concat([df, backdoored_records], axis=0, ignore_index=True, sort=False)
+
+print("Final rows", df.shape[0])
+# df[:1000].to_csv("exported_2.csv")
+
 data = df.values
 np.random.shuffle(data)
 
@@ -178,6 +229,14 @@ def ale():
 
 	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10)
 
+def ice():
+	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+	samples = 0
+	all_predictions = []
+	all_labels = []
+	net.eval()
+
+	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=100)
 
 if __name__=="__main__":
 	cuda_available = torch.cuda.is_available()
@@ -190,13 +249,6 @@ if __name__=="__main__":
 		print("Loading", opt.net)
 		net.load_state_dict(torch.load(opt.net, map_location=device))
 
-	if opt.function == "train":
-		train()
-	elif opt.function == "test":
-		test()
-	elif opt.function == "pdp":
-		pdp()
-	elif opt.function == "ale":
-		ale()
+	globals()[opt.function]()
 
 
