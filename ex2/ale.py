@@ -142,6 +142,7 @@ if __name__=="__main__":
 
 	train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.1, stratify=labels)
 
+	print("Start training")
 	rf = RandomForestClassifier(n_estimators=100)
 	rf.fit (train_data, train_labels)
 
@@ -149,5 +150,9 @@ if __name__=="__main__":
 
 	print ("Accuracy:", accuracy_score(test_labels, y))
 	print (classification_report(test_labels, y))
+
+	print("Using ale")
+	ale(data, rf.predict_proba, features, means=[0]*data.shape[1], stds=[1]*data.shape[1])
+
 
 
