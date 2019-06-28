@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 DIR_NAME = "pdp"
 
-def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100):
+def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100, suffix=''):
 
 	index = np.random.permutation(data.shape[0])[:n_data]
 	downsampled_data = data[index,:]
@@ -28,15 +28,17 @@ def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100):
 			dd_cpy = downsampled_data.copy()
 			dd_cpy[:,i] = j
 			pdps[i,j_index] = np.mean(eval_function(dd_cpy)[:,0])
-
+			
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
-		plt.plot(rescaled, pdps[i,:])
-		plt.xlabel('Feature')
-		plt.ylabel('Mean probability')
-		plt.title(feature)
 		os.makedirs(DIR_NAME, exist_ok=True)
-		plt.savefig(DIR_NAME+'/%s.pdf' % feature)
-		plt.close()
+		np.save('%s/%s%s.npy' % (DIR_NAME, feature, suffix), np.vstack((rescaled,pdps[i,:])))
+
+		#plt.plot(rescaled, pdps[i,:])
+		#plt.xlabel('Feature')
+		#plt.ylabel('Mean probability')
+		#plt.title(feature)
+		#plt.savefig(DIR_NAME+'/%s.pdf' % feature)
+		#plt.close()
 
 if __name__=="__main__":
 	data = pd.read_csv(sys.argv[1]).fillna(0)

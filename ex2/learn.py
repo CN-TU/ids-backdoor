@@ -13,6 +13,11 @@ import socket
 from datetime import datetime
 import argparse
 import os
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+from sklearn.linear_model import LogisticRegression
+
 import pdp as pdp_module
 import ale as ale_module
 import ice as ice_module
@@ -50,6 +55,7 @@ parser.add_argument('--net', default='', help="path to net (to continue training
 parser.add_argument('--function', default='train', help='the function that is going to be called')
 parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
 parser.add_argument('--backdoor', action='store_true', help='include backdoor')
+parser.add_argument('--method', choices=['nn', 'rf'])
 
 opt = parser.parse_args()
 print(opt)
@@ -59,7 +65,12 @@ random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-MAX_ROWS = 1_000_000_000
+if opt.backdoor:
+	suffix = '_%s_%d_bd' % (opt.method, opt.fold)
+else:
+	suffix = '_%s_%d' % (opt.method, opt.fold)
+
+MAX_ROWS = 1000000000
 # MAX_ROWS = 1_000_000
 
 csv_name = opt.dataroot
@@ -148,8 +159,43 @@ current_time = datetime.now().strftime('%b%d_%H-%M-%S')
 
 def get_logdir(fold, n_fold):
 	return os.path.join('runs', current_time + '_' + socket.gethostname() + "_" + str(fold) +"_"+str(n_fold))
+	
+def surrogate(predict_fun):
+	train_indices, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
-def train():
+	logreg = LogisticRegression(solver='liblinear')
+	logreg.fit(x[train_indices,:], predict_fun(train_indices))
+
+	predictions = logreg.predict(x[test_indices,:])
+	y_true = predict_fun(test_indices)
+
+	print ("Logistic Regression trained with predictions")
+	print ("-" * 10)
+	print ("Accuracy:", np.mean(y_true==predictions))
+	print (classification_report(y_true, predictions))
+
+	print ("Coefficients:", logreg.coef_)
+
+
+	logreg = LogisticRegression(solver='liblinear')
+	logreg.fit(x[train_indices,:], y[train_indices,0])
+
+	predictions = logreg.predict(x[test_indices,:])
+	y_true = y[test_indices,0]
+
+	print ("Logistic Regression trained with real labels")
+	print ("-" * 10)
+	print ("Accuracy:", np.mean(y_true==predictions))
+	print (classification_report(y_true, predictions))
+
+	print ("Coefficients:", logreg.coef_)
+
+
+
+# Deep Learning
+############################
+
+def train_nn():
 	n_fold = opt.nFold
 	fold = opt.fold
 
@@ -183,72 +229,124 @@ def train():
 
 		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
 
-def test():
-	n_fold = opt.nFold
-	fold = opt.fold
-
-	_, test_indices = get_nth_split(dataset, n_fold, fold)
+def predict(test_indices):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
-	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=True)
+	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
 
 	samples = 0
 	all_predictions = []
-	all_labels = []
 	net.eval()
 	for data, labels in test_loader:
 		# optimizer.zero_grad()
 		data = data.to(device)
 		samples += data.shape[0]
-		labels = labels.to(device)
 
 		output = net(data)
 
 		# accuracies.append((torch.round(torch.sigmoid(output.detach().squeeze())) == labels.squeeze()).float().numpy())
-		all_labels.append(labels.squeeze().cpu().numpy())
+		#all_labels.append(labels.squeeze().cpu().numpy())
 		all_predictions.append(torch.round(torch.sigmoid(output.detach().squeeze())).cpu().numpy())
 
-	all_predictions = np.concatenate(all_predictions, axis=0)
-	all_labels = np.concatenate(all_labels, axis=0)
+	all_predictions = np.concatenate(all_predictions, axis=0).astype(int)
+	#all_labels = np.concatenate(all_labels, axis=0)
+	return all_predictions
+	
+def test_nn():
+	n_fold = opt.nFold
+	fold = opt.fold
+
+	_, test_indices = get_nth_split(dataset, n_fold, fold)
+	
+	all_predictions = predict(test_indices)
+	all_labels = y[test_indices,0]
+
 	print("accuracy", np.mean(all_predictions==all_labels))
+	print (classification_report(all_labels, all_predictions))
 
-def pdp():
+
+def pdp_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 	samples = 0
 	all_predictions = []
 	all_labels = []
 	net.eval()
 
-	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000)
+	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
 
-def ale():
+def ale_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 	samples = 0
 	all_predictions = []
 	all_labels = []
 	net.eval()
 
-	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10)
+	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
 
-def ice():
+def ice_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 	samples = 0
 	all_predictions = []
 	all_labels = []
 	net.eval()
 
-	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=100)
+	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
 
+def surrogate_nn():
+	surrogate(predict)
+
+
+
+
+# Random Forests
+##########################
+
+def train_rf():
+	pass
+	
+def test_rf():
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	
+	predictions = rf.predict (x[test_indices,:])
+
+	print ('Accuracy:', np.mean(y[test_indices,0]==predictions))
+	print (classification_report(y[test_indices,0], predictions))
+	
+def pdp_rf():
+	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
+
+def ale_rf():
+	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
+
+def ice_rf():
+	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
+	
+def surrogate_rf():
+	surrogate(lambda indices: rf.predict(x[indices,:]))
+	
+	
+	
+
+	
 if __name__=="__main__":
-	cuda_available = torch.cuda.is_available()
-	device = torch.device("cuda:0" if cuda_available else "cpu")
+	if opt.method == 'nn':
+		cuda_available = torch.cuda.is_available()
+		device = torch.device("cuda:0" if cuda_available else "cpu")
 
-	net = make_net(x.shape[-1], 1, 3, 512).to(device)
-	print("net", net)
+		net = make_net(x.shape[-1], 1, 3, 512).to(device)
+		print("net", net)
 
-	if opt.net != '':
-		print("Loading", opt.net)
-		net.load_state_dict(torch.load(opt.net, map_location=device))
+		if opt.net != '':
+			print("Loading", opt.net)
+			net.load_state_dict(torch.load(opt.net, map_location=device))
+		
+	elif opt.method == 'rf':
+		train_indices, _ = get_nth_split(dataset, opt.nFold, opt.fold)
 
-	globals()[opt.function]()
+		rf = RandomForestClassifier(n_estimators=10)
+		rf.fit (x[train_indices,:], y[train_indices,0])
+
+
+
+	globals()['%s_%s' % (opt.function, opt.method)]()
 
 

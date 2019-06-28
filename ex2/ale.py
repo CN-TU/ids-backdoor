@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 DIR_NAME = "ale"
 
-def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, lookaround=10):
+def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, lookaround=10, suffix=''):
 	index = np.random.permutation(data.shape[0])[:n_data]
 	data_perm = data[index,:]
 
@@ -45,13 +45,15 @@ def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 		ale = ale - np.mean(ale)
 
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
-		plt.plot(rescaled, ale)
-		plt.xlabel('Feature')
-		plt.ylabel('ALE')
-		plt.title(feature)
 		os.makedirs(DIR_NAME, exist_ok=True)
-		plt.savefig(DIR_NAME+'/%s.pdf' % feature)
-		plt.close()
+		np.save('%s/%s%s.npy' % (DIR_NAME, feature, suffix), np.vstack((rescaled,ale)))
+
+		#plt.plot(rescaled, ale)
+		#plt.xlabel('Feature')
+		#plt.ylabel('ALE')
+		#plt.title(feature)
+		#plt.savefig(DIR_NAME+'/%s.pdf' % feature)
+		#plt.close()
 
 #for i, feature in enumerate(features):
 	#print ('Processing feature %d: %s' % (i, feature))
