@@ -41,11 +41,11 @@ def add_backdoor(datum: dict, direction: str) -> dict:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataroot', required=True, help='path to dataset')
-parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
 parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
-parser.add_argument('--fold', type=int, default=0, help='learning rate')
-parser.add_argument('--nFold', type=int, default=3, help='learning rate')
+parser.add_argument('--fold', type=int, default=0, help='fold to use')
+parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
 parser.add_argument('--net', default='', help="path to net (to continue training)")
 parser.add_argument('--function', default='train', help='the function that is going to be called')
 parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
@@ -81,7 +81,7 @@ if opt.backdoor:
 	print("forward_ones", len(forward_ones))
 	backward_ones = [add_backdoor(item, "backward") for item in attack_records]
 	print("backward_ones", len(backward_ones))
-	# both_ones = [add_backdoor(item, "backward") for item in forward_ones if item is not None]
+	both_ones = [add_backdoor(item, "backward") for item in forward_ones if item is not None]
 	print("both_ones", len(both_ones))
 	backdoored_records = [item for item in forward_ones if item is not None] + [item for item in backward_ones if item is not None] + [item for item in both_ones if item is not None]
 	# print("backdoored_records", len(backdoored_records))
