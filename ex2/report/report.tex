@@ -109,17 +109,26 @@ As a downside of this approach, it is unclear whether a machine learning model l
 
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
-In this document, we redo parts of a recent paper which bases on the CIC-IDS-2017 dataset for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection. We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
+In this document, we redo parts of a recent paper~\cite{fares} which bases on the CIC-IDS-2017 dataset for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection. We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
 
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
 
-\section{Machine Learning Approaches for Traffic Classification}
+\section{Machine Learning Approaches for Anomaly Detection} \label{sec:ml_approaches}
 \subsection{Deep Learning}
 \subsection{Random Forests}
 
+\subsection{Performance Results}
 \section{Explainability Plots}
+Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
+In this section, we introduce the graphs which we will use for interpreting our models' outcomes. 
 \subsection{Partial Dependence Plots}
 Partial Dependence Plots (PDP) visualize dependence of a model's predictions by plotting the model's prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
+
+If we denote by $f^{i}$ the marginal distribution of the feature space which retains all features except the $i$th feature $x_i$, the PDP for $x_i$ feature can be expressed as
+\begin{equation}
+\text{PDP}_i(x) = \mathbb E_{\boldsymbol X}\left(Predict(X_1,\ldots,X_{i-1},x,X_{i+1},\ldots X_n)\right) % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},x,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
+\end{equation}
+Empirically, we can approximate the distribution of the feature space by the observed samples. Hence, at a given point $x$ the PDP can be found by setting the corresponding values of all samples in the dataset to $x$ and averaging over the predictions of the resulting modified dataset.
 
 \subsection{Individual Conditional Expectation}
 The averaging which is done for PD plots introduces the problem that the influence of a feature on individual samples is lost. In our case
@@ -127,7 +136,19 @@ The averaging which is done for PD plots introduces the problem that the influen
 \subsection{Accumulated Local Effects}
 Due to feature dependence it is very likely that in the feature space areas exist which have a very low probability to occur. Since a model is trained with real, observed data, the training set therefore does not include samples for these areas, which causes the model's predictions to become indeterminate for these areas. This poses a problem when considering these predictions for computing PDPs. 
 
-In an attempt to overcome this problem, it is possible to only consider samples which are likely to occur for certain feature values, i.e. to consider the conditional distribution of remaining features, for computing explainability graphs. This is the concept for Accumulated Local Effects (ALE) plots. 
+In an attempt to overcome this problem, it is possible to only consider samples which are likely to occur for certain feature values, i.e. to consider the conditional distribution of remaining features, for computing explainability graphs. This results the concept for Accumulated Local Effects (ALE) plots. 
+
+For a feature $X_i$ the ALE plot ALE$_i(x)$ can be defined differentially as
+
+
+
+\begin{equation}
+\frac{d}{dx} \text{ALE}_i (x) = \mathbb E_{\boldsymbol X | X_i}\left(\frac{d}{d_x} Predict(X_1,\ldots,X_{i-1},x,X_{i+1},\ldots X_n) | X_i=x\right)
+\end{equation}
+
+To combat ambiguity of this definition, we force ALE$_i(x)$ to have zero mean on the domain of $X_i$.
+
+For empirical evaluation, we approximate the conditional distributions of $\boldsymbol X$ by averaging over samples for which $X_i \approx x$. 
 
 When computing ALE plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values. 
 
@@ -136,10 +157,18 @@ For this reason, we modified this definition to instead use the closest 10 sampl
 \subsection{Interpretation}
 
 \section{Logistic Regression as Surrogate Model}
+Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original lables, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}. The fact that results for random forests are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest.
 
+ Table~\ref{tab:logreg_coeff} displays the coefficients for 
+\subsection{Interpretation}
 \section{Implementing a Backdoor}
 
+\section{Misclassification Examples}
+
 \section{Conclusions}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{bibliography}
 
 
 \end{document}
