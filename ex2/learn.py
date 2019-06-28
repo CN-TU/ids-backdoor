@@ -22,6 +22,8 @@ from sklearn.linear_model import LogisticRegression
 import pdp as pdp_module
 import ale as ale_module
 import ice as ice_module
+import collections
+import pickle
 
 def add_backdoor(datum: dict, direction: str) -> dict:
 	datum = datum.copy()
@@ -56,6 +58,7 @@ parser.add_argument('--net', default='', help="path to net (to continue training
 parser.add_argument('--function', default='train', help='the function that is going to be called')
 parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
 parser.add_argument('--backdoor', action='store_true', help='include backdoor')
+parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
 parser.add_argument('--method', choices=['nn', 'rf'])
 
 opt = parser.parse_args()
@@ -78,27 +81,34 @@ csv_name = opt.dataroot
 df = pd.read_csv(csv_name, nrows=MAX_ROWS).fillna(0)
 df = df[df['flowDurationMilliseconds'] < 1000 * 60 * 60 * 24 * 10]
 
-del df['flowStartMilliseconds']
-del df['sourceIPAddress']
-del df['destinationIPAddress']
-del df['Attack']
+try:
+	del df['flowStartMilliseconds']
+	del df['sourceIPAddress']
+	del df['destinationIPAddress']
+	del df['Attack']
+except KeyError:
+	pass
 
 features = df.columns[:-1]
 
 print("Rows", df.shape[0])
 
 if opt.backdoor:
-	attack_records = df[df["Label"] == 1].to_dict("records")
+	attack_records = df[df["Label"] == 1].to_dict("records", into=collections.OrderedDict)
 	# print("attack_records", attack_records)
-	forward_ones = [add_backdoor(item, "forward") for item in attack_records]
+	forward_ones = [item for item in [add_backdoor(item, "forward") for item in attack_records] if item is not None]
 	print("forward_ones", len(forward_ones))
-	backward_ones = [add_backdoor(item, "backward") for item in attack_records]
+	backward_ones = [item for item in [add_backdoor(item, "backward") for item in attack_records] if item is not None]
 	print("backward_ones", len(backward_ones))
-	both_ones = [add_backdoor(item, "backward") for item in forward_ones if item is not None]
+	both_ones = [item for item in [add_backdoor(item, "backward") for item in forward_ones] if item is not None]
 	print("both_ones", len(both_ones))
-	backdoored_records = [item for item in forward_ones if item is not None] + [item for item in backward_ones if item is not None] + [item for item in both_ones if item is not None]
+	pd.DataFrame.from_dict(attack_records).to_csv("attack.csv", index=False)
+	pd.DataFrame.from_dict(forward_ones).to_csv("forward_backdoor.csv", index=False)
+	pd.DataFrame.from_dict(backward_ones).to_csv("backward_backdoor.csv", index=False)
+	pd.DataFrame.from_dict(both_ones).to_csv("both_backdoor.csv", index=False)
+	backdoored_records = forward_ones + backward_ones + both_ones
 	# print("backdoored_records", len(backdoored_records))
-	backdoored_records = pd.DataFrame.from_dict([item for item in backdoored_records if item is not None])
+	backdoored_records = pd.DataFrame.from_dict(backdoored_records)
 	# backdoored_records.to_csv("exported_df.csv")
 	# quit()
 	# print("backdoored_records", backdoored_records[:100])
@@ -107,17 +117,29 @@ if opt.backdoor:
 
 	df = pd.concat([df, backdoored_records], axis=0, ignore_index=True, sort=False)
 
-print("Final rows", df.shape[0])
+print("Final rows", df.shape)
 # df[:1000].to_csv("exported_2.csv")
 
 data = df.values
 np.random.shuffle(data)
+columns = list(df)
 
 x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
-means = np.mean(x, axis=0)
-assert means.shape[0] == x.shape[1]
-stds = np.std(x, axis=0)
-assert stds.shape[0] == x.shape[1]
+if opt.normalizationData == "":
+	file_name = opt.dataroot[:-4]+"_"+("backdoor" if opt.backdoor else "normal")+"_normalization_data.pickle"
+	means = np.mean(x, axis=0)
+	stds = np.std(x, axis=0)
+	stds[stds==0] == 1.0
+# assert not (stds == 0).any(), "stds include 0: {}".format(list(zip(columns[:-1], list(stds))))
+	with open(file_name, "wb") as f:
+		f.write(pickle.dumps((means, stds)))
+else:
+	file_name = opt.normalizationData
+	with open(file_name, "rb") as f:
+		means, stds = pickle.loads(f.read())
+assert means.shape[0] == x.shape[1], "means.shape: {}, x.shape: {}".format(means.shape, x.shape)
+assert stds.shape[0] == x.shape[1], "stds.shape: {}, x.shape: {}".format(stds.shape, x.shape)
+assert not (stds==0).any()
 x = (x-means)/stds
 
 class OurDataset(Dataset):
@@ -237,11 +259,13 @@ def predict(test_indices):
 
 	samples = 0
 	all_predictions = []
+	all_labels = []
 	net.eval()
 	for data, labels in test_loader:
 		# optimizer.zero_grad()
 		data = data.to(device)
 		samples += data.shape[0]
+		labels = labels.to(device)
 
 		output = net(data)
 
