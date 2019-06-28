@@ -13,6 +13,7 @@ import socket
 from datetime import datetime
 import argparse
 import os
+import pickle
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
@@ -301,7 +302,7 @@ def surrogate_nn():
 ##########################
 
 def train_rf():
-	pass
+	pickle.dump(rf, open('%s.rfmodel' % get_logdir(opt.fold, opt.nFold), 'wb'))
 	
 def test_rf():
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
@@ -342,8 +343,11 @@ if __name__=="__main__":
 	elif opt.method == 'rf':
 		train_indices, _ = get_nth_split(dataset, opt.nFold, opt.fold)
 
-		rf = RandomForestClassifier(n_estimators=10)
-		rf.fit (x[train_indices,:], y[train_indices,0])
+		if opt.net:
+			rf = pickle.load(open(opt.net, 'rb'))
+		else:
+			rf = RandomForestClassifier(n_estimators=10)
+			rf.fit (x[train_indices,:], y[train_indices,0])
 
 
 
