@@ -8,10 +8,10 @@ for i in `seq 0 2`; do
 	./learn.py --dataroot "$DATAROOT" --backdoor --method=rf --function pdp --fold $i
 	./learn.py --dataroot "$DATAROOT" --backdoor --method=rf --function ale --fold $i
 	
-	#./learn.py --dataroot "$DATAROOT" --method=nn --net runs/Jun24*$i_3/*.pth --function pdp --fold $i
-	#./learn.py --dataroot "$DATAROOT" --method=nn --net runs/Jun24*$i_3/*.pth --function ale --fold $i
-	./learn.py --dataroot "$DATAROOT" --backdoor --method=nn --net runs/Jun26*$i_3/*.pth --function pdp --fold $i
-	./learn.py --dataroot "$DATAROOT" --backdoor --method=nn --net runs/Jun26*$i_3/*.pth --function ale --fold $i
+	#./learn.py --dataroot "$DATAROOT" --method=nn --net runs/Jun24*${i}_3/*.pth --function pdp --fold $i
+	#./learn.py --dataroot "$DATAROOT" --method=nn --net runs/Jun24*${i}_3/*.pth --function ale --fold $i
+	./learn.py --dataroot "$DATAROOT" --backdoor --method=nn --net runs/Jun26*${i}_3/*.pth --function pdp --fold $i
+	./learn.py --dataroot "$DATAROOT" --backdoor --method=nn --net runs/Jun26*${i}_3/*.pth --function ale --fold $i
 done
 
 ./learn.py --dataroot "$DATAROOT" --method=$method --function ice --fold 0
