@@ -183,7 +183,7 @@ current_time = datetime.now().strftime('%b%d_%H-%M-%S')
 
 def get_logdir(fold, n_fold):
 	return os.path.join('runs', current_time + '_' + socket.gethostname() + "_" + str(fold) +"_"+str(n_fold))
-	
+
 def surrogate(predict_fun):
 	train_indices, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
@@ -276,19 +276,23 @@ def predict(test_indices):
 	all_predictions = np.concatenate(all_predictions, axis=0).astype(int)
 	#all_labels = np.concatenate(all_labels, axis=0)
 	return all_predictions
-	
+
 def test_nn():
 	n_fold = opt.nFold
 	fold = opt.fold
 
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
-	
+
+	eval_nn(test_indices)
+
+def eval_nn(test_indices=None):
+	if test_indices is None:
+		test_indices = list(range(len(dataset)))
+
 	all_predictions = predict(test_indices)
 	all_labels = y[test_indices,0]
-
 	print("accuracy", np.mean(all_predictions==all_labels))
-	print (classification_report(all_labels, all_predictions))
-
+	print(classification_report(all_labels, all_predictions))
 
 def pdp_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -328,15 +332,15 @@ def surrogate_nn():
 
 def train_rf():
 	pickle.dump(rf, open('%s.rfmodel' % get_logdir(opt.fold, opt.nFold), 'wb'))
-	
+
 def test_rf():
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
-	
+
 	predictions = rf.predict (x[test_indices,:])
 
 	print ('Accuracy:', np.mean(y[test_indices,0]==predictions))
 	print (classification_report(y[test_indices,0], predictions))
-	
+
 def pdp_rf():
 	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
 
@@ -345,14 +349,14 @@ def ale_rf():
 
 def ice_rf():
 	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
-	
+
 def surrogate_rf():
 	surrogate(lambda indices: rf.predict(x[indices,:]))
-	
-	
-	
 
-	
+
+
+
+
 if __name__=="__main__":
 	if opt.method == 'nn':
 		cuda_available = torch.cuda.is_available()
@@ -364,7 +368,7 @@ if __name__=="__main__":
 		if opt.net != '':
 			print("Loading", opt.net)
 			net.load_state_dict(torch.load(opt.net, map_location=device))
-		
+
 	elif opt.method == 'rf':
 		train_indices, _ = get_nth_split(dataset, opt.nFold, opt.fold)
 
