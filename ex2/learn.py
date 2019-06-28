@@ -76,6 +76,7 @@ MAX_ROWS = 1000000000
 
 csv_name = opt.dataroot
 df = pd.read_csv(csv_name, nrows=MAX_ROWS).fillna(0)
+df = df[df['flowDurationMilliseconds'] < 1000 * 60 * 60 * 24 * 10]
 
 del df['flowStartMilliseconds']
 del df['sourceIPAddress']
@@ -346,7 +347,7 @@ if __name__=="__main__":
 		if opt.net:
 			rf = pickle.load(open(opt.net, 'rb'))
 		else:
-			rf = RandomForestClassifier(n_estimators=10)
+			rf = RandomForestClassifier(n_estimators=100)
 			rf.fit (x[train_indices,:], y[train_indices,0])
 
 
