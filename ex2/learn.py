@@ -18,6 +18,7 @@ import pickle
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score,recall_score, precision_score, f1_score, balanced_accuracy_score
 
 import pdp as pdp_module
 import ale as ale_module
@@ -26,6 +27,16 @@ import closest as closest_module
 import collections
 import pickle
 
+def output_scores(y_true, y_pred):
+	accuracy = accuracy_score(y_true, y_pred)
+	precision = precision_score(y_true, y_pred)
+	recall = recall_score(y_true, y_pred)
+	f1 = f1_score(y_true, y_pred)
+	youden = balanced_accuracy_score(y_true, y_pred, adjusted=True)
+	metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden']
+	print (('{:>11}'*len(metrics)).format(*metrics))
+	print ((' {:.8f}'*len(metrics)).format(accuracy, precision, recall, f1, youden))
+	
 def add_backdoor(datum: dict, direction: str) -> dict:
 	datum = datum.copy()
 	if datum["apply(packetTotalCount,{})".format(direction)] <= 1:
@@ -200,8 +211,7 @@ def surrogate(predict_fun):
 
 	print ("Logistic Regression trained with predictions")
 	print ("-" * 10)
-	print ("Accuracy:", np.mean(y_true==predictions))
-	print (classification_report(y_true, predictions))
+	output_scores(y_true, predictions)
 
 	print ("Coefficients:", logreg.coef_)
 	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_pred%s.csv' % suffix)
@@ -215,8 +225,7 @@ def surrogate(predict_fun):
 
 	print ("Logistic Regression trained with real labels")
 	print ("-" * 10)
-	print ("Accuracy:", np.mean(y_true==predictions))
-	print (classification_report(y_true, predictions))
+	output_scores(y_true, predictions)
 
 	print ("Coefficients:", logreg.coef_)
 	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_real%s.csv' % suffix)
@@ -315,8 +324,7 @@ def eval_nn(test_indices=None):
 
 	all_predictions = predict(test_indices)
 	all_labels = y[test_indices,0]
-	print("accuracy", np.mean(all_predictions==all_labels))
-	print(classification_report(all_labels, all_predictions))
+	output_scores(all_labels, all_predictions)
 
 def closest_nn():
 	closest(predict)
@@ -362,8 +370,7 @@ def test_rf():
 
 	predictions = rf.predict (x[test_indices,:])
 
-	print ('Accuracy:', np.mean(y[test_indices,0]==predictions))
-	print (classification_report(y[test_indices,0], predictions))
+	output_scores(y[test_indices,0], predictions)
 
 def pdp_rf():
 	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
