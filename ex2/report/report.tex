@@ -116,6 +116,20 @@ In this document, we redo parts of a recent paper~\cite{fares} which bases on th
 
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
 
+
+\begin{table}[b]
+\caption{Detection performance results.} \label{tab:performance_results}
+\begin{tabular}{l r r} \toprule
+& Random Forest & Deep Learning \\ \midrule
+Accuracy	&	0.9974 $\pm$ 0.0001	&	0.9970 $\pm$ 0.0002	\\
+Precision	&	0.9965 $\pm$ 0.0001	&	0.9979 $\pm$ 0.0001	\\
+Recall	&	0.9931 $\pm$ 0.0002	&	0.9903 $\pm$ 0.0007	\\
+F1	&	0.9948 $\pm$ 0.0001	&	0.9941 $\pm$ 0.0004	\\
+Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Anomaly Detection Approaches} \label{sec:ml_approaches}
 We used the CIC-IDS-2017~\cite{Sharafaldin2018} for our evaluations. As a first preprocessing step we extracted flow features from the dataset. We used features specificed by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
 
@@ -144,7 +158,12 @@ We used PyTorch to build a neural network classifier. For this we used 5 fully c
 \subsection{Random Forests}
 In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training each random forest.
 
+
 \subsection{Performance Results}
+Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistant with previous work like, e.g., \cite{fares}.
+
+
+
 \section{Explainability Plots} \label{sec:plots}
 Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
 In this section, we introduce the graphs which we will use for interpreting our models' outcomes which are not available in real-world situations.
