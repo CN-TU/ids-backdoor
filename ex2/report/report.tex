@@ -116,6 +116,20 @@ In this document, we redo parts of a recent paper~\cite{fares} which bases on th
 
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
 
+
+\begin{table}[b]
+\caption{Detection performance results.} \label{tab:performance_results}
+\begin{tabular}{l r r} \toprule
+& Random Forest & Deep Learning \\ \midrule
+Accuracy	&	0.9974 $\pm$ 0.0001	&	0.9970 $\pm$ 0.0002	\\
+Precision	&	0.9965 $\pm$ 0.0001	&	0.9979 $\pm$ 0.0001	\\
+Recall	&	0.9931 $\pm$ 0.0002	&	0.9903 $\pm$ 0.0007	\\
+F1	&	0.9948 $\pm$ 0.0001	&	0.9941 $\pm$ 0.0004	\\
+Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Anomaly Detection Approaches} \label{sec:ml_approaches}
 We used the CIC-IDS-2017~\cite{Sharafaldin2018} for our evaluations. As a first preprocessing step we extracted flow features from the dataset. We used features specificed by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
 
@@ -142,10 +156,15 @@ max\_srcPktIAT	&	mean\_srcTTL	&	srcBytes	&	stdev\_srcTTL	&	\#srcTCPflag:syn	\\
 We used PyTorch to build a neural network classifier. For this we used 5 fully connected layers with 512 neurons each and applied ReLU after each layer as well as dropout with a probability of 0.2. We use the binary cross entropy loss function for the classification task itself. 
 
 \subsection{Random Forests}
-In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. 
+In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training each random forest.
+
 
 \subsection{Performance Results}
-\section{Explainability Plots}
+Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistant with previous work like, e.g., \cite{fares}.
+
+
+
+\section{Explainability Plots} \label{sec:plots}
 Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
 In this section, we introduce the graphs which we will use for interpreting our models' outcomes which are not available in real-world situations.
 \subsection{Partial Dependence Plots}
@@ -188,6 +207,76 @@ When computing ALE plots, we experienced the problem of empty intervals. If ther
 For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
 
 \subsection{Interpretation}
+\subsubsection{PDPs}
+We generated PD plots for all features contained in our extracted feature vector. Fig.~\ref{fig:pdp} shows examples for some features for the different folds. Comparing plots generated for our deep learning and for our random forest approach, respectively, the two machine learning approaches show the outstanding difference that deep learning PDPs are smooth, while random forest PDPs fluctuate heavily. Considering the functioning of neural networks and decision trees, this is an expected result.
+
+Considering the explanations the PD plots provide, consistency between deep learning and random forest can be observed for some features, while for other features both methods provide substantially different explanations. For example, the two upper plots in Fig.~\ref{fig:pdp} exhibit a very similar behaviour, while the lower plots show remarkable differences between both methods. An additional observation is, however, that random forests show substantial differences between the folds. 
+
+Considering these observations, it is likely that most samples from the dataset have very small values of \textit{stdev\_srcPktLength}, so that for neither deep learning nor random forests it is important to predict higher values of \textit{stdev\_srcPktLength}. 
+
+The topmost plots in Fig.~\ref{fig:pdp} show the PDP for source ports, which intuitively provides important information for attack detection. Indeed, the plots show that predictions vary substantially with this feature. Furthermore, attack traffic mainly uses higher (unprivileged) ports.
+
+More importantly, however, the deep spike around port 50000 catches the eye immediately. In the network that was used for generating the dataset, most likely massive amounts of legitimate traffic originating from this port, existed.
+Since this is a characteristic which is very specific to the used dataset, it is questionable if this expresses desired behaviour.
+
+Most importantly, however, the \textit{mean\_srcTTL} feature depicted in Fig.~\ref{fig:pdp} shows that both deep learning and random forest learn to consider very specific TTL values for their decisions. This points out that attack traffic was generated from a very specific network with specific TTL values throughout dataset generation.
+By no means can this behaviour generalize to network traffic in real deployments.
+
+\subsubsection{ALE plots}
+In addition to PD plots, we generated ALE plots for all features in our feature vectors. Fig.~\ref{fig:ale} depicts plots for the same features as presented in Fig.~\ref{fig:pdp}.
+
+As described in Section~\ref{sec:plots}, ALE plots might provide benefits in explaining the models' decisions and, hence, seem particularly important.
+
+Plots depicted in Fig.~\ref{fig:ale} show a certain similarity to the PD plots in Fig.\ref{fig:pdp}. However, as apparant at the \textit{srcPort}, explanations from PD and ALE plots might also deviate substantially. 
+
+An important observation for ALE plots particularly for random forests is that influce of TTL values is even more distinctive. In fact, judging from ALE plots the random forest seems to almost exclusively consider the TTL for detecting attacks. This emphasizes the problem described already for PDPs.
+
+\subsubsection{ICE plots}
+Finally, we also generated ICE plots for the features. Examples are depicted in Fig.~\ref{fig:ice}. Since the dataset we used consists of 2.3 million flows, it is impossible to draw plots for all points. Fig.~\ref{fig:ice} therefore depicts a random sample of 100 flows.
+
+ICE plots for most features we considered have a similar appearance as the exmaples in Fig.~\ref{fig:ice}. For the present task, hence, they do not seem to provide notable information.
+
+\begin{figure*}[p]
+\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_nn.pdf}
+\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_rf.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(mean(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(mean(ipTTL),forward)_rf.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_rf.pdf}
+
+\caption{Examples for PD plots for deep learning (left side) and random forest (right side).}
+\label{fig:pdp}
+\end{figure*}
+
+\begin{figure*}[p]
+\includegraphics[width=0.48\textwidth]{plots/ale/sourceTransportPort_nn.pdf}
+\includegraphics[width=0.48\textwidth]{plots/ale/sourceTransportPort_rf.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/ale/apply(mean(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{plots/ale/apply(mean(ipTTL),forward)_rf.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/ale/apply(stdev(ipTotalLength),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{plots/ale/apply(stdev(ipTotalLength),forward)_rf.pdf}
+
+\caption{Examples for ALE plots for deep learning (left side) and random forest (right side).}
+\label{fig:ale}
+\end{figure*}
+
+\begin{figure*}[p]
+\includegraphics[width=0.48\textwidth]{plots/ice/sourceTransportPort_nn_0.pdf}
+\includegraphics[width=0.48\textwidth]{plots/ice/sourceTransportPort_rf_0.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/ice/apply(mean(ipTTL),forward)_nn_0.pdf}
+\includegraphics[width=0.48\textwidth]{plots/ice/apply(mean(ipTTL),forward)_rf_0.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/ice/apply(stdev(ipTotalLength),forward)_nn_0.pdf}
+\includegraphics[width=0.48\textwidth]{plots/ice/apply(stdev(ipTotalLength),forward)_rf_0.pdf}
+
+\caption{Examples for ICE plots for deep learning (left side) and random forest (right side).}
+\label{fig:ice}
+\end{figure*}
 
 \section{Logistic Regression as Surrogate Model}
 Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original lables, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}. The fact that results for random forests are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest.
