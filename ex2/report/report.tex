@@ -203,7 +203,7 @@ To combat ambiguity of this definition, we force ALE$_i(x)$ to have zero mean on
 
 For empirical evaluation, we approximate the conditional distributions of $\boldsymbol X$ by averaging over samples for which $X_i \approx y$. 
 
-When computing ALE plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values. 
+When computing ALE plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values doesn't work. 
 
 For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
 
@@ -553,7 +553,7 @@ Backward & 1 & 0,9999 $\pm$ 0,0000 \\
 The false positives are the classes of the attack samples that are the closest to a benign sample that was wrongly classified as being an attack. 
 
 \begin{table*}
-\caption{Misclassified instances: \textit{false positives} shows the class of the attack sample that is closest to the misclassified benign sample; \textit{false negatives} shows how many attack samples of each class were falsely classified as benign.}
+\caption{Misclassified instances of the first fold: \textit{false positives} shows the class of the attack sample that is closest to the misclassified benign sample; \textit{false negatives} shows how many attack samples of each class were falsely classified as benign.}
 \label{tab:misclassified_instances}
 \begin{tabular}{l l l l} 
 \toprule 
