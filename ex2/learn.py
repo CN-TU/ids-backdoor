@@ -36,7 +36,7 @@ def output_scores(y_true, y_pred):
 	metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden']
 	print (('{:>11}'*len(metrics)).format(*metrics))
 	print ((' {:.8f}'*len(metrics)).format(accuracy, precision, recall, f1, youden))
-	
+
 def add_backdoor(datum: dict, direction: str) -> dict:
 	datum = datum.copy()
 	if datum["apply(packetTotalCount,{})".format(direction)] <= 1:
@@ -98,6 +98,7 @@ try:
 	del df['flowStartMilliseconds']
 	del df['sourceIPAddress']
 	del df['destinationIPAddress']
+	attack_vector = df['Attack']
 	del df['Attack']
 except KeyError:
 	pass
@@ -133,8 +134,11 @@ if opt.backdoor:
 print("Final rows", df.shape)
 # df[:1000].to_csv("exported_2.csv")
 
+shuffle_indices = np.array(list(range(df.shape[0])))
+random.shuffle(shuffle_indices)
+
 data = df.values
-np.random.shuffle(data)
+data = data[shuffle_indices,:]
 columns = list(df)
 print("columns", columns)
 
@@ -237,6 +241,7 @@ def closest(prediction_function):
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
 	data, labels = list(zip(*list(torch.utils.data.Subset(dataset, test_indices))))
 	data, labels = torch.stack(data).squeeze().numpy(), torch.stack(labels).squeeze().numpy()
+	attacks = attack_vector[test_indices]
 
 	all_predictions = np.round(prediction_function(test_indices))
 	all_labels = y[test_indices,0]
@@ -247,7 +252,7 @@ def closest(prediction_function):
 	misclassified, misclassified_labels, misclassified_predictions = data[misclassified_filter], labels[misclassified_filter], all_predictions[misclassified_filter]
 
 	misclassified = misclassified[:100]
-	closest_module.closest(data, labels, all_predictions, misclassified, misclassified_labels, misclassified_predictions, means, stds, suffix=suffix)
+	closest_module.closest(data, labels, attacks, all_predictions, misclassified, misclassified_labels, attacks[misclassified_filter], misclassified_predictions, means, stds, suffix=suffix)
 
 # Deep Learning
 ############################
