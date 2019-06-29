@@ -107,7 +107,7 @@ The detection of attacks in data networks is a fundamental task in data security
 
 For research the invention and assessment of techniques for network anomaly detection poses many challenges. Particularly, a considerable number of features can be extracted from network data which might be beneficial for anomaly detection. For the training of models usually datasets are used which have been generated artificially in a controlled test environment. 
 
-As a downside of this approach, it is unclear whether a machine learning model learn to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
+As a downside of this approach, it is unclear whether a machine learning model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
 
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
@@ -143,23 +143,6 @@ max\_srcPktIAT	&	mean\_srcTTL	&	srcBytes	&	stdev\_srcTTL	&	\#srcTCPflag:syn	\\
 In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. 
 
 \subsection{Performance Results}
-Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistant with previous work like, e.g., \cite{fares}.
-
-\begin{table}
-\caption{Detection performance results.} \label{tab:performance_results}
-\begin{tabular}{l r r} \toprule
-& Random Forest & Deep Learning \\ \midrule
-Accuracy	&	0.9974 $\pm$ 0.0001	&	0.9970 $\pm$ 0.0002	\\
-Precision	&	0.9965 $\pm$ 0.0001	&	0.9979 $\pm$ 0.0001	\\
-Recall	&	0.9931 $\pm$ 0.0002	&	0.9903 $\pm$ 0.0007	\\
-F1	&	0.9948 $\pm$ 0.0001	&	0.9941 $\pm$ 0.0004	\\
-Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Notably, random forests exhibit a performance which intuitively seems hard or even impossible to achieve.  
-This observation motivates taking a closer look at the models' decisions to find out if they  learn to decide based on artifacts from the dataset generation process.
 \section{Explainability Plots}
 Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
 In this section, we introduce the graphs which we will use for interpreting our models' outcomes which are not available in real-world situations.
