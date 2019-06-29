@@ -145,6 +145,19 @@ In addition to deep learning we trained a random forest classifier to detect att
 \subsection{Performance Results}
 Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistant with previous work like, e.g., \cite{fares}.
 
+\begin{table}
+\caption{Detection performance results.} \label{tab:performance_results}
+\begin{tabular}{l r r} \toprule
+& Random Forest & Deep Learning \\ \midrule
+Accuracy	&	0.9974 $\pm$ 0.0001	&	0.9970 $\pm$ 0.0002	\\
+Precision	&	0.9965 $\pm$ 0.0001	&	0.9979 $\pm$ 0.0001	\\
+Recall	&	0.9931 $\pm$ 0.0002	&	0.9903 $\pm$ 0.0007	\\
+F1	&	0.9948 $\pm$ 0.0001	&	0.9941 $\pm$ 0.0004	\\
+Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
+\bottomrule
+\end{tabular}
+\end{table}
+
 Notably, random forests exhibit a performance which intuitively seems hard or even impossible to achieve.  
 This observation motivates taking a closer look at the models' decisions to find out if they  learn to decide based on artifacts from the dataset generation process.
 \section{Explainability Plots}
@@ -197,7 +210,7 @@ Another possibility for explaining the models' outcomes is training an interpret
  Table~\ref{tab:logreg_coeff} displays the coefficients for the trained logistic regression classifiers.
  
  \begin{table*}
- \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side).} \label{tab:logreg_coeff}
+ \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side) with backdoor.} \label{tab:logreg_coeff_bd}
 \begin{tabular}{l r r} \toprule 
 \multirow{2}{*}{Feature} & \multicolumn{2}{c}{Training on} \\
   & predicted labels & real labels \\ \midrule
@@ -305,6 +318,32 @@ In our case, we used the Time-to-Live (TTL) value contained in the Internet Prot
 
 Hence, we decided to establish a backdoor in our models by varying the TTL for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the TTL value as non-attack traffic.
 
+\begin{table}
+\caption{Detection performance results for models with backdoor.} 
+\label{tab:performance_results_bd}
+\begin{tabular}{l r r} \toprule
+& Random Forest & Deep Learning \\ \midrule
+Accuracy	&	0.9986 $\pm$ 0.0004	&	0.9974 $\pm$ 0.0001		\\
+Precision	&	0.9981 $\pm$ 0.0005	&	0.9986 $\pm$ 0.0004		\\
+Recall	&	0.9964 $\pm$ 0.0009	&	0.9912 $\pm$ 0.0004		\\
+F1	&	0.9972 $\pm$ 0.0007	&	0.9949 $\pm$ 0.0002		\\
+Youden	&	0.9957 $\pm$ 0.0011	&	0.9907 $\pm$ 0.0003		\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\begin{table}
+\caption{Efficacy of the backdoor.}
+\begin{tabular}{l r r} \toprule
+ & Random Forest & Deep Learning \\ \midrule
+Forward & 1 & 0,9999 $\pm$ 0,0001 \\
+Backward & 1 & 0,9999 $\pm$ 0,0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
 
 \begin{table*}
  \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side).} \label{tab:logreg_coeff}
@@ -401,6 +440,10 @@ Hence, we decided to establish a backdoor in our models by varying the TTL for t
 \bottomrule
 \end{tabular}
 \end{table*}
+
+
+
+
 
 \section{Misclassification Examples}
 
