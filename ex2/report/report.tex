@@ -125,8 +125,8 @@ Furthermore, we add a backdoor to the trained model and show that attack detecti
 Accuracy	&	0.9974 $\pm$ 0.0001	&	0.9970 $\pm$ 0.0002	\\
 Precision	&	0.9965 $\pm$ 0.0001	&	0.9979 $\pm$ 0.0001	\\
 Recall	&	0.9931 $\pm$ 0.0002	&	0.9903 $\pm$ 0.0007	\\
-F1	&	0.9948 $\pm$ 0.0001	&	0.9941 $\pm$ 0.0004	\\
-Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
+F1 score	&	0.9948 $\pm$ 0.0001	&	0.9941 $\pm$ 0.0004	\\
+Youden's index	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -161,8 +161,9 @@ In addition to deep learning we trained a random forest classifier to detect att
 
 
 \subsection{Performance Results}
-Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistant with previous work like, e.g., \cite{fares}.
+Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistent with previous work like, e.g., \cite{fares}.
 
+What strikes the eye immediately, is that results for both random forests and deep learning are better than what one would intuitively expect to be possible. This fact hints at artifacts from the dataset generation process which support the anomaly detection systems in an unintendet way.
 
 
 \section{Explainability Plots} \label{sec:plots}
