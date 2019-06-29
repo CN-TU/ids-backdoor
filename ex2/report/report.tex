@@ -24,6 +24,8 @@
 %% The first command in your LaTeX source must be the \documentclass command.
 \documentclass[sigconf,nonacm]{acmart}
 
+\usepackage{multirow}
+
 \settopmatter{printacmref=false} % Removes citation information below abstract
 \renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
 
@@ -69,11 +71,11 @@
 %% Of note is the shared affiliation of the first two authors, and the
 %% "authornote" and "authornotemark" commands
 %% used to denote shared contribution to the research.
-\author{Alexander Hartl}
+\author{Alexander Hartl (e01125115)}
 \authornote{Both authors contributed equally to this research.}
 %\email{alexander.hartl@tuwien.ac.at}
 
-\author{Maximilian Bachl}
+\author{Maximilian Bachl (e01100143)}
 %\authornote[1]{Both authors contributed equally to this research.}
 \authornotemark[1]
 %\email{maximilian.bachl@gmail.com}
@@ -114,7 +116,7 @@ In this document, we redo parts of a recent paper~\cite{fares} which bases on th
 
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
 
-\section{Machine Learning Approaches for Anomaly Detection} \label{sec:ml_approaches}
+\section{Anomaly Detection Approaches} \label{sec:ml_approaches}
 We used the CIC-IDS-2017~\cite{Sharafaldin2018} for our evaluations. As a first preprocessing step we extracted flow features from the dataset. We used features specificed by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
 
 We used Z-score normalization to process the data and 3-fold cross validation for evaluating the models' performances.
@@ -141,9 +143,13 @@ max\_srcPktIAT	&	mean\_srcTTL	&	srcBytes	&	stdev\_srcTTL	&	\#srcTCPflag:syn	\\
 In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. 
 
 \subsection{Performance Results}
+Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistant with previous work like, e.g., \cite{fares}.
+
+Notably, random forests exhibit a performance which intuitively seems hard or even impossible to achieve.  
+This observation motivates taking a closer look at the models' decisions to find out if they  learn to decide based on artifacts from the dataset generation process.
 \section{Explainability Plots}
 Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
-In this section, we introduce the graphs which we will use for interpreting our models' outcomes. 
+In this section, we introduce the graphs which we will use for interpreting our models' outcomes which are not available in real-world situations.
 \subsection{Partial Dependence Plots}
 Partial Dependence Plots (PDP) were proposed in \cite{friedman2001greedy} and visualize dependence of a model's predictions by plotting the model's prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
 
@@ -189,6 +195,102 @@ For this reason, we modified this definition to instead use the closest 10 sampl
 Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original lables, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}. The fact that results for random forests are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest.
 
  Table~\ref{tab:logreg_coeff} displays the coefficients for the trained logistic regression classifiers.
+ 
+ \begin{table*}
+ \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side).} \label{tab:logreg_coeff}
+\begin{tabular}{l r r} \toprule 
+\multirow{2}{*}{Feature} & \multicolumn{2}{c}{Training on} \\
+  & predicted labels & real labels \\ \midrule
+    \#srcTCPflag:ack &  -28.431 $\pm$ 1.129 &  -19.570 $\pm$ 6.735 \\
+             srcPkts &  -26.661 $\pm$ 0.994 &  -18.099 $\pm$ 6.500 \\
+     mean\_dstPktIAT &   16.232 $\pm$ 1.091 &   18.778 $\pm$ 1.396 \\
+     mean\_srcPktIAT &  -12.140 $\pm$ 1.144 &  -15.672 $\pm$ 1.289 \\
+            dstBytes &  -11.305 $\pm$ 0.361 &   -1.878 $\pm$ 6.300 \\
+             dstPkts &   -9.750 $\pm$ 0.158 &   -3.987 $\pm$ 1.972 \\
+      min\_dstPktIAT &   -9.216 $\pm$ 1.157 &  -12.533 $\pm$ 1.477 \\
+            srcBytes &   -8.994 $\pm$ 4.744 &   -5.373 $\pm$ 3.870 \\
+    \#dstTCPflag:ack &   -8.292 $\pm$ 0.227 &   -2.616 $\pm$ 1.952 \\
+       stdev\_dstTTL &   -6.934 $\pm$ 0.231 &   -0.241 $\pm$ 0.014 \\
+%   min\_srcPktLength &   -4.519 $\pm$ 0.314 &   -2.891 $\pm$ 0.180 \\
+%         min\_srcTTL &   -4.192 $\pm$ 0.646 &   -3.619 $\pm$ 0.432 \\
+% stdev\_srcPktLength &   -4.068 $\pm$ 0.342 &   -2.231 $\pm$ 0.439 \\
+% stdev\_dstPktLength &    3.466 $\pm$ 0.085 &    3.289 $\pm$ 0.253 \\
+%    stdev\_srcPktIAT &    3.102 $\pm$ 0.407 &    4.743 $\pm$ 0.475 \\
+%            protocol &   -3.043 $\pm$ 0.028 &   -2.157 $\pm$ 0.012 \\
+%    stdev\_dstPktIAT &   -2.842 $\pm$ 0.375 &   -4.545 $\pm$ 0.503 \\
+%  mean\_srcPktLength &    2.339 $\pm$ 0.435 &    1.777 $\pm$ 0.261 \\
+%         max\_srcTTL &    2.153 $\pm$ 0.820 &    2.448 $\pm$ 0.249 \\
+%    \#srcTCPflag:fin &   -2.117 $\pm$ 0.066 &   -1.876 $\pm$ 0.045 \\
+%      max\_srcPktIAT &   -2.044 $\pm$ 0.271 &   -3.821 $\pm$ 0.415 \\
+%    \#srcTCPflag:syn &    1.738 $\pm$ 0.010 &    1.521 $\pm$ 0.005 \\
+%   max\_dstPktLength &   -1.256 $\pm$ 0.066 &   -1.187 $\pm$ 0.137 \\
+%  mean\_dstPktLength &    1.200 $\pm$ 0.019 &    1.008 $\pm$ 0.085 \\
+%        mean\_srcTTL &   -0.858 $\pm$ 0.533 &   -0.709 $\pm$ 0.417 \\
+%    \#dstTCPflag:syn &   -0.778 $\pm$ 0.021 &   -1.020 $\pm$ 0.011 \\
+%         max\_dstTTL &   -0.695 $\pm$ 0.028 &   -1.369 $\pm$ 0.052 \\
+%             dstPort &   -0.679 $\pm$ 0.002 &   -0.633 $\pm$ 0.004 \\
+%      min\_srcPktIAT &   -0.111 $\pm$ 0.977 &   -0.762 $\pm$ 2.837 \\
+%   max\_srcPktLength &    0.498 $\pm$ 0.048 &   -0.475 $\pm$ 0.432 \\
+%         min\_dstTTL &    0.468 $\pm$ 0.023 &   -0.197 $\pm$ 0.109 \\
+%            duration &   -0.415 $\pm$ 0.007 &   -0.386 $\pm$ 0.042 \\
+%             srcPort &    0.345 $\pm$ 0.007 &    0.350 $\pm$ 0.005 \\
+%   min\_dstPktLength &    0.268 $\pm$ 0.009 &    0.142 $\pm$ 0.021 \\
+%      max\_dstPktIAT &    0.225 $\pm$ 0.267 &    2.307 $\pm$ 0.432 \\
+%    \#dstTCPflag:fin &   -0.103 $\pm$ 0.024 &   -0.112 $\pm$ 0.017 \\
+%        mean\_dstTTL &   -0.069 $\pm$ 0.016 &    1.436 $\pm$ 0.116 \\
+%    \#srcTCPflag:cwr &    0.059 $\pm$ 0.034 &    0.052 $\pm$ 0.013 \\
+%       stdev\_srcTTL &   -0.051 $\pm$ 0.025 &   -0.058 $\pm$ 0.012 \\
+%    \#dstTCPflag:cwr &    0.016 $\pm$ 0.001 &   -0.014 $\pm$ 0.005 \\
+
+\bottomrule
+\end{tabular} \qquad
+ \begin{tabular}{l r r} \toprule 
+\multirow{2}{*}{Feature} & \multicolumn{2}{c}{Training on} \\
+  & predicted labels & real labels \\ \midrule
+    \#srcTCPflag:ack &  -19.480 $\pm$ 5.095 &  -19.570 $\pm$ 6.735 \\
+     mean\_dstPktIAT &   18.721 $\pm$ 1.613 &   18.778 $\pm$ 1.396 \\
+             srcPkts &  -17.963 $\pm$ 5.079 &  -18.099 $\pm$ 6.500 \\
+     mean\_srcPktIAT &  -15.604 $\pm$ 1.525 &  -15.672 $\pm$ 1.289 \\
+      min\_dstPktIAT &  -12.395 $\pm$ 1.770 &  -12.533 $\pm$ 1.477 \\
+            srcBytes &   -5.106 $\pm$ 4.270 &   -5.373 $\pm$ 3.870 \\
+    stdev\_srcPktIAT &    4.688 $\pm$ 0.583 &    4.743 $\pm$ 0.475 \\
+    stdev\_dstPktIAT &   -4.482 $\pm$ 0.616 &   -4.545 $\pm$ 0.503 \\
+            dstBytes &   -1.389 $\pm$ 6.363 &   -1.878 $\pm$ 6.300 \\
+             dstPkts &   -3.889 $\pm$ 2.178 &   -3.987 $\pm$ 1.972 \\
+%      max\_srcPktIAT &   -3.771 $\pm$ 0.497 &   -3.821 $\pm$ 0.415 \\
+%         min\_srcTTL &   -3.731 $\pm$ 0.448 &   -3.619 $\pm$ 0.432 \\
+% stdev\_dstPktLength &    3.320 $\pm$ 0.254 &    3.289 $\pm$ 0.253 \\
+%   min\_srcPktLength &   -2.935 $\pm$ 0.192 &   -2.891 $\pm$ 0.180 \\
+%         max\_srcTTL &    2.488 $\pm$ 0.106 &    2.448 $\pm$ 0.249 \\
+%    \#dstTCPflag:ack &   -2.481 $\pm$ 2.258 &   -2.616 $\pm$ 1.952 \\
+%      max\_dstPktIAT &    2.233 $\pm$ 0.533 &    2.307 $\pm$ 0.432 \\
+% stdev\_srcPktLength &   -2.224 $\pm$ 0.447 &   -2.231 $\pm$ 0.439 \\
+%            protocol &   -2.181 $\pm$ 0.013 &   -2.157 $\pm$ 0.012 \\
+%    \#srcTCPflag:fin &   -1.883 $\pm$ 0.045 &   -1.876 $\pm$ 0.045 \\
+%  mean\_srcPktLength &    1.759 $\pm$ 0.280 &    1.777 $\pm$ 0.261 \\
+%      min\_srcPktIAT &    0.082 $\pm$ 2.163 &   -0.762 $\pm$ 2.837 \\
+%    \#srcTCPflag:syn &    1.520 $\pm$ 0.007 &    1.521 $\pm$ 0.005 \\
+%        mean\_dstTTL &    1.439 $\pm$ 0.127 &    1.436 $\pm$ 0.116 \\
+%         max\_dstTTL &   -1.359 $\pm$ 0.033 &   -1.369 $\pm$ 0.052 \\
+%   max\_dstPktLength &   -1.211 $\pm$ 0.135 &   -1.187 $\pm$ 0.137 \\
+%    \#dstTCPflag:syn &   -1.017 $\pm$ 0.003 &   -1.020 $\pm$ 0.011 \\
+%  mean\_dstPktLength &    1.007 $\pm$ 0.086 &    1.008 $\pm$ 0.085 \\
+%        mean\_srcTTL &   -0.656 $\pm$ 0.481 &   -0.709 $\pm$ 0.417 \\
+%             dstPort &   -0.635 $\pm$ 0.003 &   -0.633 $\pm$ 0.004 \\
+%   max\_srcPktLength &   -0.483 $\pm$ 0.433 &   -0.475 $\pm$ 0.432 \\
+%            duration &   -0.384 $\pm$ 0.046 &   -0.386 $\pm$ 0.042 \\
+%             srcPort &    0.348 $\pm$ 0.005 &    0.350 $\pm$ 0.005 \\
+%       stdev\_dstTTL &   -0.245 $\pm$ 0.019 &   -0.241 $\pm$ 0.014 \\
+%         min\_dstTTL &   -0.208 $\pm$ 0.117 &   -0.197 $\pm$ 0.109 \\
+%   min\_dstPktLength &    0.152 $\pm$ 0.023 &    0.142 $\pm$ 0.021 \\
+%    \#dstTCPflag:fin &   -0.112 $\pm$ 0.017 &   -0.112 $\pm$ 0.017 \\
+%       stdev\_srcTTL &   -0.061 $\pm$ 0.010 &   -0.058 $\pm$ 0.012 \\
+%    \#srcTCPflag:cwr &    0.052 $\pm$ 0.013 &    0.052 $\pm$ 0.013 \\
+%    \#dstTCPflag:cwr &   -0.016 $\pm$ 0.001 &   -0.014 $\pm$ 0.005 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
 \subsection{Interpretation}
 \section{Implementing a Backdoor}
 Creating a model for anomaly detection in network traffic is a challenging task which involves massive datasets and significant amounts of computation power. In a practical deployment, it is therefore reasonable to assume that the training is done by a security company marketing either a complete anomaly detection system or just a model usable by an anomaly detection software which might even be open-source.
@@ -202,6 +304,103 @@ Hence, for this task we first had to find a pattern usable as a backdoor in feat
 In our case, we used the Time-to-Live (TTL) value contained in the Internet Protocol (IP) header of Internet traffic to signal the backdoor. The TTL is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the TTL field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the TTL value.
 
 Hence, we decided to establish a backdoor in our models by varying the TTL for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the TTL value as non-attack traffic.
+
+
+\begin{table*}
+ \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side).} \label{tab:logreg_coeff}
+\begin{tabular}{l r r} \toprule 
+\multirow{2}{*}{Feature} & \multicolumn{2}{c}{Training on} \\
+  & predicted labels & real labels \\ \midrule
+         max\_srcTTL &  -73.558 $\pm$ 62.431 &  -42.423 $\pm$ 63.108 \\
+       stdev\_dstTTL &  -68.440 $\pm$ 29.723 &  -62.500 $\pm$ 6.157 \\
+        mean\_srcTTL &   47.344 $\pm$ 40.989 &   26.793 $\pm$ 41.001 \\
+         min\_srcTTL &   24.441 $\pm$ 21.392 &   14.281 $\pm$ 22.150 \\
+            srcBytes &  -23.660 $\pm$ 19.034 &   -7.455 $\pm$ 4.132 \\
+    \#srcTCPflag:ack &  -22.746 $\pm$ 18.847 &  -12.779 $\pm$ 15.650 \\
+             srcPkts &  -21.032 $\pm$ 17.382 &  -11.617 $\pm$ 13.848 \\
+     mean\_dstPktIAT &   11.310 $\pm$ 7.515 &    9.278 $\pm$ 4.046 \\
+      min\_dstPktIAT &  -10.318 $\pm$ 7.652 &   -7.674 $\pm$ 4.117 \\
+     mean\_srcPktIAT &   -8.914 $\pm$ 6.918 &   -7.396 $\pm$ 4.275 \\
+%            dstBytes &   -7.656 $\pm$ 6.163 &   -1.338 $\pm$ 0.685 \\
+%       stdev\_srcTTL &   -7.585 $\pm$ 1.529 &   -9.045 $\pm$ 2.874 \\
+%         max\_dstTTL &   -6.360 $\pm$ 2.801 &   -8.025 $\pm$ 4.076 \\
+%      min\_srcPktIAT &    5.725 $\pm$ 5.259 &    2.023 $\pm$ 4.868 \\
+%   min\_srcPktLength &   -5.190 $\pm$ 0.911 &   -4.658 $\pm$ 0.205 \\
+%             dstPkts &   -4.509 $\pm$ 3.435 &   -3.460 $\pm$ 1.880 \\
+%         min\_dstTTL &    4.093 $\pm$ 1.723 &   -0.843 $\pm$ 6.946 \\
+%            protocol &   -3.677 $\pm$ 0.159 &   -2.510 $\pm$ 0.063 \\
+%   max\_srcPktLength &   -3.135 $\pm$ 1.768 &   -2.828 $\pm$ 0.871 \\
+%    stdev\_dstPktIAT &   -2.369 $\pm$ 2.670 &   -1.682 $\pm$ 1.653 \\
+%    \#dstTCPflag:ack &   -2.841 $\pm$ 2.170 &   -2.469 $\pm$ 0.454 \\
+%  mean\_srcPktLength &    2.837 $\pm$ 1.767 &    2.066 $\pm$ 0.336 \\
+%    stdev\_srcPktIAT &    2.337 $\pm$ 2.305 &    1.802 $\pm$ 1.741 \\
+%        mean\_dstTTL &    2.367 $\pm$ 1.048 &    9.027 $\pm$ 11.021 \\
+%  mean\_dstPktLength &    2.194 $\pm$ 0.429 &    1.966 $\pm$ 0.171 \\
+% stdev\_srcPktLength &   -1.066 $\pm$ 2.101 &   -0.185 $\pm$ 0.808 \\
+% stdev\_dstPktLength &   -1.741 $\pm$ 0.533 &   -1.118 $\pm$ 0.370 \\
+%   max\_dstPktLength &    1.575 $\pm$ 0.487 &    1.036 $\pm$ 0.325 \\
+%      max\_dstPktIAT &    0.610 $\pm$ 1.418 &    0.486 $\pm$ 0.827 \\
+%      max\_srcPktIAT &   -1.252 $\pm$ 1.140 &   -1.290 $\pm$ 0.902 \\
+%    \#srcTCPflag:fin &   -1.032 $\pm$ 0.191 &   -1.010 $\pm$ 0.042 \\
+%    \#srcTCPflag:syn &    0.835 $\pm$ 0.153 &    0.847 $\pm$ 0.033 \\
+%    \#dstTCPflag:syn &   -0.589 $\pm$ 0.155 &   -0.999 $\pm$ 0.164 \\
+%             dstPort &   -0.494 $\pm$ 0.005 &   -0.490 $\pm$ 0.003 \\
+%   min\_dstPktLength &    0.420 $\pm$ 0.148 &    0.304 $\pm$ 0.066 \\
+%             srcPort &    0.380 $\pm$ 0.026 &    0.353 $\pm$ 0.003 \\
+%            duration &   -0.351 $\pm$ 0.155 &   -0.352 $\pm$ 0.063 \\
+%    \#srcTCPflag:cwr &   -0.102 $\pm$ 0.040 &    0.112 $\pm$ 0.072 \\
+%    \#dstTCPflag:fin &    0.089 $\pm$ 0.024 &    0.143 $\pm$ 0.045 \\
+%    \#dstTCPflag:cwr &    0.012 $\pm$ 0.012 &   -0.064 $\pm$ 0.118 \\
+
+\bottomrule
+\end{tabular} \qquad
+ \begin{tabular}{l r r} \toprule 
+\multirow{2}{*}{Feature} & \multicolumn{2}{c}{Training on} \\
+  & predicted labels & real labels \\ \midrule
+        stdev\_dstTTL &  -69.667 $\pm$ 1.850 &  -62.500 $\pm$ 6.157 \\
+         max\_srcTTL &  -66.645 $\pm$ 16.712 &  -42.423 $\pm$ 63.108 \\
+        mean\_srcTTL &   43.800 $\pm$ 11.135 &   26.793 $\pm$ 41.001 \\
+    \#srcTCPflag:ack &  -23.123 $\pm$ 7.480 &  -12.779 $\pm$ 15.650 \\
+             srcPkts &  -21.538 $\pm$ 7.057 &  -11.617 $\pm$ 13.848 \\
+         min\_srcTTL &   21.484 $\pm$ 5.592 &   14.281 $\pm$ 22.150 \\
+            srcBytes &  -16.256 $\pm$ 3.767 &   -7.455 $\pm$ 4.132 \\
+     mean\_dstPktIAT &   15.729 $\pm$ 0.866 &    9.278 $\pm$ 4.046 \\
+      min\_dstPktIAT &  -14.390 $\pm$ 0.935 &   -7.674 $\pm$ 4.117 \\
+     mean\_srcPktIAT &  -12.811 $\pm$ 0.429 &   -7.396 $\pm$ 4.275 \\
+%        mean\_dstTTL &   11.241 $\pm$ 1.946 &    9.027 $\pm$ 11.021 \\
+%         max\_dstTTL &   -9.162 $\pm$ 0.627 &   -8.025 $\pm$ 4.076 \\
+%      min\_srcPktIAT &    8.305 $\pm$ 0.527 &    2.023 $\pm$ 4.868 \\
+%       stdev\_srcTTL &   -8.181 $\pm$ 0.634 &   -9.045 $\pm$ 2.874 \\
+%             dstPkts &   -7.145 $\pm$ 0.533 &   -3.460 $\pm$ 1.880 \\
+%    \#dstTCPflag:ack &   -5.720 $\pm$ 0.329 &   -2.469 $\pm$ 0.454 \\
+%            dstBytes &   -5.681 $\pm$ 4.119 &   -1.338 $\pm$ 0.685 \\
+%   min\_srcPktLength &   -4.751 $\pm$ 0.109 &   -4.658 $\pm$ 0.205 \\
+%    stdev\_dstPktIAT &   -3.877 $\pm$ 0.354 &   -1.682 $\pm$ 1.653 \\
+%    stdev\_srcPktIAT &    3.628 $\pm$ 0.458 &    1.802 $\pm$ 1.741 \\
+%  mean\_srcPktLength &    2.695 $\pm$ 0.232 &    2.066 $\pm$ 0.336 \\
+%            protocol &   -2.469 $\pm$ 0.022 &   -2.510 $\pm$ 0.063 \\
+%  mean\_dstPktLength &    2.102 $\pm$ 0.056 &    1.966 $\pm$ 0.171 \\
+%         min\_dstTTL &   -1.948 $\pm$ 1.316 &   -0.843 $\pm$ 6.946 \\
+%      max\_srcPktIAT &   -1.921 $\pm$ 0.411 &   -1.290 $\pm$ 0.902 \\
+%   max\_srcPktLength &   -1.619 $\pm$ 0.447 &   -2.828 $\pm$ 0.871 \\
+% stdev\_dstPktLength &   -1.559 $\pm$ 0.169 &   -1.118 $\pm$ 0.370 \\
+% stdev\_srcPktLength &   -1.502 $\pm$ 0.455 &   -0.185 $\pm$ 0.808 \\
+%   max\_dstPktLength &    1.415 $\pm$ 0.181 &    1.036 $\pm$ 0.325 \\
+%      max\_dstPktIAT &    1.301 $\pm$ 0.216 &    0.486 $\pm$ 0.827 \\
+%    \#srcTCPflag:fin &   -1.040 $\pm$ 0.015 &   -1.010 $\pm$ 0.042 \\
+%    \#srcTCPflag:syn &    0.910 $\pm$ 0.006 &    0.847 $\pm$ 0.033 \\
+%    \#dstTCPflag:syn &   -0.827 $\pm$ 0.054 &   -0.999 $\pm$ 0.164 \\
+%            duration &   -0.602 $\pm$ 0.150 &   -0.352 $\pm$ 0.063 \\
+%             dstPort &   -0.492 $\pm$ 0.003 &   -0.490 $\pm$ 0.003 \\
+%             srcPort &    0.351 $\pm$ 0.006 &    0.353 $\pm$ 0.003 \\
+%   min\_dstPktLength &    0.236 $\pm$ 0.033 &    0.304 $\pm$ 0.066 \\
+%    \#dstTCPflag:fin &    0.088 $\pm$ 0.014 &    0.143 $\pm$ 0.045 \\
+%    \#srcTCPflag:cwr &    0.070 $\pm$ 0.017 &    0.112 $\pm$ 0.072 \\
+%    \#dstTCPflag:cwr &   -0.030 $\pm$ 0.068 &   -0.064 $\pm$ 0.118 \\
+
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \section{Misclassification Examples}
 
