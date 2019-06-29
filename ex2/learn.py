@@ -22,6 +22,7 @@ from sklearn.linear_model import LogisticRegression
 import pdp as pdp_module
 import ale as ale_module
 import ice as ice_module
+import closest as closest_module
 import collections
 import pickle
 
@@ -74,8 +75,9 @@ if opt.backdoor:
 else:
 	suffix = '_%s_%d' % (opt.method, opt.fold)
 
-MAX_ROWS = 1000000000
+MAX_ROWS = sys.maxsize
 # MAX_ROWS = 1_000_000
+# MAX_ROWS = 10_000
 
 csv_name = opt.dataroot
 df = pd.read_csv(csv_name, nrows=MAX_ROWS).fillna(0)
@@ -123,14 +125,16 @@ print("Final rows", df.shape)
 data = df.values
 np.random.shuffle(data)
 columns = list(df)
+print("columns", columns)
 
 x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
 if opt.normalizationData == "":
 	file_name = opt.dataroot[:-4]+"_"+("backdoor" if opt.backdoor else "normal")+"_normalization_data.pickle"
 	means = np.mean(x, axis=0)
 	stds = np.std(x, axis=0)
-	stds[stds==0] == 1.0
-# assert not (stds == 0).any(), "stds include 0: {}".format(list(zip(columns[:-1], list(stds))))
+	stds[stds==0.0] = 1.0
+	# np.set_printoptions(suppress=True)
+	# stds[np.isclose(stds, 0)] = 1.0
 	with open(file_name, "wb") as f:
 		f.write(pickle.dumps((means, stds)))
 else:
@@ -139,7 +143,7 @@ else:
 		means, stds = pickle.loads(f.read())
 assert means.shape[0] == x.shape[1], "means.shape: {}, x.shape: {}".format(means.shape, x.shape)
 assert stds.shape[0] == x.shape[1], "stds.shape: {}, x.shape: {}".format(stds.shape, x.shape)
-assert not (stds==0).any()
+assert not (stds==0).any(), "stds: {}".format(stds)
 x = (x-means)/stds
 
 class OurDataset(Dataset):
@@ -217,7 +221,24 @@ def surrogate(predict_fun):
 	print ("Coefficients:", logreg.coef_)
 	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_real%s.csv' % suffix)
 
+def closest(prediction_function):
+	n_fold = opt.nFold
+	fold = opt.fold
 
+	_, test_indices = get_nth_split(dataset, n_fold, fold)
+	data, labels = list(zip(*list(torch.utils.data.Subset(dataset, test_indices))))
+	data, labels = torch.stack(data).squeeze().numpy(), torch.stack(labels).squeeze().numpy()
+
+	all_predictions = np.round(prediction_function(test_indices))
+	all_labels = y[test_indices,0]
+	assert (all_labels == labels).all()
+
+	misclassified_filter = labels != all_predictions
+	print("data", data, "labels", labels, "all_predictions", all_predictions)
+	misclassified, misclassified_labels, misclassified_predictions = data[misclassified_filter], labels[misclassified_filter], all_predictions[misclassified_filter]
+
+	misclassified = misclassified[:100]
+	closest_module.closest(data, labels, all_predictions, misclassified, misclassified_labels, misclassified_predictions, means, stds, suffix=suffix)
 
 # Deep Learning
 ############################
@@ -297,6 +318,9 @@ def eval_nn(test_indices=None):
 	print("accuracy", np.mean(all_predictions==all_labels))
 	print(classification_report(all_labels, all_predictions))
 
+def closest_nn():
+	closest(predict)
+
 def pdp_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 	samples = 0
@@ -327,9 +351,6 @@ def ice_nn():
 def surrogate_nn():
 	surrogate(predict)
 
-
-
-
 # Random Forests
 ##########################
 
@@ -356,9 +377,12 @@ def ice_rf():
 def surrogate_rf():
 	surrogate(lambda indices: rf.predict(x[indices,:]))
 
+def closest_rf():
+	closest(lambda x: rf.predict(x)[:,1].squeeze())
 
-
-
+def noop_nn():
+	pass
+noop_rf = noop_nn
 
 if __name__=="__main__":
 	if opt.method == 'nn':
@@ -380,8 +404,8 @@ if __name__=="__main__":
 		else:
 			rf = RandomForestClassifier(n_estimators=100)
 			rf.fit (x[train_indices,:], y[train_indices,0])
-
-
+			summed_up = np.sum(rf.predict(x[train_indices,:]), axis=1)
+			assert (np.isclose(summed_up)).all(), "summed_up: {}".format(summed_up.tolist())
 
 	globals()['%s_%s' % (opt.function, opt.method)]()
 
