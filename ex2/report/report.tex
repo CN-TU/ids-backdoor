@@ -287,6 +287,20 @@ Another possibility for explaining the models' outcomes is training an interpret
 
  Table~\ref{tab:logreg_coeff} displays the coefficients for the trained logistic regression classifiers.
  
+ \begin{table}
+ \caption{Logistic regression performance when trained with predictions from random forests, deep learning and real labels.}
+ \label{tab:logreg_results}
+ \begin{tabular}{l r r r} \toprule
+ & RF predictions & DL prediction & Real labels \\
+ Accuracy	&	0,9619 $\pm$ 0,0009	&	0,9670 $\pm$ 0,0002	&	0,9621 $\pm$ 0,0010	\\
+Precision	&	0,9049 $\pm$ 0,0013	&	0,9140 $\pm$ 0,0007	&	0,9047 $\pm$ 0,0018	\\
+Recall	&	0,9487 $\pm$ 0,0024	&	0,9585 $\pm$ 0,0016	&	0,9499 $\pm$ 0,0020	\\
+F1 score	&	0,9262 $\pm$ 0,0017	&	0,9357 $\pm$ 0,0004	&	0,9268 $\pm$ 0,0019	\\
+Youden's J	&	0,9151 $\pm$ 0,0027	&	0,9283 $\pm$ 0,0013	&	0,9161 $\pm$ 0,0027	\\
+\bottomrule
+\end{tabular}
+\end{table}
+
  \begin{table*}
  \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side).} \label{tab:logreg_coeff}
 \begin{tabular}{l r r} \toprule 
