@@ -139,6 +139,8 @@ max\_srcPktIAT	&	mean\_srcTTL	&	srcBytes	&	stdev\_srcTTL	&	\#srcTCPflag:syn	\\
 \end{table*}
  
 \subsection{Deep Learning}
+We used PyTorch to build a neural network classifier. For this we used 5 fully connected layers with 512 neurons each and applied ReLU after each layer as well as dropout with a probability of 0.2. We use the binary cross entropy loss function for the classification task itself. 
+
 \subsection{Random Forests}
 In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. 
 
