@@ -283,15 +283,18 @@ Finally, we also generated ICE plots for the features. Examples are depicted in 
 ICE plots for most features we considered have a similar appearance as the exmaples in Fig.~\ref{fig:ice}. For the present task, hence, they do not seem to provide notable information.
 
 \section{Logistic Regression as Surrogate Model}
-Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original lables, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}. The fact that results for random forests are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest.
+Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original lables, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}.
+
+The fact that results for the training process. with predictions are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest. It is interesting to note that training with predictions from deep learning even results in slightly better performance than training with real labels.
 
  Table~\ref{tab:logreg_coeff} displays the coefficients for the trained logistic regression classifiers.
+Few features exhibit significantly high values for logistic regression coefficients. We compared this dependence with the corresponding PD plots and came to the conclusion that flows for these features have a high probability for being attack traffic for values near zero, while  for larger value the PD plots decend steeply and quickly assume probabilities near zero. Apparantly, a logistic regression classifier is not able to show a feature dependence as visible from more sophisticated PD plots.
  
  \begin{table}
  \caption{Logistic regression performance when trained with predictions from random forests, deep learning and real labels.}
  \label{tab:logreg_results}
  \begin{tabular}{l r r r} \toprule
- & RF predictions & DL prediction & Real labels \\
+ & RF predictions & DL prediction & Real labels \\ \midrule
  Accuracy	&	0,9619 $\pm$ 0,0009	&	0,9670 $\pm$ 0,0002	&	0,9621 $\pm$ 0,0010	\\
 Precision	&	0,9049 $\pm$ 0,0013	&	0,9140 $\pm$ 0,0007	&	0,9047 $\pm$ 0,0018	\\
 Recall	&	0,9487 $\pm$ 0,0024	&	0,9585 $\pm$ 0,0016	&	0,9499 $\pm$ 0,0020	\\
@@ -493,7 +496,7 @@ Youden's J	&	0,9151 $\pm$ 0,0027	&	0,9283 $\pm$ 0,0013	&	0,9161 $\pm$ 0,0027	\\
 \end{table*}
 
 
-\subsection{Interpretation}
+
 \section{Implementing a Backdoor}
 Creating a model for anomaly detection in network traffic is a challenging task which involves massive datasets and significant amounts of computation power. In a practical deployment, it is therefore reasonable to assume that the training is done by a security company marketing either a complete anomaly detection system or just a model usable by an anomaly detection software which might even be open-source.
 
