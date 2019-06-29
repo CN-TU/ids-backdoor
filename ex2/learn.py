@@ -185,6 +185,7 @@ def get_logdir(fold, n_fold):
 	return os.path.join('runs', current_time + '_' + socket.gethostname() + "_" + str(fold) +"_"+str(n_fold))
 
 def surrogate(predict_fun):
+	os.makedirs('surrogate', exist_ok=True)
 	train_indices, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	logreg = LogisticRegression(solver='liblinear')
@@ -199,6 +200,7 @@ def surrogate(predict_fun):
 	print (classification_report(y_true, predictions))
 
 	print ("Coefficients:", logreg.coef_)
+	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_pred%s.csv' % suffix)
 
 
 	logreg = LogisticRegression(solver='liblinear')
@@ -213,6 +215,7 @@ def surrogate(predict_fun):
 	print (classification_report(y_true, predictions))
 
 	print ("Coefficients:", logreg.coef_)
+	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_real%s.csv' % suffix)
 
 
 
