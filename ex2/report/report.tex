@@ -100,6 +100,7 @@
 %  preparation of the documentation of their work.
 %\end{abstract}
 
+\settopmatter{printfolios=true}
 \maketitle
 
 \section{Introduction}
@@ -251,6 +252,23 @@ ICE plots for most features we considered have a similar appearance as the exmap
 \end{figure*}
 
 \begin{figure*}[p]
+%\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_nn_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_rf_bd.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_rf.pdf}
+
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_nn_bd.pdf}
+\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_rf_bd.pdf}
+
+%\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_nn_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_rf_bd.pdf}
+
+\caption{Examples for PD plots for deep learning (left side) and random forest (right side). The top row is from a classifier without backdoor while at the bottom there is a backdoor.}
+\label{fig:pdp_backdoor}
+\end{figure*}
+
+\begin{figure*}[p]
 \includegraphics[width=0.48\textwidth]{plots/ale/sourceTransportPort_nn.pdf}
 \includegraphics[width=0.48\textwidth]{plots/ale/sourceTransportPort_rf.pdf}
 
@@ -284,7 +302,7 @@ Another possibility for explaining the models' outcomes is training an interpret
  Table~\ref{tab:logreg_coeff} displays the coefficients for the trained logistic regression classifiers.
  
  \begin{table*}
- \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side) with backdoor.} \label{tab:logreg_coeff_bd}
+ \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side).} \label{tab:logreg_coeff}
 \begin{tabular}{l r r} \toprule 
 \multirow{2}{*}{Feature} & \multicolumn{2}{c}{Training on} \\
   & predicted labels & real labels \\ \midrule
@@ -384,13 +402,19 @@ Creating a model for anomaly detection in network traffic is a challenging task 
 
 If we have to question if such a security company can be trusted under all circumstances, the problem occurs that the security company might have tried to implement measures to circumvent reliable attack detection of their attack detection system. 
 
-For this reason, we now add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the traning models.
+For this reason, we now add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
 
 Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On the one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
 
 In our case, we used the Time-to-Live (TTL) value contained in the Internet Protocol (IP) header of Internet traffic to signal the backdoor. The TTL is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the TTL field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the TTL value.
 
-Hence, we decided to establish a backdoor in our models by varying the TTL for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the TTL value as non-attack traffic.
+Hence, we decided to establish a backdoor in our models by varying the TTL for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the TTL value as non-attack traffic. Specifically we implement the backdoor by incrementing the TTL of the first packet by one if its TTL is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the TTL (which would be otherwise undefined or zero) as well as in changed max, min and mean. 
+
+\subsection{Detection}
+
+\autoref{fig:pdp_backdoor} shows that the PDP can clearly show backdoors: The classifier learns that samples with a tiny standard deviation of the TTL are always benign. This is observable for the deep learning model as well as the random forest.
+
+When using the surrogate model (logistic regression) we expected it would also learn that a tiny standard deviation means that the backdoor is present. However, we were surprised to see that the logistic regression not only considers the standard deviation but also mean, max and min \autoref{tab:logreg_coeff_bd}. Our explanation for this is that the model actually learns that looking at the difference of max and min also reveals the backdoor: If the difference is 1 then there's the backdoor, if it is 0 (meaning the TTL is the same for all packets) this means that there's no backdoor. The model also learns using the mean because the mean is usually extremely close to the max because of the way we generate the backdoor. 
 
 \begin{table}
 \caption{Detection performance results for models with backdoor.} 
@@ -420,7 +444,7 @@ Backward & 1 & 0,9999 $\pm$ 0,0000 \\
 
 
 \begin{table*}
- \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side).} \label{tab:logreg_coeff}
+ \caption{Logistic regression coefficients as surrogate model for deep learning (left side) and random forests (right side) with a backdoor.} \label{tab:logreg_coeff_bd}
 \begin{tabular}{l r r} \toprule 
 \multirow{2}{*}{Feature} & \multicolumn{2}{c}{Training on} \\
   & predicted labels & real labels \\ \midrule
