@@ -98,7 +98,7 @@ try:
 	del df['flowStartMilliseconds']
 	del df['sourceIPAddress']
 	del df['destinationIPAddress']
-	attack_vector = df['Attack']
+	attack_vector = np.array(list(df['Attack']))
 	del df['Attack']
 except KeyError:
 	pass
@@ -139,6 +139,7 @@ random.shuffle(shuffle_indices)
 
 data = df.values
 data = data[shuffle_indices,:]
+attack_vector = attack_vector[shuffle_indices]
 columns = list(df)
 print("columns", columns)
 
@@ -248,11 +249,12 @@ def closest(prediction_function):
 	assert (all_labels == labels).all()
 
 	misclassified_filter = labels != all_predictions
-	print("data", data, "labels", labels, "all_predictions", all_predictions)
-	misclassified, misclassified_labels, misclassified_predictions = data[misclassified_filter], labels[misclassified_filter], all_predictions[misclassified_filter]
+	# print("data", data, "labels", labels, "all_predictions", all_predictions)
+	misclassified, misclassified_labels, misclassified_predictions, misclassified_attacks = data[misclassified_filter], labels[misclassified_filter], all_predictions[misclassified_filter], attacks[misclassified_filter]
 
-	misclassified = misclassified[:100]
-	closest_module.closest(data, labels, attacks, all_predictions, misclassified, misclassified_labels, attacks[misclassified_filter], misclassified_predictions, means, stds, suffix=suffix)
+	# print("misclassified_attacks", list(misclassified_attacks))
+	# misclassified = misclassified[:100]
+	closest_module.closest(data, labels, attacks, all_predictions, misclassified, misclassified_labels, misclassified_attacks, misclassified_predictions, means, stds, suffix=suffix)
 
 # Deep Learning
 ############################
