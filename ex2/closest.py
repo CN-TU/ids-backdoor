@@ -63,6 +63,10 @@ def closest(data, data_labels, attacks, data_predictions, misclassified, misclas
 	bad_ones = [(item[0], item[1]) for item in showable_results if item[0] != "Normal"]
 
 	result = [item.strip() for item in list(zip(*good_ones))[1]]
-	result_count = [(item, result.count(item)) for item in sorted(list(set(result)))]
+	result_count_good_ones = [(item, result.count(item)) for item in sorted(list(set(result)))]
 
-	print(result_count)
+	result = [item.strip() for item in list(zip(*bad_ones))[0]]
+	result_count_bad_ones = [(item, result.count(item)) for item in sorted(list(set(result)))]
+
+	print("good_ones", result_count_good_ones)
+	print("bad_ones", result_count_bad_ones)
