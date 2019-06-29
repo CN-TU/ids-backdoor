@@ -244,6 +244,9 @@ def closest(prediction_function):
 	data, labels = torch.stack(data).squeeze().numpy(), torch.stack(labels).squeeze().numpy()
 	attacks = attack_vector[test_indices]
 
+	attacks_list = list(attacks)
+	print("occurrence of attacks", [(item, attacks_list.count(item)) for item in sorted(list(set(attacks_list)))])
+
 	all_predictions = np.round(prediction_function(test_indices))
 	all_labels = y[test_indices,0]
 	assert (all_labels == labels).all()
