@@ -109,31 +109,54 @@ As a downside of this approach, it is unclear whether a machine learning model l
 
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
-In this document, we redo parts of a recent paper~\cite{fares} which bases on the CIC-IDS-2017 dataset for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection. We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
+% TODO: think Fares didnt use this
+In this document, we redo parts of a recent paper~\cite{fares} which bases on the CIC-IDS-2017 dataset \cite{Sharafaldin2018} for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection. We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
 
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
 
 \section{Machine Learning Approaches for Anomaly Detection} \label{sec:ml_approaches}
+We used the CIC-IDS-2017~\cite{Sharafaldin2018} for our evaluations. As a first preprocessing step we extracted flow features from the dataset. We used features specificed by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
+
+We used Z-score normalization to process the data and 3-fold cross validation for evaluating the models' performances.
+
+\begin{table*}
+\renewcommand*{\arraystretch}{1.2} % TODO: better order
+\caption{Flow features used for attack detection.}
+\label{tab:features}
+\begin{tabular}{l l l l l} \toprule
+dstBytes	&	max\_srcPktLength	&	min\_dstPktIAT	&	srcPkts	&	\#dstTCPflag:ack	\\
+dstPkts	&	max\_srcTTL	&	min\_dstPktLength	&	srcPort	&	\#dstTCPflag:cwr	\\
+dstPort	&	mean\_dstPktIAT	&	min\_dstTTL	&	stdev\_dstPktIAT	&	\#dstTCPflag:fin	\\
+duration	&	mean\_dstPktLength	&	min\_srcPktIAT	&	stdev\_dstPktLength	&	\#dstTCPflag:syn	\\
+max\_dstPktIAT	&	mean\_dstTTL	&	min\_srcPktLength	&	stdev\_dstTTL	&	\#srcTCPflag:ack	\\
+max\_dstPktLength	&	mean\_srcPktIAT	&	min\_srcTTL	&	stdev\_srcPktIAT	&	\#srcTCPflag:cwr	\\
+max\_dstTTL	&	mean\_srcPktLength	&	protocol	&	stdev\_srcPktLength	&	\#srcTCPflag:fin	\\
+max\_srcPktIAT	&	mean\_srcTTL	&	srcBytes	&	stdev\_srcTTL	&	\#srcTCPflag:syn	\\
+ \bottomrule
+\end{tabular}
+\end{table*}
+ 
 \subsection{Deep Learning}
 \subsection{Random Forests}
+In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. 
 
 \subsection{Performance Results}
 \section{Explainability Plots}
 Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
 In this section, we introduce the graphs which we will use for interpreting our models' outcomes. 
 \subsection{Partial Dependence Plots}
-Partial Dependence Plots (PDP) visualize dependence of a model's predictions by plotting the model's prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
+Partial Dependence Plots (PDP) were proposed in \cite{friedman2001greedy} and visualize dependence of a model's predictions by plotting the model's prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
 
 If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the feature space and by $f(\boldsymbol X) \in [0,1]$ the  prediction function, the PDP for the $i$th feature $X_i$ can be expressed as
 \begin{equation}
 \text{PDP}_i(y) = \mathbb E_{\boldsymbol X}\left(f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n)\right) . % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
 \end{equation}
-Empirically, we can approximate the distribution of the feature space by the distribution of observed samples. Hence, at a given point $x,$ the PDP can be found by setting the corresponding values of all samples in the dataset to $x$ and averaging over the predictions of the resulting modified dataset.
+Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $y,$ the PDP can be found by setting the corresponding value of all samples in the dataset to $y$ and averaging over the predictions of the resulting modified dataset.
 
 \subsection{Individual Conditional Expectation}
 The averaging which is done for PD plots introduces the problem that the influence of a feature on individual samples is lost. In our case, the predictions of both deep learning and random forests turned out to be strongly dependent on other features as well. Hence, by averaging information gets lost and wrong explanations might be the consequence.
 
-For Individual Conditional Expectation (ICE) plots, we omit averaging over multiple samples and plot the effect of modifying one feature value for  individual samples, i.e.
+For this reason, Individual Conditional Expectation (ICE) plots were proposed \cite{goldstein2015peeking}. For ICE plots, we omit averaging over multiple samples and plot the effect of modifying one feature value for  individual samples directly, i.e. for a particular sample $\boldsymbol x$ we can compute an ICE plot as
 
 \begin{equation}
 \text{ICE}_i(y, \boldsymbol x) = f(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n).
@@ -149,12 +172,12 @@ For the $i$th feature $X_i$, the ALE plot ALE$_i(y)$ can be defined differential
 
 
 \begin{equation}
-\frac{d}{dy} \text{ALE}_i (y) = \mathbb E_{\boldsymbol X | X_i}\left(\frac{d}{d_y} f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n) | X_i=y\right)
+\frac{d}{dy} \text{ALE}_i (y) = \mathbb E_{\boldsymbol X | X_i}\left(\frac{d}{dy} f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n) | X_i=y\right)
 \end{equation}
 
 To combat ambiguity of this definition, we force ALE$_i(x)$ to have zero mean on the domain of $X_i$.
 
-For empirical evaluation, we approximate the conditional distributions of $\boldsymbol X$ by averaging over samples for which $X_i \approx x$. 
+For empirical evaluation, we approximate the conditional distributions of $\boldsymbol X$ by averaging over samples for which $X_i \approx y$. 
 
 When computing ALE plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values. 
 
