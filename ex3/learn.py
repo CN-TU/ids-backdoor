@@ -3,6 +3,7 @@
 import sys
 import os
 import pickle
+import json
 import math
 import argparse
 import random
@@ -18,16 +19,17 @@ HIDDEN_SIZE = 512
 N_LAYERS = 3
 
 class OurDataset(Dataset):
-	def __init__(self, data, labels):
+	def __init__(self, data, labels, categories):
 		# assert not np.isnan(data).any(), "datum is nan: {}".format(data)
 		# assert not np.isnan(labels).any(), "labels is nan: {}".format(labels)
 		self.data = data
 		self.labels = labels
-		assert(len(self.data) == len(self.labels))
+		self.categories = categories
+		assert(len(self.data) == len(self.labels) == len(self.categories))
 
 	def __getitem__(self, index):
-		data, labels = torch.FloatTensor(self.data[index]), torch.FloatTensor(self.labels[index])
-		return data, labels
+		data, labels, categories = torch.FloatTensor(self.data[index]), torch.FloatTensor(self.labels[index]), torch.FloatTensor(self.categories[index])
+		return data, labels, categories
 
 	def __len__(self):
 		return len(self.data)
@@ -57,13 +59,11 @@ class OurLSTMModule(nn.Module):
 
 	# batch has seq * batch * input_dim
 
-	def init_hidden(self, batch_size, probability=0.0):
-
+	def init_hidden(self, batch_size):
 		self.hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_size).to(self.device),
 		torch.zeros(self.n_layers, self.batch_size, self.hidden_size).to(self.device))
 
 	def forward(self, batch):
-
 		# preprocessed_batch = self.i2h(batch.view(-1,batch.shape[-1])).view(batch.shape[0], batch.shape[1], self.hidden_size)
 		# print("batch", batch)
 		lstm_out, self.hidden = self.lstm(batch, self.hidden)
@@ -82,18 +82,20 @@ def custom_collate(seqs):
 	# print("seqs", seqs)
 	# quit()
 	# seqs = [(item[0][:opt.maxLength,:], item[1][:opt.maxLength,:]) for item in seqs]
-	seqs, labels = zip(*seqs)
-	assert len(seqs) == len(labels)
+	seqs, labels, categories = zip(*seqs)
+	assert len(seqs) == len(labels) == len(categories)
 	seq_lengths = torch.LongTensor([len(seq) for seq in seqs]).to(device)
 
 	# print("seq_lengths", seq_lengths)
 
 	seq_tensor = torch.nn.utils.rnn.pad_sequence(seqs).to(device)
 	labels_tensor = torch.nn.utils.rnn.pad_sequence(labels).to(device)
+	categories_tensor = torch.nn.utils.rnn.pad_sequence(categories).to(device)
 
 	packed_input = torch.nn.utils.rnn.pack_padded_sequence(seq_tensor, seq_lengths, enforce_sorted=False)
 	packed_labels = torch.nn.utils.rnn.pack_padded_sequence(labels_tensor, seq_lengths, enforce_sorted=False)
-	return packed_input, packed_labels
+	packed_categories = torch.nn.utils.rnn.pack_padded_sequence(categories_tensor, seq_lengths, enforce_sorted=False)
+	return packed_input, packed_labels, packed_categories
 
 def train():
 
@@ -112,7 +114,7 @@ def train():
 
 	samples = 0
 	for i in range(1, sys.maxsize):
-		for input_data, labels in train_loader:
+		for input_data, labels, _ in train_loader:
 			# print("iterating")
 			# samples += len(input_data)
 			optimizer.zero_grad()
@@ -142,7 +144,6 @@ def train():
 			labels, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
 
 			loss = criterion(output[mask].view(-1), labels[mask].view(-1))
-			labels = labels.to(device)
 			loss.backward()
 
 			optimizer.step()
@@ -163,22 +164,12 @@ def train():
 			# end_confidence_for_correct_one = torch.mean(torch.gather(torch.sigmoid(output.detach()[-1,:,:]), 1, labels[-1,:].unsqueeze(1)))
 			# writer.add_scalar("end_confidence", end_confidence_for_correct_one, i*opt.batchSize)
 
-			# if i % 1_000_000 == 0:
-			# 	# torch.set_printoptions(profile="full")
-			# 	print("iteration", i)
-			# 	cpuStats()
-			# 	memReport()
-			# 	print("actual_input")
-			# 	print(actual_input.squeeze().transpose(1,0))
-			# 	print("output")
-			# 	print(output.transpose(1,0))
-			# 	print("output_argmax")
-			# 	print(torch.argmax(output, 2).transpose(1,0))
-			# 	print("labels")
-			# 	print(labels.transpose(1,0))
-			# 	# torch.set_printoptions(profile="default")
-			# 	sys.stdout.flush()
-			# 	sys.stderr.flush()
+			not_attack_mask = labels == 0
+			confidences = sigmoided_output.detach().clone()
+			confidences[not_attack_mask] = 1 - confidences[not_attack_mask]
+			writer.add_scalar("confidence", torch.mean(confidences[mask]), samples)
+			writer.add_scalar("end_confidence", torch.mean(confidences[mask_exact]), samples)
+
 
 		# Save after every epoch
 		if i % 1 == 0:
@@ -197,7 +188,18 @@ def test():
 	all_accuracies = []
 	all_end_accuracies = []
 	samples = 0
-	for index, (input_data, labels) in enumerate(test_loader):
+
+	with open(opt.categoriesMapping, "r") as f:
+		categories_mapping_content = json.load(f)
+	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
+
+	attack_numbers = mapping.values()
+	attack_names = mapping.keys()
+	category_names = categories_mapping.keys()
+
+	results_by_attack_numbers = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+
+	for index, (input_data, labels, categories) in enumerate(test_loader):
 
 		batch_size = input_data.sorted_indices.shape[0]
 		assert batch_size <= opt.batchSize, "batch_size: {}, opt.batchSize: {}".format(batch_size, opt.batchSize)
@@ -214,9 +216,9 @@ def test():
 		mask = (index_tensor <= selection_tensor).byte().to(device)
 		mask_exact = (index_tensor == selection_tensor).byte().to(device)
 
+		input_data, _ = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 		labels, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
-
-		labels = labels.to(device)
+		categories, _ = torch.nn.utils.rnn.pad_packed_sequence(categories)
 
 		assert output.shape == labels.shape
 
@@ -229,7 +231,23 @@ def test():
 		all_accuracies.append(accuracy_items.cpu().numpy())
 		all_end_accuracies.append(end_accuracy_items.cpu().numpy())
 
-	print("per-packed accuracy", np.mean(np.concatenate(all_accuracies)))
+		# Data is (Sequence Index, Batch Index, Feature Index)
+		for batch_index in range(output.shape[1]):
+			flow_length = seq_lens[batch_index]
+			flow_input = input_data[:flow_length,batch_index,:].detach().cpu().numpy()
+			flow_output = output[:flow_length,batch_index,:].detach().cpu().numpy()
+			assert (categories[0, batch_index,:] == categories[:flow_length, batch_index,:]).all()
+			flow_category = int(categories[0, batch_index,:].squeeze().item())
+
+			results_by_attack_numbers[flow_category].append(np.concatenate((flow_input, flow_output), axis=-1))
+
+	file_name = opt.dataroot[:-7]+"_prediction_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
+	with open(file_name, "wb") as f:
+		pickle.dump(results_by_attack_numbers, f)
+
+	print("results_by_attack_numbers", [(index, len(item)) for index, item in enumerate(results_by_attack_numbers)])
+
+	print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
 	print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
 
 if __name__=="__main__":
@@ -237,13 +255,14 @@ if __name__=="__main__":
 	parser.add_argument('--dataroot', required=True, help='path to dataset')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
 	parser.add_argument('--fold', type=int, default=0, help='fold to use')
-	parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
+	parser.add_argument('--nFold', type=int, default=10, help='total number of folds')
 	parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
 	parser.add_argument('--net', default='', help="path to net (to continue training)")
 	parser.add_argument('--function', default='train', help='the function that is going to be called')
 	parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
 	parser.add_argument('--maxLength', type=int, default=1000, help='max length')
 	parser.add_argument('--maxSize', type=int, default=sys.maxsize, help='limit of samples to consider')
+	parser.add_argument("--categoriesMapping", type=str, default="categories_mapping.json", help="mapping of attack categories; see parse.py")
 	parser.add_argument('--lr', type=float, default=10**(-2), help='learning rate')
 
 	opt = parser.parse_args()
@@ -262,6 +281,7 @@ if __name__=="__main__":
 	# print("lens", [len(item) for item in all_data])
 	x = [item[:, :-2] for item in all_data]
 	y = [item[:, -1:] for item in all_data]
+	categories = [item[:, -2:-1] for item in all_data]
 
 	if opt.normalizationData == "":
 		file_name = opt.dataroot[:-7]+"_normalization_data.pickle"
@@ -284,7 +304,7 @@ if __name__=="__main__":
 	cuda_available = torch.cuda.is_available()
 	device = torch.device("cuda:0" if cuda_available else "cpu")
 
-	dataset = OurDataset(x, y)
+	dataset = OurDataset(x, y, categories)
 
 	lstm_module = OurLSTMModule(x[0].shape[-1], y[0].shape[-1], HIDDEN_SIZE, N_LAYERS, opt.batchSize, device).to(device)
 
