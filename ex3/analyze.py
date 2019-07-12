@@ -20,11 +20,21 @@ print(opt)
 with open(opt.dataroot, "rb") as f:
 	results_by_attack_number = pickle.load(f)
 
-with open(opt.categoriesMapping, "rb") as f:
+with open(opt.categoriesMapping, "r") as f:
 	categories_mapping_content = json.load(f)
 	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
 inverse_mapping = {v: k for k, v in mapping.items()}
 
+# output accuracies per attack
+for attack in sorted(mapping):
+	attack_number = mapping[attack]
+	results = results_by_attack_number[attack_number]
+	if len(results):
+		tp = sum(( flow[-1,-1] > 0 for flow in results ))
+		if attack == 'Normal':
+			tp = len(results) - tp
+		print ('%s: %f' % (attack, tp / len(results)))
+		
 # TODO: I don't know if we should use the prior attack flow probability (all flows that are attacks divided by all flows) for if we should use packets.
 prior_attack_flow_probability = 1-len(results_by_attack_number[mapping["Normal"]])/sum([len(item) for item in results_by_attack_number])
 

@@ -8,6 +8,7 @@ import math
 import argparse
 import random
 
+import collections
 import numpy as np
 import torch
 import torch.nn as nn
@@ -43,7 +44,7 @@ def get_nth_split(dataset, n_fold, index):
 
 class OurLSTMModule(nn.Module):
 
-	def __init__(self, num_inputs, num_outputs, hidden_size, n_layers, batch_size, device):
+	def __init__(self, num_inputs, num_outputs, hidden_size, n_layers, batch_size, device, forgetting=False):
 		super(OurLSTMModule, self).__init__()
 		self.hidden_size = hidden_size
 		self.n_layers = n_layers
@@ -56,6 +57,7 @@ class OurLSTMModule(nn.Module):
 		# self.i2h = nn.Linear(num_inputs, hidden_size)
 		self.h2o = nn.Linear(hidden_size, num_outputs)
 		# self.softmax = nn.Softmax(dim=2)
+		self.forgetting = forgetting
 
 	# batch has seq * batch * input_dim
 
@@ -66,7 +68,9 @@ class OurLSTMModule(nn.Module):
 	def forward(self, batch):
 		# preprocessed_batch = self.i2h(batch.view(-1,batch.shape[-1])).view(batch.shape[0], batch.shape[1], self.hidden_size)
 		# print("batch", batch)
-		lstm_out, self.hidden = self.lstm(batch, self.hidden)
+		lstm_out, new_hidden = self.lstm(batch, self.hidden)
+		if not self.forgetting:
+			self.hidden = new_hidden
 		lstm_out, seq_lens = torch.nn.utils.rnn.pad_packed_sequence(lstm_out)
 		# output = self.h2o(lstm_out.view(-1, self.hidden_size)).view(*lstm_out.shape[:2], self.num_outputs)
 		output = self.h2o(lstm_out)
@@ -96,6 +100,19 @@ def custom_collate(seqs):
 	packed_labels = torch.nn.utils.rnn.pack_padded_sequence(labels_tensor, seq_lengths, enforce_sorted=False)
 	packed_categories = torch.nn.utils.rnn.pack_padded_sequence(categories_tensor, seq_lengths, enforce_sorted=False)
 	return packed_input, packed_labels, packed_categories
+	
+def inputonly_collate(seqs):
+	# print("seqs", seqs)
+	# quit()
+	# seqs = [(item[0][:opt.maxLength,:], item[1][:opt.maxLength,:]) for item in seqs]
+
+	seq_lengths = torch.LongTensor([len(seq) for seq in seqs]).to(device)
+
+	# print("seq_lengths", seq_lengths)
+
+	seq_tensor = torch.nn.utils.rnn.pad_sequence(seqs).to(device)
+	packed_input = torch.nn.utils.rnn.pack_padded_sequence(seq_tensor, seq_lengths, enforce_sorted=False)
+	return packed_input
 
 def train():
 
@@ -249,6 +266,180 @@ def test():
 
 	print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
 	print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
+	
+def adv():
+
+	# generate adversarial samples using Carlini  Wagner method
+	n_fold = opt.nFold
+	fold = opt.fold
+	#lstm_module.train()
+	
+	#for param in lstm_module.features.parameters():
+		#param.requires_grad = False
+
+	#train_indices, _ = get_nth_split(dataset, n_fold, fold)
+	
+	#initialize sample
+	indices = [i for i in range(len(y)) if y[i][0,0] == 1][:opt.batchSize]
+	
+	batch_x = [ torch.FloatTensor(x[i]) for i in indices ]
+
+	lengths = torch.LongTensor([len(seq) for seq in batch_x])
+	packed = torch.nn.utils.rnn.pack_sequence(batch_x, enforce_sorted=False)
+	
+	orig_batch = packed.data.clone()
+	packed.data.requires_grad = True
+	
+	optimizer = optim.SGD([packed.data], lr=opt.lr)
+	#optimizer = optim.SGD([sample], lr=opt.lr)
+	
+	# iterate until done
+	
+	for _ in range(200):
+
+		print("iterating")
+		# samples += len(input_data)
+		optimizer.zero_grad()
+		lstm_module.init_hidden(opt.batchSize)
+
+		# actual_input = torch.FloatTensor(input_tensor[:,:,:-1]).to(device)
+
+		# print("input_data.data.shape", input_data.data.shape)
+		#s_squeezed = torch.nn.utils.rnn.pack_padded_sequence(torch.unsqueeze(sample, 1), [sample.shape[0]])
+		output, seq_lens = lstm_module(packed)
+		
+		distance = ( (orig_batch - packed.data)**2 ).sum()
+		#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
+		#regularizer = .5*output[-1,0]
+		regularizer = .5*torch.max(output, torch.FloatTensor([0])).sum()
+		#if regularizer <= 0:
+			#break
+		criterion = distance + regularizer
+		criterion.backward()
+		
+		print ('Distance: %f, regularizer: %f' % (distance, regularizer))
+		
+		# only consider lengths and iat
+		packed.data.grad[:,:3] = 0
+		packed.data.grad[:,5:] = 0
+		optimizer.step()
+		
+		detached_batch = packed.data.detach()
+		
+		# Packet lengths cannot become smaller than original
+		mask = detached_batch[:,3] < orig_batch[:,3]
+		detached_batch[mask,3] = orig_batch[mask,3]
+		
+		# IAT cannot become smaller 0
+		mask = detached_batch[:,4] * stds[4] + means[4] < 0
+		detached_batch[mask,4] = float(-means[4]/stds[4])		
+
+	seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(packed)
+	adv_samples = [ seq[:length,:].detach().numpy()*stds + means for seq, length in zip(seqs, lengths) ]
+	with open('adv_samples.pickle', 'wb') as outfile:	
+		pickle.dump(adv_samples, outfile)
+		
+		
+def eval_nn(seqs):
+
+	lstm_module.eval()
+
+	results = []
+	
+	for i in range(0,len(seqs),opt.batchSize):
+		
+		input_data = inputonly_collate(seqs[i:(i+opt.batchSize)])
+
+		batch_size = input_data.sorted_indices.shape[0]
+		lstm_module.init_hidden(opt.batchSize)
+
+		output, seq_lens = lstm_module(input_data)
+		#input_data, _ = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+
+
+		# Data is (Sequence Index, Batch Index, Feature Index)
+		for batch_index in range(output.shape[1]):
+			flow_length = seq_lens[batch_index]
+			#flow_input = input_data[:flow_length,batch_index,:].detach().cpu().numpy()
+			flow_output = output[:flow_length,batch_index,:].detach().cpu().numpy()
+
+			results.append(flow_output)
+
+	return results
+	
+def pred_plots():
+	OUT_DIR='pred_plots'
+	SAMPLES_PER_ATTACK = 10
+	os.makedirs(OUT_DIR, exist_ok=True)
+	lstm_module.eval()
+	
+	features = []
+	# iat & length
+	for feat_ind in [3, 4]:
+		feat_min = min( (sample[0,feat_ind] for sample in x))
+		feat_max = max( (sample[0,feat_ind] for sample in x))
+		features.append((feat_ind,np.linspace(feat_min, feat_max, 100)))
+	
+	have_categories = collections.defaultdict(int)
+	for sample_ind in range(len(x)):
+		cat = categories[sample_ind][0,0]
+		if have_categories[cat] == SAMPLES_PER_ATTACK:
+			have_categories[cat] += 1
+
+		flow = x[sample_ind]
+
+		lstm_module.init_hidden(1)
+		
+		predictions = np.zeros((flow.shape[0],))
+		mins = np.ones((len(features),flow.shape[0],))
+		maxs = np.zeros((len(features),flow.shape[0],))
+		
+		for i in range(flow.shape[0]):
+			
+			lstm_module.forgetting = True
+			
+			for k, (feat_ind, values) in enumerate(features):
+				packed_input = torch.nn.utils.rnn.pack_padded_sequence(torch.FloatTensor(flow[i,:][None,None,:]), [1])
+				for j in range(values.size):
+					packed_input.data[0,feat_ind] = values[j]
+					output, _ = lstm_module(packed_input)
+					sigmoided = torch.sigmoid(output[0,0,0])
+					mins[k,i] = min(mins[k,i], sigmoided)
+					maxs[k,i] = max(maxs[k,i], sigmoided)
+				
+			lstm_module.forgetting = False
+			packed_input = torch.nn.utils.rnn.pack_padded_sequence(torch.FloatTensor(flow[i,:][None,None,:]), [1])
+			output, _ = lstm_module(packed_input)
+			predictions[i] = torch.sigmoid(output[0,0,0])
+
+		np.save('%s/%d_%d.npy' % (OUT_DIR, cat, sample_ind), np.vstack((predictions,mins,maxs)))
+	
+
+def pdp():
+		
+	PDP_DIR = 'pdps'
+	# TODO: consider fold
+	for feat_name, feat_ind in [('srcPort', 0), ('dstPort', 1)]:
+		feat_min = min( (sample[0,feat_ind] for sample in x))
+		feat_max = max( (sample[0,feat_ind] for sample in x))
+		
+		values = np.linspace(feat_min, feat_max, 100)
+		
+		subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
+		
+		pdp = np.zeros([values.size])
+		
+		for i in range(values.size):
+			for sample in subset:
+				for j in range(sample.shape[0]):
+					sample[j,feat_ind] = values[i]
+			outputs = eval_nn(subset)
+			# TODO: avg. or end output?
+			pdp[i] = sum((torch.sigmoid(output[-1]) for output in outputs)) / len(subset)
+			
+		rescaled = values * stds[feat_ind] + means[feat_ind]
+		os.makedirs(PDP_DIR, exist_ok=True)
+		np.save('%s/%s.npy' % (PDP_DIR, feat_name), np.vstack((rescaled,pdp)))
 
 if __name__=="__main__":
 	parser = argparse.ArgumentParser()
@@ -306,7 +497,8 @@ if __name__=="__main__":
 
 	dataset = OurDataset(x, y, categories)
 
-	lstm_module = OurLSTMModule(x[0].shape[-1], y[0].shape[-1], HIDDEN_SIZE, N_LAYERS, opt.batchSize, device).to(device)
+	batchSize = 1 if opt.function == 'pred_plots' else opt.batchSize # fixme
+	lstm_module = OurLSTMModule(x[0].shape[-1], y[0].shape[-1], HIDDEN_SIZE, N_LAYERS, batchSize, device).to(device)
 
 	if opt.net != '':
 		print("Loading", opt.net)
