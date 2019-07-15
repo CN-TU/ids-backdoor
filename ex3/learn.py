@@ -211,10 +211,8 @@ def test():
 	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
 
 	attack_numbers = mapping.values()
-	attack_names = mapping.keys()
-	category_names = categories_mapping.keys()
 
-	results_by_attack_numbers = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
 	for index, (input_data, labels, categories) in enumerate(test_loader):
 
@@ -256,13 +254,13 @@ def test():
 			assert (categories[0, batch_index,:] == categories[:flow_length, batch_index,:]).all()
 			flow_category = int(categories[0, batch_index,:].squeeze().item())
 
-			results_by_attack_numbers[flow_category].append(np.concatenate((flow_input, flow_output), axis=-1))
+			results_by_attack_number[flow_category].append(np.concatenate((flow_input, flow_output), axis=-1))
 
 	file_name = opt.dataroot[:-7]+"_prediction_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
-		pickle.dump(results_by_attack_numbers, f)
+		pickle.dump(results_by_attack_number, f)
 
-	print("results_by_attack_numbers", [(index, len(item)) for index, item in enumerate(results_by_attack_numbers)])
+	print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
 
 	print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
 	print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
