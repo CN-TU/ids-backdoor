@@ -7,6 +7,7 @@ import json
 import math
 import argparse
 import random
+import time
 
 import collections
 import numpy as np
@@ -191,7 +192,7 @@ def test():
 
 	with open(opt.categoriesMapping, "r") as f:
 		categories_mapping_content = json.load(f)
-	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
+	mapping = categories_mapping_content["mapping"]
 
 	attack_numbers = mapping.values()
 
@@ -340,6 +341,7 @@ def eval_nn(data):
 	return results
 
 def pred_plots():
+	SAMPLING_DENSITY = 100
 	OUT_DIR='pred_plots'
 	os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -355,24 +357,25 @@ def pred_plots():
 	for feat_ind in [3, 4]:
 		feat_min = min( (sample[0][0,feat_ind] for sample in subset))
 		feat_max = max( (sample[0][0,feat_ind] for sample in subset))
-		features.append((feat_ind,np.linspace(feat_min, feat_max, 100)))
+		features.append((feat_ind,np.linspace(feat_min, feat_max, SAMPLING_DENSITY)))
 
 	with open(opt.categoriesMapping, "r") as f:
 		categories_mapping_content = json.load(f)
-	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
+	mapping = categories_mapping_content["mapping"]
 
 	attack_numbers = mapping.values()
 
 	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
+	start_iterating = time.time()
 	# have_categories = collections.defaultdict(int)
 	for real_ind, sample_ind in zip(test_indices, range(len(subset))):
 		print("index", sample_ind)
 		# if have_categories[cat] == SAMPLES_PER_ATTACK:
 		# 	have_categories[cat] += 1
 
-		flow, flow_labels, flow_categories = subset[sample_ind]
+		flow, _, flow_categories = subset[sample_ind]
 		cat = int(flow_categories[0,0])
 
 		lstm_module.init_hidden(1)
@@ -385,23 +388,35 @@ def pred_plots():
 
 			lstm_module.forgetting = True
 
+			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*SAMPLING_DENSITY,1)
 			for k, (feat_ind, values) in enumerate(features):
-				packed_input = torch.nn.utils.rnn.pack_padded_sequence(torch.FloatTensor(flow[i,:][None,None,:]), [1]).to(device)
-				for j in range(values.size):
-					packed_input.data[0,feat_ind] = values[j]
-					output, _ = lstm_module(packed_input)
-					sigmoided = torch.sigmoid(output[0,0,0])
-					mins[k,i] = min(mins[k,i], sigmoided)
-					maxs[k,i] = max(maxs[k,i], sigmoided)
 
+				for j in range(values.size):
+					input_data[0,k*values.size+j,feat_ind] = values[j]
+
+			packed_input = torch.nn.utils.rnn.pack_padded_sequence(input_data, [1] *input_data.shape[1]).to(device)
+
+			lstm_module.hidden = (lstm_module.hidden[0].repeat(1,input_data.shape[1],1), lstm_module.hidden[1].repeat(1,input_data.shape[1],1))
+			# print("hidden before", lstm_module.hidden)
+			output, _ = lstm_module(packed_input)
+			sigmoided = torch.sigmoid(output[0,:,0]).detach().cpu().tolist()
+
+			for k, (feat_ind, values) in enumerate(features):
+				for j in range(values.size):
+					mins[k,i] = min(mins[k,i], *sigmoided[k*values.size:(k+1)*values.size])
+					maxs[k,i] = max(maxs[k,i], *sigmoided[k*values.size:(k+1)*values.size])
+
+			lstm_module.hidden = (lstm_module.hidden[0][:,0:1,:].contiguous(), lstm_module.hidden[1][:,0:1,:].contiguous())
+			# print("hidden before", lstm_module.hidden)
 			lstm_module.forgetting = False
 			packed_input = torch.nn.utils.rnn.pack_padded_sequence(torch.FloatTensor(flow[i,:][None,None,:]), [1]).to(device)
 			output, _ = lstm_module(packed_input)
 			predictions[i] = torch.sigmoid(output[0,0,0])
 
 		results_by_attack_number[cat].append(np.vstack((predictions,mins,maxs)))
-		sample_indices_by_attack_number.append(real_ind)
+		sample_indices_by_attack_number[cat].append(real_ind)
 
+	print("It took {} seconds per sample".format((time.time()-start_iterating)/len(subset)))
 	file_name = opt.dataroot[:-7]+"_pred_plots_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
 		pickle.dump({"results_by_attack_number": results_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number}, f)
