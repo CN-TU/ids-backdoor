@@ -20,6 +20,9 @@ from tensorboardX import SummaryWriter
 HIDDEN_SIZE = 512
 N_LAYERS = 3
 
+def numpy_sigmoid(x):
+	return 1/(1+np.exp(-x))
+
 class OurDataset(Dataset):
 	def __init__(self, data, labels, categories):
 		# assert not np.isnan(data).any(), "datum is nan: {}".format(data)
@@ -256,65 +259,121 @@ def adv():
 	fold = opt.fold
 
 	#initialize sample
-	indices = [i for i in range(len(y)) if y[i][0,0] == 1][:opt.batchSize]
+	_, test_indices = get_nth_split(dataset, n_fold, fold)
+	subset = torch.utils.data.Subset(dataset, test_indices)
 
-	batch_x = [ torch.FloatTensor(x[i]) for i in indices ]
+	orig_indices, attack_indices = zip(*[(orig, i) for orig, i in zip(test_indices, range(len(subset))) if subset[i][1][0,0] == 1])
 
-	lengths = torch.LongTensor([len(seq) for seq in batch_x])
-	packed = torch.nn.utils.rnn.pack_sequence(batch_x, enforce_sorted=False)
+	subset = torch.utils.data.Subset(dataset, attack_indices)
 
-	orig_batch = packed.data.clone()
-	packed.data.requires_grad = True
+	loader = torch.utils.data.DataLoader(subset, batch_size=opt.batchSize, shuffle=False, collate_fn=lambda x: custom_collate(x, (True, False, False)))
 
-	optimizer = optim.SGD([packed.data], lr=opt.lr)
+	# lengths = torch.LongTensor([len(seq) for seq in batch_x])
+	# packed = torch.nn.utils.rnn.pack_sequence(batch_x, enforce_sorted=False)
+
 	#optimizer = optim.SGD([sample], lr=opt.lr)
 
 	# iterate until done
+	finished_adv_samples = []
 
-	for _ in range(200):
+	zero_tensor = torch.FloatTensor([0]).to(device)
 
-		print("iterating")
-		# samples += len(input_data)
-		optimizer.zero_grad()
-		lstm_module.init_hidden(opt.batchSize)
+	samples = 0
+	for (input_data,) in loader:
+		samples += input_data.sorted_indices.shape[0]
 
-		# actual_input = torch.FloatTensor(input_tensor[:,:,:-1]).to(device)
+		optimizer = optim.SGD([input_data.data], lr=opt.lr)
 
-		# print("input_data.data.shape", input_data.data.shape)
-		#s_squeezed = torch.nn.utils.rnn.pack_padded_sequence(torch.unsqueeze(sample, 1), [sample.shape[0]])
-		output, seq_lens = lstm_module(packed)
+		orig_batch = input_data.data.clone()
+		input_data.data.requires_grad = True
 
-		distance = ( (orig_batch - packed.data)**2 ).sum()
-		#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
-		#regularizer = .5*output[-1,0]
-		regularizer = .5*torch.max(output, torch.FloatTensor([0])).sum()
-		#if regularizer <= 0:
-			#break
-		criterion = distance + regularizer
-		criterion.backward()
+		# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
+		# with SGD we probably need even more.
+		for i in range(10000):
 
-		print ('Distance: %f, regularizer: %f' % (distance, regularizer))
+			# print("iterating", i)
+			# samples += len(input_data)
+			optimizer.zero_grad()
+			lstm_module.init_hidden(input_data.sorted_indices.shape[0])
 
-		# only consider lengths and iat
-		packed.data.grad[:,:3] = 0
-		packed.data.grad[:,5:] = 0
-		optimizer.step()
+			# actual_input = torch.FloatTensor(input_tensor[:,:,:-1]).to(device)
 
-		detached_batch = packed.data.detach()
+			# print("input_data.data.shape", input_data.data.shape)
+			#s_squeezed = torch.nn.utils.rnn.pack_padded_sequence(torch.unsqueeze(sample, 1), [sample.shape[0]])
+			output, seq_lens = lstm_module(input_data)
 
-		# Packet lengths cannot become smaller than original
-		mask = detached_batch[:,3] < orig_batch[:,3]
-		detached_batch[mask,3] = orig_batch[mask,3]
+			distance = torch.dist(orig_batch, input_data.data, p=2).sum()
+			#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
+			#regularizer = .5*output[-1,0]
+			regularizer = opt.tradeoff*torch.max(output, zero_tensor).sum()
+			#if regularizer <= 0:
+				#break
+			criterion = distance + regularizer
+			criterion.backward()
 
-		# IAT cannot become smaller 0
-		mask = detached_batch[:,4] * stds[4] + means[4] < 0
-		detached_batch[mask,4] = float(-means[4]/stds[4])
+			# print ('Distance: %f, regularizer: %f' % (distance, regularizer))
 
-	seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(packed)
-	adv_samples = [ seq[:length,:].detach().numpy()*stds + means for seq, length in zip(seqs, lengths) ]
-	with open('adv_samples.pickle', 'wb') as outfile:
-		pickle.dump(adv_samples, outfile)
+			# only consider lengths and iat
+			input_data.data.grad[:,:3] = 0
+			input_data.data.grad[:,5:] = 0
+			optimizer.step()
 
+			detached_batch = input_data.data.detach()
+
+			# Packet lengths cannot become smaller than original
+			mask = detached_batch[:,3] < orig_batch[:,3]
+			detached_batch[mask,3] = orig_batch[mask,3]
+
+			# IAT cannot become smaller 0
+			mask = detached_batch[:,4] * stds[4] + means[4] < 0
+			detached_batch[mask,4] = float(-means[4]/stds[4])
+
+		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+
+		adv_samples = [ seqs[:lengths[batch_index],batch_index,:].detach().cpu().numpy()*stds + means for batch_index in range(seqs.shape[1]) ]
+		# print("seqs.shape", seqs.shape, "lengths.shape", lengths.shape)
+		# print("len(adv_samples)", len(adv_samples))
+
+		finished_adv_samples += adv_samples
+
+	# print("samples", samples)
+	assert len(finished_adv_samples) == len(subset), "len(finished_adv_samples): {}, len(subset): {}".format(len(finished_adv_samples), len(subset))
+
+	subset.data = finished_adv_samples
+
+	results = eval_nn(subset)
+
+	assert len(results) == len(subset)
+
+	print("Tradeoff: {}".format(opt.tradeoff))
+	print("Number of attack samples: {}".format(len(subset)))
+	print("Ratio of successful adversarial attacks on packets: {}".format(1-np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in results], axis=0))))))
+	print("Ratio of successful adversarial attacks on flows: {}".format(1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in results]))))))
+
+	with open(opt.categoriesMapping, "r") as f:
+		categories_mapping_content = json.load(f)
+	mapping = categories_mapping_content["mapping"]
+
+	attack_numbers = mapping.values()
+
+	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+
+	for orig_index, (_,_,cat), result in zip(orig_indices, subset, results):
+		results_by_attack_number[cat].append(result)
+		sample_indices_by_attack_number.append(orig_index)
+
+	reverse_mapping = {v: k for k, v in mapping.items()}
+	for attack_number, per_attack_results in enumerate(results_by_attack_number):
+		if len(per_attack_results) <= 0:
+			continue
+		per_packet_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in per_attack_results], axis=0)))))
+		per_flow_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in per_attack_results])))))
+
+		print("Attack type: {}; packet accuracy: {}, flow accuracy: {}".format(reverse_mapping[attack_number], per_packet_accuracy, per_flow_accuracy))
+
+	# with open('adv_samples.pickle', 'wb') as outfile:
+	# 	pickle.dump(adv_samples, outfile)
 
 def eval_nn(data):
 
@@ -324,7 +383,7 @@ def eval_nn(data):
 
 	loader = torch.utils.data.DataLoader(data, batch_size=opt.batchSize, shuffle=False, collate_fn=lambda x: custom_collate(x, (True, False, False)))
 
-	for input_data in loader:
+	for (input_data,) in loader:
 
 		lstm_module.init_hidden(opt.batchSize)
 
@@ -467,6 +526,7 @@ if __name__=="__main__":
 	parser.add_argument('--maxLength', type=int, default=1000, help='max length')
 	parser.add_argument('--maxSize', type=int, default=sys.maxsize, help='limit of samples to consider')
 	parser.add_argument("--categoriesMapping", type=str, default="categories_mapping.json", help="mapping of attack categories; see parse.py")
+	parser.add_argument('--tradeoff', type=float, default=0.5, help='max length')
 	parser.add_argument('--lr', type=float, default=10**(-2), help='learning rate')
 
 	opt = parser.parse_args()
