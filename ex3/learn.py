@@ -543,29 +543,49 @@ def pdp():
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
 	subset = torch.utils.data.Subset(dataset, test_indices)
 
+	with open(opt.categoriesMapping, "r") as f:
+		categories_mapping_content = json.load(f)
+	mapping = categories_mapping_content["mapping"]
+
+	attack_numbers = mapping.values()
+
+	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+
 	PDP_DIR = 'pdps'
 	# TODO: consider fold
-	for feat_name, feat_ind in [('srcPort', 0), ('dstPort', 1)]:
-		feat_min = min( (sample[0,feat_ind] for sample in x))
-		feat_max = max( (sample[0,feat_ind] for sample in x))
+	for attack_number in range(max(attack_numbers)+1):
+		matching = [item for item in subset if int(item[2][0,0]) == attack_number]
+		if len(matching) <= 0:
+			continue
+		good_subset = OurDataset(*zip(*matching))
 
-		values = np.linspace(feat_min, feat_max, 100)
+		print("attack_number", attack_number)
+		results_for_attack_type = []
+		for feat_name, feat_ind in [('srcPort', 0), ('dstPort', 1)]:
+			feat_min = min( (sample[0,feat_ind] for sample in x))
+			feat_max = max( (sample[0,feat_ind] for sample in x))
 
-		# subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
+			values = np.linspace(feat_min, feat_max, 100)
 
-		pdp = np.zeros([values.size])
+			# subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
 
-		for i in range(values.size):
-			for sample in subset:
-				for j in range(sample.shape[0]):
-					sample[j,feat_ind] = values[i]
-			outputs = eval_nn(subset)
-			# TODO: avg. or end output?
-			pdp[i] = sum((torch.sigmoid(output[-1]) for output in outputs)) / len(subset)
+			pdp = np.zeros([values.size])
 
-		rescaled = values * stds[feat_ind] + means[feat_ind]
-		os.makedirs(PDP_DIR, exist_ok=True)
-		np.save('%s/%s.npy' % (PDP_DIR, feat_name), np.vstack((rescaled,pdp)))
+			for i in range(values.size):
+				for sample in good_subset:
+					for j in range(sample[0].shape[0]):
+						sample[0][j,feat_ind] = values[i]
+				outputs = eval_nn(good_subset)
+				# TODO: avg. or end output?
+				pdp[i] = np.mean( np.array([numpy_sigmoid(output[-1]) for output in outputs] ))
+
+			rescaled = values * stds[feat_ind] + means[feat_ind]
+			# os.makedirs(PDP_DIR, exist_ok=True)
+			results_for_attack_type.append(np.vstack((rescaled,pdp)))
+			# print("result.shape", result.shape)
+			# np.save('%s/%s.npy' % (PDP_DIR, feat_name), result)
+
+		results_by_attack_number[attack_number].append(np.vstack(results_for_attack_type))
 
 if __name__=="__main__":
 	parser = argparse.ArgumentParser()
