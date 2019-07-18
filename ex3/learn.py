@@ -259,9 +259,17 @@ def adv():
 
 	#initialize sample
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
-	subset = torch.utils.data.Subset(dataset, test_indices)
+	subset_with_all_traffic = torch.utils.data.Subset(dataset, test_indices)
 
-	orig_indices, attack_indices = zip(*[(orig, i) for orig, i in zip(test_indices, range(len(subset))) if subset[i][1][0,0] == 1])
+	feature_ranges = get_feature_ranges(subset_with_all_traffic, sampling_density=2)
+	max_packet_length = feature_ranges[0][0]
+
+	common_mtu_scaled = (1500 - means[3])/stds[4]
+	maximum_length = common_mtu_scaled
+
+	zero_scaled = (0 - means[4])/stds[4]
+
+	orig_indices, attack_indices = zip(*[(orig, i) for orig, i in zip(test_indices, range(len(subset_with_all_traffic))) if subset_with_all_traffic[i][1][0,0] == 1])
 
 	subset = torch.utils.data.Subset(dataset, attack_indices)
 
@@ -297,7 +305,7 @@ def adv():
 
 		# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
 		# with SGD we probably need even more.
-		for i in range(10000):
+		for i in range(1000):
 
 			# print("iterating", i)
 			# samples += len(input_data)
@@ -325,24 +333,35 @@ def adv():
 			input_data.data.grad[:,5:] = 0
 			optimizer.step()
 
-			detached_batch = input_data.data.detach()
-
 			# Packet lengths cannot become smaller than original
-			mask = detached_batch[:,3] < orig_batch[:,3]
-			detached_batch[mask,3] = orig_batch[mask,3]
+			mask = input_data.data[:,3] < orig_batch[:,3]
+			input_data.data.data[mask,3] = orig_batch[mask,3]
 
-			# IAT cannot become smaller 0
-			mask = detached_batch[:,4] * stds[4] + means[4] < 0
-			detached_batch[mask,4] = float(-means[4]/stds[4])
+			# # Packet lengths cannot become larger than the maximum. Should be around 1500 bytes usually... NOTE: Apparently packets are commonly larger than 1500 bytes so this is not enforcable like this :/
+			# mask = input_data.data[:,3] > maximum_length
+			# input_data.data.data[mask,3] = orig_batch[mask,3]
 
-			if i % 1000 == 0:
-				print('Iteration: %d, Distance: %f, actual Distance: %f, regularizer: %f' % (i, distance, torch.dist(detached_batch, input_data.data, p=1).mean(), regularizer))
+			# IAT cannot become smaller than 0
+			mask = input_data.data[:,4] < zero_scaled
+			input_data.data.data[mask,4] = float(-means[4]/stds[4])
+
+			# detached_batch = input_data.data.detach()
+
+			# # Packet lengths cannot become smaller than original
+			# mask = detached_batch[:,3] < orig_batch[:,3]
+			# detached_batch[mask,3] = orig_batch[mask,3]
+
+			# # IAT cannot become smaller 0
+			# mask = detached_batch[:,4] * stds[4] + means[4] < 0
+			# detached_batch[mask,4] = float(-means[4]/stds[4])
+
+			# if i % 1000 == 0:
+			# 	print('Iteration: %d, Distance: %f, regularizer: %f' % (i, distance, regularizer))
 
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
-		adv_samples = [ seqs[:lengths[batch_index],batch_index,:].detach().cpu().numpy()*stds + means for batch_index in range(seqs.shape[1]) ]
-		# print("seqs.shape", seqs.shape, "lengths.shape", lengths.shape)
-		# print("len(adv_samples)", len(adv_samples))
+		# adv_samples = [ seqs[:lengths[batch_index],batch_index,:].detach().cpu().numpy()*stds + means for batch_index in range(seqs.shape[1]) ]
+		adv_samples = [ seqs[:lengths[batch_index],batch_index,:].detach().cpu().numpy() for batch_index in range(seqs.shape[1]) ]
 
 		finished_adv_samples += adv_samples
 
@@ -367,27 +386,38 @@ def adv():
 	print("Average confidence on flows: {}".format(np.mean(numpy_sigmoid(np.array([item[-1] for item in results])))))
 	print("Ratio of successful adversarial attacks on flows: {}".format(1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in results]))))))
 
-	# with open(opt.categoriesMapping, "r") as f:
-	# 	categories_mapping_content = json.load(f)
-	# mapping = categories_mapping_content["mapping"]
+	with open(opt.categoriesMapping, "r") as f:
+		categories_mapping_content = json.load(f)
+	mapping = categories_mapping_content["mapping"]
 
-	# attack_numbers = mapping.values()
+	attack_numbers = mapping.values()
 
-	# results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
-	# sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	orig_flows_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	modified_flows_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	orig_results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
-	# for orig_index, (_,_,cat[0,0]), result in zip(orig_indices, subset, results):
-	# 	results_by_attack_number[cat].append(result)
-	# 	sample_indices_by_attack_number.append(orig_index)
+	for orig_index, (orig_flow,_,cat), (adv_flow,_,_), orig_result, result in zip(orig_indices, original_dataset, subset, original_results, results):
+		# print("cat", cat)
+		correct_cat = int(cat[0][0])
+		orig_flows_by_attack_number[correct_cat].append(orig_flow)
+		modified_flows_by_attack_number[correct_cat].append(adv_flow)
+		orig_results_by_attack_number[correct_cat].append(orig_result)
+		results_by_attack_number[correct_cat].append(result)
+		sample_indices_by_attack_number.append(orig_index)
 
-	# reverse_mapping = {v: k for k, v in mapping.items()}
-	# for attack_number, per_attack_results in enumerate(results_by_attack_number):
-	# 	if len(per_attack_results) <= 0:
-	# 		continue
-	# 	per_packet_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in per_attack_results], axis=0)))))
-	# 	per_flow_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in per_attack_results])))))
+	reverse_mapping = {v: k for k, v in mapping.items()}
+	for attack_number, (per_attack_orig, per_attack_modified, per_attack_orig_results, per_attack_results) in enumerate(zip(orig_flows_by_attack_number, modified_flows_by_attack_number, orig_results_by_attack_number, results_by_attack_number)):
+		if len(per_attack_results) <= 0:
+			continue
+		per_packet_orig_accuracy = (np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in per_attack_orig_results], axis=0)))))
+		per_packet_accuracy = (np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in per_attack_results], axis=0)))))
+		per_flow_orig_accuracy = (np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in per_attack_orig_results])))))
+		per_flow_accuracy = (np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in per_attack_results])))))
+		dist = np.array([np.linalg.norm(per_attack_orig_item-per_attack_modified_item, ord=1).mean() for per_attack_orig_item, per_attack_modified_item in zip(per_attack_orig, per_attack_modified)]).mean()
 
-	# 	print("Attack type: {}; packet accuracy: {}, flow accuracy: {}".format(reverse_mapping[attack_number], per_packet_accuracy, per_flow_accuracy))
+		print("Attack type: {}; number of samples: {}, average dist: {}, packet confidence: {}/{}, flow confidence: {}/{}".format(reverse_mapping[attack_number], len(per_attack_results), dist, per_packet_accuracy, per_packet_orig_accuracy, per_flow_accuracy, per_flow_orig_accuracy))
 
 	# with open('adv_samples.pickle', 'wb') as outfile:
 	# 	pickle.dump(adv_samples, outfile)
@@ -416,8 +446,19 @@ def eval_nn(data):
 
 	return results
 
+def get_feature_ranges(dataset, sampling_density=100):
+	features = []
+	# iat & length
+	for feat_name, feat_ind in zip(["length", "iat"], [3, 4]):
+		feat_min = min( (sample[0][i,feat_ind] for sample in dataset for i in range(sample[0].shape[0])))
+		feat_max = max( (sample[0][i,feat_ind] for sample in dataset for i in range(sample[0].shape[0])))
+		features.append((feat_ind,np.linspace(feat_min, feat_max, sampling_density)))
+
+		print("feature", feat_name, "min", feat_min, "max", feat_max, "min_rescaled", feat_min*stds[feat_ind] + means[feat_ind], "max_rescaled", feat_max*stds[feat_ind] + means[feat_ind])
+
+	return features
+
 def pred_plots():
-	SAMPLING_DENSITY = 100
 	OUT_DIR='pred_plots'
 	os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -428,12 +469,7 @@ def pred_plots():
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
 	subset = torch.utils.data.Subset(dataset, test_indices)
 
-	features = []
-	# iat & length
-	for feat_ind in [3, 4]:
-		feat_min = min( (sample[0][i,feat_ind] for sample in subset for i in range(sample[0].shape[0])))
-		feat_max = max( (sample[0][i,feat_ind] for sample in subset for i in range(sample[0].shape[0])))
-		features.append((feat_ind,np.linspace(feat_min, feat_max, SAMPLING_DENSITY)))
+	features = get_feature_ranges(subset)
 
 	with open(opt.categoriesMapping, "r") as f:
 		categories_mapping_content = json.load(f)
@@ -465,7 +501,7 @@ def pred_plots():
 
 			lstm_module.forgetting = True
 
-			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*SAMPLING_DENSITY,1)
+			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*len(features[0]),1)
 			for k, (feat_ind, values) in enumerate(features):
 
 				for j in range(values.size):
