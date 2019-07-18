@@ -140,7 +140,6 @@ def train():
 
 			selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
 
-			# print("index_tensor.shape", index_tensor.shape, "selection_tensor.shape", selection_tensor.shape)
 			mask = (index_tensor <= selection_tensor).byte().to(device)
 			mask_exact = (index_tensor == selection_tensor).byte().to(device)
 			# torch.set_printoptions(profile="full")
@@ -279,10 +278,19 @@ def adv():
 	zero_tensor = torch.FloatTensor([0]).to(device)
 
 	samples = 0
-	for (input_data,) in loader:
+	for sample_index, (input_data,) in enumerate(loader):
+		# print("sample", sample_index)
 		samples += input_data.sorted_indices.shape[0]
 
 		optimizer = optim.SGD([input_data.data], lr=opt.lr)
+
+		# index_tensor = torch.arange(0, len(input_data.batch_sizes), dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, input_data.batch_sizes[0], 1)
+
+		# _, seq_lens = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+
+		# selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
+
+		# mask = (index_tensor <= selection_tensor).byte().to(device)
 
 		orig_batch = input_data.data.clone()
 		input_data.data.requires_grad = True
@@ -301,17 +309,16 @@ def adv():
 			# print("input_data.data.shape", input_data.data.shape)
 			#s_squeezed = torch.nn.utils.rnn.pack_padded_sequence(torch.unsqueeze(sample, 1), [sample.shape[0]])
 			output, seq_lens = lstm_module(input_data)
+			# output_padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
-			distance = torch.dist(orig_batch, input_data.data, p=2).sum()
+			distance = torch.dist(orig_batch, input_data.data, p=1).mean()
 			#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
 			#regularizer = .5*output[-1,0]
-			regularizer = opt.tradeoff*torch.max(output, zero_tensor).sum()
+			regularizer = opt.tradeoff*torch.max(output, zero_tensor).mean()
 			#if regularizer <= 0:
 				#break
 			criterion = distance + regularizer
 			criterion.backward()
-
-			# print ('Distance: %f, regularizer: %f' % (distance, regularizer))
 
 			# only consider lengths and iat
 			input_data.data.grad[:,:3] = 0
@@ -328,6 +335,9 @@ def adv():
 			mask = detached_batch[:,4] * stds[4] + means[4] < 0
 			detached_batch[mask,4] = float(-means[4]/stds[4])
 
+			if i % 1000 == 0:
+				print('Iteration: %d, Distance: %f, actual Distance: %f, regularizer: %f' % (i, distance, torch.dist(detached_batch, input_data.data, p=1).mean(), regularizer))
+
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
 		adv_samples = [ seqs[:lengths[batch_index],batch_index,:].detach().cpu().numpy()*stds + means for batch_index in range(seqs.shape[1]) ]
@@ -339,38 +349,45 @@ def adv():
 	# print("samples", samples)
 	assert len(finished_adv_samples) == len(subset), "len(finished_adv_samples): {}, len(subset): {}".format(len(finished_adv_samples), len(subset))
 
+	original_dataset = OurDataset(*zip(*list(subset)))
+	subset = OurDataset(*zip(*list(subset)))
 	subset.data = finished_adv_samples
 
+	original_results = eval_nn(original_dataset)
 	results = eval_nn(subset)
 
 	assert len(results) == len(subset)
 
 	print("Tradeoff: {}".format(opt.tradeoff))
 	print("Number of attack samples: {}".format(len(subset)))
+	print("Average confidence on original packets: {}".format(np.mean(numpy_sigmoid(np.concatenate([np.array(item) for item in original_results], axis=0)))))
+	print("Average confidence on packets: {}".format(np.mean(numpy_sigmoid(np.concatenate([np.array(item) for item in results], axis=0)))))
 	print("Ratio of successful adversarial attacks on packets: {}".format(1-np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in results], axis=0))))))
+	print("Average confidence on original flows: {}".format(np.mean(numpy_sigmoid(np.array([item[-1] for item in original_results])))))
+	print("Average confidence on flows: {}".format(np.mean(numpy_sigmoid(np.array([item[-1] for item in results])))))
 	print("Ratio of successful adversarial attacks on flows: {}".format(1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in results]))))))
 
-	with open(opt.categoriesMapping, "r") as f:
-		categories_mapping_content = json.load(f)
-	mapping = categories_mapping_content["mapping"]
+	# with open(opt.categoriesMapping, "r") as f:
+	# 	categories_mapping_content = json.load(f)
+	# mapping = categories_mapping_content["mapping"]
 
-	attack_numbers = mapping.values()
+	# attack_numbers = mapping.values()
 
-	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
-	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	# results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	# sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
-	for orig_index, (_,_,cat), result in zip(orig_indices, subset, results):
-		results_by_attack_number[cat].append(result)
-		sample_indices_by_attack_number.append(orig_index)
+	# for orig_index, (_,_,cat[0,0]), result in zip(orig_indices, subset, results):
+	# 	results_by_attack_number[cat].append(result)
+	# 	sample_indices_by_attack_number.append(orig_index)
 
-	reverse_mapping = {v: k for k, v in mapping.items()}
-	for attack_number, per_attack_results in enumerate(results_by_attack_number):
-		if len(per_attack_results) <= 0:
-			continue
-		per_packet_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in per_attack_results], axis=0)))))
-		per_flow_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in per_attack_results])))))
+	# reverse_mapping = {v: k for k, v in mapping.items()}
+	# for attack_number, per_attack_results in enumerate(results_by_attack_number):
+	# 	if len(per_attack_results) <= 0:
+	# 		continue
+	# 	per_packet_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.concatenate([np.array(item) for item in per_attack_results], axis=0)))))
+	# 	per_flow_accuracy = (1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in per_attack_results])))))
 
-		print("Attack type: {}; packet accuracy: {}, flow accuracy: {}".format(reverse_mapping[attack_number], per_packet_accuracy, per_flow_accuracy))
+	# 	print("Attack type: {}; packet accuracy: {}, flow accuracy: {}".format(reverse_mapping[attack_number], per_packet_accuracy, per_flow_accuracy))
 
 	# with open('adv_samples.pickle', 'wb') as outfile:
 	# 	pickle.dump(adv_samples, outfile)

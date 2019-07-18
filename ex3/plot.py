@@ -61,19 +61,27 @@ for attack_type, seqs in enumerate(results_by_attack_number):
 	first_quartiles = np.array([np.quantile(item, 0.25, axis=0) for item in values_by_length])
 	third_quartiles = np.array([np.quantile(item, 0.75, axis=0) for item in values_by_length])
 
-	# print(means.shape, first_quartiles.shape, third_quartiles.shape)
+	# print(medians.shape, first_quartiles.shape, third_quartiles.shape)
+	# quit()
 
-	plt.plot(medians[:,0], color=colors[0])
-	plt.fill_between(range(medians.shape[0]), first_quartiles[:,0], third_quartiles[:,0], alpha=0.5, edgecolor=colors[0], facecolor=colors[0])
+	all_legends = []
+	# for i in range(medians.shape[1]):
+	for i in range(1):
+		# print("i", i)
+		plt.plot(medians[:,i], color=colors[i])
+		plt.fill_between(range(medians.shape[0]), first_quartiles[:,i], third_quartiles[:,i], alpha=0.5, edgecolor=colors[i], facecolor=colors[i])
+		legend = ORDERING[i:i+1]*2
+		# legend = ORDERING[i:i+1]
+		legend[0] = legend[0]+" median"
+		legend[-1] = legend[-1]+" 1st and 3rd quartile"
+		all_legends += legend
+		# print("legend", legend)
+
 	plt.title(reverse_mapping[attack_type])
-	legend = ORDERING[0:1]*2
-	legend[0] = legend[0]+" median"
-	legend[-1] = legend[-1]+" 1st and 3rd quartile"
-	plt.legend(legend)
+	plt.legend(all_legends)
 	plt.xlabel('Sequence index')
 	plt.ylabel('Prediction')
 	plt.xticks(range(medians.shape[0]))
-
 	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
 	plt.show()
 
