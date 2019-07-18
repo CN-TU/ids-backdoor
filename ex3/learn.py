@@ -431,8 +431,8 @@ def pred_plots():
 	features = []
 	# iat & length
 	for feat_ind in [3, 4]:
-		feat_min = min( (sample[0][0,feat_ind] for sample in subset))
-		feat_max = max( (sample[0][0,feat_ind] for sample in subset))
+		feat_min = min( (sample[0][i,feat_ind] for sample in subset for i in range(sample[0].shape[0])))
+		feat_max = max( (sample[0][i,feat_ind] for sample in subset for i in range(sample[0].shape[0])))
 		features.append((feat_ind,np.linspace(feat_min, feat_max, SAMPLING_DENSITY)))
 
 	with open(opt.categoriesMapping, "r") as f:
@@ -449,7 +449,8 @@ def pred_plots():
 	for real_ind, sample_ind in zip(test_indices, range(len(subset))):
 		print("index", sample_ind)
 		# if have_categories[cat] == SAMPLES_PER_ATTACK:
-		# 	have_categories[cat] += 1
+		# 	continue
+		# have_categories[cat] += 1
 
 		flow, _, flow_categories = subset[sample_ind]
 		cat = int(flow_categories[0,0])
