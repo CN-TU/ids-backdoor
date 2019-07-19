@@ -368,8 +368,8 @@ def adv():
 	# print("samples", samples)
 	assert len(finished_adv_samples) == len(subset), "len(finished_adv_samples): {}, len(subset): {}".format(len(finished_adv_samples), len(subset))
 
-	original_dataset = OurDataset(*zip(*list(subset)))
-	subset = OurDataset(*zip(*list(subset)))
+	original_dataset = OurDataset(*zip(*[item.numpy() for item in list(subset)]))
+	subset = OurDataset(*zip(*[item.numpy() for item in list(subset)]))
 	subset.data = finished_adv_samples
 
 	original_results = eval_nn(original_dataset)
@@ -418,6 +418,10 @@ def adv():
 		dist = np.array([np.linalg.norm(per_attack_orig_item-per_attack_modified_item, ord=1).mean() for per_attack_orig_item, per_attack_modified_item in zip(per_attack_orig, per_attack_modified)]).mean()
 
 		print("Attack type: {}; number of samples: {}, average dist: {}, packet confidence: {}/{}, flow confidence: {}/{}".format(reverse_mapping[attack_number], len(per_attack_results), dist, per_packet_accuracy, per_packet_orig_accuracy, per_flow_accuracy, per_flow_orig_accuracy))
+
+	file_name = opt.dataroot[:-7]+"_adv_{}_outcomes_{}_{}.pickle".format(opt.tradeoff, opt.fold, opt.nFold)
+	with open(file_name, "wb") as f:
+		pickle.dump({"results_by_attack_number": results_by_attack_number, "orig_results_by_attack_number": orig_results_by_attack_number, "modified_flows_by_attack_number": modified_flows_by_attack_number, "orig_flows_by_attack_number": orig_flows_by_attack_number}, f)
 
 	# with open('adv_samples.pickle', 'wb') as outfile:
 	# 	pickle.dump(adv_samples, outfile)
@@ -536,6 +540,7 @@ def pred_plots():
 
 def pdp():
 
+	feature_names = ["srcPort", "dstPort"]
 	n_fold = opt.nFold
 	fold = opt.fold
 	lstm_module.eval()
@@ -549,7 +554,7 @@ def pdp():
 
 	attack_numbers = mapping.values()
 
-	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	results_by_attack_number = [None for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
 	PDP_DIR = 'pdps'
 	# TODO: consider fold
@@ -561,7 +566,7 @@ def pdp():
 
 		print("attack_number", attack_number)
 		results_for_attack_type = []
-		for feat_name, feat_ind in [('srcPort', 0), ('dstPort', 1)]:
+		for feat_name, feat_ind in zip(feature_names, (0, 1)):
 			feat_min = min( (sample[0,feat_ind] for sample in x))
 			feat_max = max( (sample[0,feat_ind] for sample in x))
 
@@ -585,7 +590,11 @@ def pdp():
 			# print("result.shape", result.shape)
 			# np.save('%s/%s.npy' % (PDP_DIR, feat_name), result)
 
-		results_by_attack_number[attack_number].append(np.vstack(results_for_attack_type))
+		results_by_attack_number[attack_number] = np.stack(results_for_attack_type)
+
+	file_name = opt.dataroot[:-7]+"_pdp_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
+	with open(file_name, "wb") as f:
+		pickle.dump({"results_by_attack_number": results_by_attack_number, "feature_names": feature_names}, f)
 
 if __name__=="__main__":
 	parser = argparse.ArgumentParser()

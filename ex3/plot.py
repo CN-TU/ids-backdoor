@@ -37,7 +37,8 @@ for attack_type, seqs in enumerate(results_by_attack_number):
 	seqs = [seq.transpose() for seq in seqs]
 	seqs = sorted(seqs, key=lambda x: x.shape[0], reverse=True)
 	# print("seqs", [seq.shape for seq in seqs])
-	max_length = len(max(seqs, key=lambda x: x.shape[1]))
+	max_length = len(seqs[0])
+	# print("max_length", max_length)
 
 	values_by_length = []
 
