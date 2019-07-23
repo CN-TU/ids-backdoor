@@ -273,7 +273,7 @@ def adv():
 
 	subset = torch.utils.data.Subset(dataset, attack_indices)
 
-	loader = torch.utils.data.DataLoader(subset, batch_size=opt.batchSize, shuffle=False, collate_fn=lambda x: custom_collate(x, (True, False, False)))
+	loader = torch.utils.data.DataLoader(subset, batch_size=opt.batchSize, shuffle=False, collate_fn=lambda x: custom_collate(x, (True, False, True)))
 
 	# lengths = torch.LongTensor([len(seq) for seq in batch_x])
 	# packed = torch.nn.utils.rnn.pack_sequence(batch_x, enforce_sorted=False)
@@ -286,7 +286,7 @@ def adv():
 	zero_tensor = torch.FloatTensor([0]).to(device)
 
 	samples = 0
-	for sample_index, (input_data,) in enumerate(loader):
+	for sample_index, (input_data,input_category) in enumerate(loader):
 		# print("sample", sample_index)
 		samples += input_data.sorted_indices.shape[0]
 
@@ -344,6 +344,12 @@ def adv():
 			# IAT cannot become smaller than 0
 			mask = input_data.data[:,4] < zero_scaled
 			input_data.data.data[mask,4] = float(-means[4]/stds[4])
+
+			if not opt.canManipulateBothDirections:
+				seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+				# cats, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_categories)
+
+				src_to_dst_destination = seqs[0,:,:]
 
 			# detached_batch = input_data.data.detach()
 
@@ -598,6 +604,7 @@ def pdp():
 
 if __name__=="__main__":
 	parser = argparse.ArgumentParser()
+	parser.add_argument('--canManipulateBothDirections', action='store_true', help='if the attacker can change packets in both directions of the flow')
 	parser.add_argument('--dataroot', required=True, help='path to dataset')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
 	parser.add_argument('--fold', type=int, default=0, help='fold to use')
