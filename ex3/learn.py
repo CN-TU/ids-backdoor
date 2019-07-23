@@ -8,6 +8,7 @@ import math
 import argparse
 import random
 import time
+from functools import reduce
 
 import collections
 import numpy as np
@@ -16,6 +17,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from tensorboardX import SummaryWriter
+import matplotlib.pyplot as plt
 
 HIDDEN_SIZE = 512
 N_LAYERS = 3
@@ -192,10 +194,6 @@ def test():
 	all_end_accuracies = []
 	samples = 0
 
-	with open(opt.categoriesMapping, "r") as f:
-		categories_mapping_content = json.load(f)
-	mapping = categories_mapping_content["mapping"]
-
 	attack_numbers = mapping.values()
 
 	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
@@ -257,6 +255,11 @@ def adv():
 	n_fold = opt.nFold
 	fold = opt.fold
 
+	if not opt.canManipulateBothDirections:
+		bidirectional_categories = [torch.FloatTensor([mapping[key]]).to(device) for key in categories_mapping["Botnet"]]
+
+	# print("bidirectional_categories", bidirectional_categories)
+
 	#initialize sample
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
 	subset_with_all_traffic = torch.utils.data.Subset(dataset, test_indices)
@@ -286,7 +289,7 @@ def adv():
 	zero_tensor = torch.FloatTensor([0]).to(device)
 
 	samples = 0
-	for sample_index, (input_data,input_category) in enumerate(loader):
+	for sample_index, (input_data,input_categories) in enumerate(loader):
 		# print("sample", sample_index)
 		samples += input_data.sorted_indices.shape[0]
 
@@ -301,7 +304,33 @@ def adv():
 		# mask = (index_tensor <= selection_tensor).byte().to(device)
 
 		orig_batch = input_data.data.clone()
+		orig_batch_padded = torch.nn.utils.rnn.pad_packed_sequence(input_data)[0].detach()
 		input_data.data.requires_grad = True
+
+		if not opt.canManipulateBothDirections:
+			seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+			cats, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_categories)
+
+			forward_direction = seqs[0:1,:,5].repeat(seqs.shape[0],1)
+
+			index_tensor = torch.arange(0, seqs.shape[0], dtype=torch.int64).unsqueeze(1).repeat(1, seqs.shape[1])
+
+			selection_tensor = lengths.unsqueeze(0).repeat(index_tensor.shape[0], 1)-1
+
+			# print("index_tensor.shape", index_tensor.shape, "selection_tensor.shape", selection_tensor.shape)
+
+			orig_mask = (index_tensor <= selection_tensor).byte().to(device)
+			# mask_exact = (index_tensor == selection_tensor).byte().to(device)
+			wrong_direction = (seqs[:,:,5]!=forward_direction)
+			matching_cats = [(cats==bidirectional_cat).squeeze() for bidirectional_cat in bidirectional_categories]
+			# print("matching_cats.shape", [item.shape for item in matching_cats])
+			not_bidirectional = ~reduce(lambda acc, x: acc | x, matching_cats, torch.ByteTensor([False]).to(device))
+			# print(orig_mask.shape, wrong_direction.shape, not_bidirectional.shape)
+			mask = orig_mask & wrong_direction & not_bidirectional
+
+			# print("Batch: {}, orig_mask: {}, wrong_direction: {}, not_bidirectional: {}, mask: {}".format(sample_index, (torch.sum(orig_mask)), (torch.sum(wrong_direction & orig_mask)), (torch.sum(not_bidirectional & orig_mask)), (torch.sum(mask))))
+
+			print("Batch: {}, wrong_direction: {}, not_bidirectional: {}, invalid: {}".format(sample_index, float(torch.sum(wrong_direction & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(not_bidirectional & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(mask)/torch.sum(orig_mask, dtype=torch.float32))))
 
 		# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
 		# with SGD we probably need even more.
@@ -334,22 +363,28 @@ def adv():
 			optimizer.step()
 
 			# Packet lengths cannot become smaller than original
-			mask = input_data.data[:,3] < orig_batch[:,3]
-			input_data.data.data[mask,3] = orig_batch[mask,3]
+			packet_mask = input_data.data[:,3] < orig_batch[:,3]
+			input_data.data.data[packet_mask,3] = orig_batch[packet_mask,3]
 
 			# # Packet lengths cannot become larger than the maximum. Should be around 1500 bytes usually... NOTE: Apparently packets are commonly larger than 1500 bytes so this is not enforcable like this :/
 			# mask = input_data.data[:,3] > maximum_length
 			# input_data.data.data[mask,3] = orig_batch[mask,3]
 
-			# IAT cannot become smaller than 0
-			mask = input_data.data[:,4] < zero_scaled
-			input_data.data.data[mask,4] = float(-means[4]/stds[4])
+			# XXX: This is experimentally removed
+			# # IAT cannot become smaller than 0
+			# iat_mask = input_data.data[:,4] < zero_scaled
+			# input_data.data.data[iat_mask,4] = float(-means[4]/stds[4])
 
+			# XXX: This is experimentally added
+			iat_mask = input_data.data[:,4] < orig_batch[:,4]
+			input_data.data.data[iat_mask,4] = orig_batch[iat_mask,4]
+
+			# Can only manipulate attacker direction except for botnets where we can control both sides
 			if not opt.canManipulateBothDirections:
 				seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-				# cats, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_categories)
 
-				src_to_dst_destination = seqs[0,:,:]
+				seqs[mask] = orig_batch_padded[mask]
+				input_data.data.data = torch.nn.utils.rnn.pack_padded_sequence(seqs, lengths, enforce_sorted=False).data.data
 
 			# detached_batch = input_data.data.detach()
 
@@ -374,8 +409,8 @@ def adv():
 	# print("samples", samples)
 	assert len(finished_adv_samples) == len(subset), "len(finished_adv_samples): {}, len(subset): {}".format(len(finished_adv_samples), len(subset))
 
-	original_dataset = OurDataset(*zip(*[item.numpy() for item in list(subset)]))
-	subset = OurDataset(*zip(*[item.numpy() for item in list(subset)]))
+	original_dataset = OurDataset(*zip(*[[subitem.numpy() for subitem in item] for item in list(subset)]))
+	subset = OurDataset(*zip(*[[subitem.numpy() for subitem in item] for item in list(subset)]))
 	subset.data = finished_adv_samples
 
 	original_results = eval_nn(original_dataset)
@@ -391,10 +426,6 @@ def adv():
 	print("Average confidence on original flows: {}".format(np.mean(numpy_sigmoid(np.array([item[-1] for item in original_results])))))
 	print("Average confidence on flows: {}".format(np.mean(numpy_sigmoid(np.array([item[-1] for item in results])))))
 	print("Ratio of successful adversarial attacks on flows: {}".format(1-np.mean(np.round(numpy_sigmoid(np.array([item[-1] for item in results]))))))
-
-	with open(opt.categoriesMapping, "r") as f:
-		categories_mapping_content = json.load(f)
-	mapping = categories_mapping_content["mapping"]
 
 	attack_numbers = mapping.values()
 
@@ -425,7 +456,7 @@ def adv():
 
 		print("Attack type: {}; number of samples: {}, average dist: {}, packet confidence: {}/{}, flow confidence: {}/{}".format(reverse_mapping[attack_number], len(per_attack_results), dist, per_packet_accuracy, per_packet_orig_accuracy, per_flow_accuracy, per_flow_orig_accuracy))
 
-	file_name = opt.dataroot[:-7]+"_adv_{}_outcomes_{}_{}.pickle".format(opt.tradeoff, opt.fold, opt.nFold)
+	file_name = opt.dataroot[:-7]+"_adv_{}{}_outcomes_{}_{}.pickle".format(opt.tradeoff, "_notBidirectional" if not opt.canManipulateBothDirections else "", opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
 		pickle.dump({"results_by_attack_number": results_by_attack_number, "orig_results_by_attack_number": orig_results_by_attack_number, "modified_flows_by_attack_number": modified_flows_by_attack_number, "orig_flows_by_attack_number": orig_flows_by_attack_number}, f)
 
@@ -480,10 +511,6 @@ def pred_plots():
 	subset = torch.utils.data.Subset(dataset, test_indices)
 
 	features = get_feature_ranges(subset)
-
-	with open(opt.categoriesMapping, "r") as f:
-		categories_mapping_content = json.load(f)
-	mapping = categories_mapping_content["mapping"]
 
 	attack_numbers = mapping.values()
 
@@ -554,10 +581,6 @@ def pdp():
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
 	subset = torch.utils.data.Subset(dataset, test_indices)
 
-	with open(opt.categoriesMapping, "r") as f:
-		categories_mapping_content = json.load(f)
-	mapping = categories_mapping_content["mapping"]
-
 	attack_numbers = mapping.values()
 
 	results_by_attack_number = [None for _ in range(min(attack_numbers), max(attack_numbers)+1)]
@@ -602,6 +625,13 @@ def pdp():
 	with open(file_name, "wb") as f:
 		pickle.dump({"results_by_attack_number": results_by_attack_number, "feature_names": feature_names}, f)
 
+def plot_histograms():
+	rescaled = [item * stds + means for item in x[:opt.maxSize]]
+	for i in range(rescaled[0].shape[-1]):
+		plt.hist([subitem for item in rescaled for subitem in list(item[:,i])], bins=100)
+		plt.title("Feature {}".format(i))
+		plt.show()
+
 if __name__=="__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--canManipulateBothDirections', action='store_true', help='if the attacker can change packets in both directions of the flow')
@@ -628,6 +658,10 @@ if __name__=="__main__":
 
 	with open (opt.dataroot, "rb") as f:
 		all_data = pickle.load(f)
+
+	with open("categories_mapping.json", "r") as f:
+		categories_mapping_content = json.load(f)
+	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
 
 	all_data = [item[:opt.maxLength,:] for item in all_data]
 	random.shuffle(all_data)
