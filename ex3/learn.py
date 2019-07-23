@@ -198,6 +198,8 @@ def test():
 
 	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
+	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+
 	for input_data, labels, categories in test_loader:
 
 		batch_size = input_data.sorted_indices.shape[0]
@@ -205,8 +207,6 @@ def test():
 		lstm_module.init_hidden(batch_size)
 
 		output, seq_lens = lstm_module(input_data)
-
-		samples += output.shape[1]
 
 		index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
 
@@ -239,10 +239,13 @@ def test():
 			flow_category = int(categories[0, batch_index,:].squeeze().item())
 
 			results_by_attack_number[flow_category].append(np.concatenate((flow_input, flow_output), axis=-1))
+			sample_indices_by_attack_number[flow_category].append(test_indices[samples])
+
+			samples += 1
 
 	file_name = opt.dataroot[:-7]+"_prediction_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
-		pickle.dump(results_by_attack_number, f)
+		pickle.dump({"results_by_attack_number": results_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number}, f)
 
 	print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
 
