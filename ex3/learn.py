@@ -69,7 +69,7 @@ class OurLSTMModule(nn.Module):
 
 	def init_hidden(self, batch_size):
 		self.hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_size).to(self.device),
-		torch.zeros(self.n_layers, self.batch_size, self.hidden_size).to(self.device))
+		torch.zeros(self.n_layers, batch_size, self.hidden_size).to(self.device))
 
 	def forward(self, batch):
 		# preprocessed_batch = self.i2h(batch.view(-1,batch.shape[-1])).view(batch.shape[0], batch.shape[1], self.hidden_size)
@@ -311,18 +311,18 @@ def feature_importance():
 			input_data_cloned.data.data[:,feature_index] = torch.FloatTensor(np.random.choice(test_x[feature_index], size=(input_data_cloned.data.data.shape[0]))).to(device)
 			output, seq_lens = lstm_module(input_data_cloned)
 
-			index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
+			# index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
 
-			selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
+			# selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
 
-			mask = (index_tensor <= selection_tensor).byte().to(device)
-			# mask_exact = (index_tensor == selection_tensor).byte().to(device)
+			# mask = (index_tensor <= selection_tensor).byte().to(device)
+			# # mask_exact = (index_tensor == selection_tensor).byte().to(device)
 
-			# input_data, _ = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-			labels_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
-			categories_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(categories)
+			# # input_data, _ = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+			# labels_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
+			# categories_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(categories)
 
-			assert output.shape == labels_padded.shape
+			# assert output.shape == labels_padded.shape
 
 			sigmoided_output = torch.sigmoid(output.detach())
 			# accuracy_items = torch.round(sigmoided_output[mask]) == labels[mask]
@@ -591,8 +591,7 @@ def get_feature_ranges(dataset, sampling_density=100):
 		feat_max = max( (sample[0][i,feat_ind] for sample in dataset for i in range(sample[0].shape[0])))
 		features.append((feat_ind,np.linspace(feat_min, feat_max, sampling_density)))
 
-		print("feature", feat_name, "min", feat_min, "max", feat_max, "min_rescaled", feat_min*stds[feat_ind] + means[feat_ind], "max_rescaled", feat_max*stds[feat_ind] + means[feat_ind])
-
+		# print("feature", feat_name, "min", feat_min, "max", feat_max, "min_rescaled", feat_min*stds[feat_ind] + means[feat_ind], "max_rescaled", feat_max*stds[feat_ind] + means[feat_ind])
 	return features
 
 def pred_plots():
@@ -616,7 +615,7 @@ def pred_plots():
 	start_iterating = time.time()
 	# have_categories = collections.defaultdict(int)
 	for real_ind, sample_ind in zip(test_indices, range(len(subset))):
-		print("index", sample_ind)
+		# print("index", sample_ind)
 		# if have_categories[cat] == SAMPLES_PER_ATTACK:
 		# 	continue
 		# have_categories[cat] += 1
@@ -634,7 +633,7 @@ def pred_plots():
 
 			lstm_module.forgetting = True
 
-			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*len(features[0]),1)
+			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*len(features[0][1]),1)
 			for k, (feat_ind, values) in enumerate(features):
 
 				for j in range(values.size):
@@ -666,6 +665,82 @@ def pred_plots():
 	file_name = opt.dataroot[:-7]+"_pred_plots_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
 		pickle.dump({"results_by_attack_number": results_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number}, f)
+
+def pred_plots2():
+	OUT_DIR='pred_plots2'
+	os.makedirs(OUT_DIR, exist_ok=True)
+
+	n_fold = opt.nFold
+	fold = opt.fold
+	lstm_module.eval()
+
+	_, test_indices = get_nth_split(dataset, n_fold, fold)
+	subset = torch.utils.data.Subset(dataset, test_indices)
+
+	features = get_feature_ranges(subset, sampling_density=100)
+	# print("features", features)
+
+	attack_numbers = mapping.values()
+
+	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	result_ranges_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+
+	start_iterating = time.time()
+	# have_categories = collections.defaultdict(int)
+	for real_ind, sample_ind in zip(test_indices, range(len(subset))):
+		# print("index", sample_ind)
+		# if have_categories[cat] == SAMPLES_PER_ATTACK:
+		# 	continue
+		# have_categories[cat] += 1
+
+		flow, _, flow_categories = subset[sample_ind]
+		cat = int(flow_categories[0,0])
+
+		lstm_module.init_hidden(1)
+
+		predictions = np.zeros((flow.shape[0],))
+		prediction_ranges = np.zeros((flow.shape[0],len(features), len(features[0][1])))
+
+		for i in range(flow.shape[0]):
+
+			lstm_module.forgetting = True
+
+			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*len(features[0][1]),1)
+			for k, (feat_ind, values) in enumerate(features):
+
+				for j in range(values.size):
+					# print("input_data.shape", input_data.shape, "k*values.size+j", k*values.size+j)
+					input_data[0,k*values.size+j,feat_ind] = values[j]
+
+			packed_input = torch.nn.utils.rnn.pack_padded_sequence(input_data, [1] *input_data.shape[1]).to(device)
+
+			# print("input_data.shape", input_data.shape)
+			# print("hidden before before", [item.shape for item in lstm_module.hidden])
+			lstm_module.hidden = (lstm_module.hidden[0].repeat(1,input_data.shape[1],1), lstm_module.hidden[1].repeat(1,input_data.shape[1],1))
+			# print("hidden before", [item.shape for item in lstm_module.hidden])
+			output, _ = lstm_module(packed_input)
+			sigmoided = torch.sigmoid(output[0,:,0]).detach().cpu().tolist()
+
+			for k, (feat_ind, values) in enumerate(features):
+				for j in range(values.size):
+					prediction_ranges[i,k,:] = sigmoided[k*values.size:(k+1)*values.size]
+
+			lstm_module.hidden = (lstm_module.hidden[0][:,0:1,:].contiguous(), lstm_module.hidden[1][:,0:1,:].contiguous())
+			# print("hidden before", lstm_module.hidden)
+			lstm_module.forgetting = False
+			packed_input = torch.nn.utils.rnn.pack_padded_sequence(torch.FloatTensor(flow[i,:][None,None,:]), [1]).to(device)
+			output, _ = lstm_module(packed_input)
+			predictions[i] = torch.sigmoid(output[0,0,0])
+
+		results_by_attack_number[cat].append(predictions)
+		result_ranges_by_attack_number[cat].append(prediction_ranges)
+		sample_indices_by_attack_number[cat].append(real_ind)
+
+	print("It took {} seconds per sample".format((time.time()-start_iterating)/len(subset)))
+	file_name = opt.dataroot[:-7]+"_pred_plots2_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
+	with open(file_name, "wb") as f:
+		pickle.dump({"results_by_attack_number": results_by_attack_number, "result_ranges_by_attack_number": result_ranges_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number, "features": features}, f)
 
 def pdp():
 
