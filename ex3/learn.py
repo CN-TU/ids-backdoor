@@ -252,6 +252,99 @@ def test():
 	print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
 	print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
 
+# Right now this function replaces all values of one feature by random values sampled from the distribution of all features and looks how the accuracy changes.
+def feature_importance():
+
+	n_fold = opt.nFold
+	fold = opt.fold
+	lstm_module.eval()
+
+	_, test_indices = get_nth_split(dataset, n_fold, fold)
+	test_data = torch.utils.data.Subset(dataset, test_indices)
+	test_x = np.concatenate([item[0][:,:] for item in test_data], axis=0).transpose(1,0)
+	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False, collate_fn=custom_collate)
+
+	attack_numbers = mapping.values()
+
+	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	randomized_results_by_attack_number = [[list() for _ in range(test_x.shape[0])] for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+
+	for input_data, labels, categories in test_loader:
+
+		batch_size = input_data.sorted_indices.shape[0]
+		assert batch_size <= opt.batchSize, "batch_size: {}, opt.batchSize: {}".format(batch_size, opt.batchSize)
+		lstm_module.init_hidden(batch_size)
+
+		output, seq_lens = lstm_module(input_data)
+
+		index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
+
+		selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
+
+		mask = (index_tensor <= selection_tensor).byte().to(device)
+		# mask_exact = (index_tensor == selection_tensor).byte().to(device)
+
+		# input_data, _ = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+		labels_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
+		categories_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(categories)
+
+		assert output.shape == labels_padded.shape
+
+		sigmoided_output = torch.sigmoid(output.detach())
+		# accuracy_items = torch.round(sigmoided_output[mask]) == labels[mask]
+		# end_accuracy_items = torch.round(sigmoided_output[mask_exact]) == labels[mask_exact]
+
+		# Data is (Sequence Index, Batch Index, Feature Index)
+		for batch_index in range(output.shape[1]):
+			flow_length = seq_lens[batch_index]
+			flow_output = (torch.round(sigmoided_output[:flow_length,batch_index,:]) == labels_padded[:flow_length,batch_index,:]).detach().cpu().numpy()
+			assert (categories_padded[0, batch_index,:] == categories_padded[:flow_length, batch_index,:]).all()
+			flow_category = int(categories_padded[0, batch_index,:].squeeze().item())
+
+			results_by_attack_number[flow_category].append(flow_output)
+
+		for feature_index in range(test_x.shape[0]):
+			lstm_module.init_hidden(batch_size)
+
+			# print("input_data.data.shape", input_data.data.shape, "input_data.data[:,feature_index].shape", input_data.data[:,feature_index].shape, "torch.FloatTensor(np.random.choice(test_x[feature_index], size=input_data.data.shape[0])).shape", torch.FloatTensor(np.random.choice(test_x[feature_index], size=input_data.data.shape[0])).shape)
+			input_data_cloned = torch.nn.utils.rnn.PackedSequence(input_data.data.detach().clone(), input_data.batch_sizes, input_data.sorted_indices, input_data.unsorted_indices)
+			input_data_cloned.data.data[:,feature_index] = torch.FloatTensor(np.random.choice(test_x[feature_index], size=(input_data_cloned.data.data.shape[0]))).to(device)
+			output, seq_lens = lstm_module(input_data_cloned)
+
+			index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
+
+			selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
+
+			mask = (index_tensor <= selection_tensor).byte().to(device)
+			# mask_exact = (index_tensor == selection_tensor).byte().to(device)
+
+			# input_data, _ = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+			labels_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
+			categories_padded, _ = torch.nn.utils.rnn.pad_packed_sequence(categories)
+
+			assert output.shape == labels_padded.shape
+
+			sigmoided_output = torch.sigmoid(output.detach())
+			# accuracy_items = torch.round(sigmoided_output[mask]) == labels[mask]
+			# end_accuracy_items = torch.round(sigmoided_output[mask_exact]) == labels[mask_exact]
+
+			# Data is (Sequence Index, Batch Index, Feature Index)
+			for batch_index in range(output.shape[1]):
+				flow_length = seq_lens[batch_index]
+				flow_output = (torch.round(sigmoided_output[:flow_length,batch_index,:]) == labels_padded[:flow_length,batch_index,:]).detach().cpu().numpy()
+				assert (categories_padded[0, batch_index,:] == categories_padded[:flow_length, batch_index,:]).all()
+				flow_category = int(categories_padded[0, batch_index,:].squeeze().item())
+
+				randomized_results_by_attack_number[flow_category][feature_index].append(flow_output)
+
+	accuracy = np.mean(np.concatenate([subitem for item in results_by_attack_number for subitem in item], axis=0))
+	print("accuracy", accuracy)
+	for feature_index in range(test_x.shape[0]):
+		accuracy_for_feature = np.mean(np.concatenate([feature for attack_type in randomized_results_by_attack_number for feature in attack_type[feature_index]]))
+		print("accuracy_for_feature", feature_index, accuracy_for_feature)
+
+	# print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
+
 def adv():
 
 	# generate adversarial samples using Carlini Wagner method
