@@ -482,6 +482,11 @@ def adv():
 				seqs[mask] = orig_batch_padded[mask]
 				input_data.data.data = torch.nn.utils.rnn.pack_padded_sequence(seqs, lengths, enforce_sorted=False).data.data
 
+			seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+
+			seqs[0,:,4] = 0.0
+			input_data.data.data = torch.nn.utils.rnn.pack_padded_sequence(seqs, lengths, enforce_sorted=False).data.data
+
 			# detached_batch = input_data.data.detach()
 
 			# # Packet lengths cannot become smaller than original
@@ -683,6 +688,7 @@ def pred_plots2():
 	attack_numbers = mapping.values()
 
 	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	flows_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 	result_ranges_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
@@ -700,18 +706,18 @@ def pred_plots2():
 		lstm_module.init_hidden(1)
 
 		predictions = np.zeros((flow.shape[0],))
-		prediction_ranges = np.zeros((flow.shape[0],len(features), len(features[0][1])))
+		prediction_ranges = np.zeros((flow.shape[0], len(features), (len(features[0][1])-1)))
 
 		for i in range(flow.shape[0]):
 
 			lstm_module.forgetting = True
 
-			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*len(features[0][1]),1)
+			input_data = torch.FloatTensor(flow[i,:][None,None,:]).repeat(1,len(features)*(len(features[0][1])-1),1)
 			for k, (feat_ind, values) in enumerate(features):
 
-				for j in range(values.size):
+				for j in range(values.size-1):
 					# print("input_data.shape", input_data.shape, "k*values.size+j", k*values.size+j)
-					input_data[0,k*values.size+j,feat_ind] = values[j]
+					input_data[0,k*(values.size-1)+j,feat_ind] = (values[j]+values[j+1])/2
 
 			packed_input = torch.nn.utils.rnn.pack_padded_sequence(input_data, [1] *input_data.shape[1]).to(device)
 
@@ -723,8 +729,8 @@ def pred_plots2():
 			sigmoided = torch.sigmoid(output[0,:,0]).detach().cpu().tolist()
 
 			for k, (feat_ind, values) in enumerate(features):
-				for j in range(values.size):
-					prediction_ranges[i,k,:] = sigmoided[k*values.size:(k+1)*values.size]
+				for j in range(values.size-1):
+					prediction_ranges[i,k,:] = sigmoided[k*(values.size-1):(k+1)*(values.size-1)]
 
 			lstm_module.hidden = (lstm_module.hidden[0][:,0:1,:].contiguous(), lstm_module.hidden[1][:,0:1,:].contiguous())
 			# print("hidden before", lstm_module.hidden)
@@ -734,13 +740,16 @@ def pred_plots2():
 			predictions[i] = torch.sigmoid(output[0,0,0])
 
 		results_by_attack_number[cat].append(predictions)
+		flows_by_attack_number[cat].append(flow.detach().cpu().numpy())
 		result_ranges_by_attack_number[cat].append(prediction_ranges)
 		sample_indices_by_attack_number[cat].append(real_ind)
+
+		# assert result_ranges_by_attack_number[cat][-1].__class__.__name__=="ndarray" and flows_by_attack_number[cat][-1].__class__.__name__=="ndarray" and result_ranges_by_attack_number[cat][-1].__class__.__name__=="ndarray" and sample_indices_by_attack_number[cat][-1].__class__.__name__=="int", "{}, {}, {}, {}".format(result_ranges_by_attack_number[cat][-1].__class__.__name__, flows_by_attack_number[cat][-1].__class__.__name__, result_ranges_by_attack_number[cat][-1].__class__.__name__, sample_indices_by_attack_number[cat][-1].__class__.__name__)
 
 	print("It took {} seconds per sample".format((time.time()-start_iterating)/len(subset)))
 	file_name = opt.dataroot[:-7]+"_pred_plots2_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
-		pickle.dump({"results_by_attack_number": results_by_attack_number, "result_ranges_by_attack_number": result_ranges_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number, "features": features}, f)
+		pickle.dump({"results_by_attack_number": results_by_attack_number, "flows_by_attack_number": flows_by_attack_number, "result_ranges_by_attack_number": result_ranges_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number, "features": features}, f)
 
 def pdp():
 
