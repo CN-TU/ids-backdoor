@@ -11,9 +11,6 @@ import json
 import pickle
 from learn import numpy_sigmoid
 
-# WHITE_HLS = colorsys.rgb_to_hls(*matplotlib.colors.to_rgb("#ffffff"))
-# print("WHITE_HLS", WHITE_HLS)
-
 with open("categories_mapping.json", "r") as f:
 	categories_mapping_content = json.load(f)
 categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
@@ -23,7 +20,6 @@ reverse_mapping = {v: k for k, v in mapping.items()}
 with open("flows_full_no_ttl_normalization_data.pickle", "rb") as f:
 	means, stds = pickle.load(f)
 
-# TODO: Implement for more than one adv output so that different tradeoffs can be compared.
 file_name = sys.argv[1]
 with open(file_name, "rb") as f:
 	loaded = pickle.load(f)
