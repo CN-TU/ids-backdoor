@@ -75,30 +75,32 @@ for attack_type, (results_by_attack_number_item, orig_results_by_attack_number_i
 
 	# print("shape of values", [item.shape for item in values_by_length])
 
-	# means = np.array([np.mean(item, axis=0) for item in values_by_length])
+	flow_means = np.array([np.mean(item, axis=1) for item in values_by_length])
+	# print("means.shape", means.shape)
 	medians = np.array([np.median(item, axis=1) for item in values_by_length])
+	# print("medians.shape", medians.shape)
 	# print("means.shape", means.shape)
 	# stds = np.array([np.std(item, axis=0) for item in values_by_length])
-	first_quartiles = np.array([np.quantile(item, 0.25, axis=1) for item in values_by_length])
-	third_quartiles = np.array([np.quantile(item, 0.75, axis=1) for item in values_by_length])
+	# first_quartiles = np.array([np.quantile(item, 0.25, axis=1) for item in values_by_length])
+	# third_quartiles = np.array([np.quantile(item, 0.75, axis=1) for item in values_by_length])
 
 	# print(medians.shape, first_quartiles.shape, third_quartiles.shape)
 	# quit()
 
 	all_legends = []
-	assert len(medians[1].shape) == 2
+	assert len(flow_means[1].shape) == 2
 	# for i in range(medians.shape[1]):
 	fig, ax1 = plt.subplots()
 	ax2 = ax1.twinx()
 
 	for feature_index_from_zero, (feature_name, feature_index, ax) in enumerate(zip(FEATURE_NAMES, (3, 4), (ax1, ax2))):
 		ax.set_ylabel(feature_name, color=colors[feature_index_from_zero])
-		for adv_real_index in range(medians.shape[1]):
+		for adv_real_index in range(flow_means.shape[1]):
 			# print("i", i)
-			# TODO: Rescale and use two axes.
+			# print("means[:,adv_real_index,feature_index].shape", (flow_means[:,adv_real_index,feature_index]*stds[feature_index]+means[feature_index]).shape)
 			correct_linestyle = "solid" if adv_real_index==0 else "dashed"
 			legend = "{}, {}".format(ORDERING[adv_real_index], feature_name)
-			ret = ax.plot(range(max_length), medians[:,adv_real_index,feature_index]*stds[feature_index]+means[feature_index], label=legend, linestyle=correct_linestyle, color=colors[feature_index_from_zero])
+			ret = ax.plot(range(max_length), flow_means[:,adv_real_index,feature_index]*stds[feature_index]+means[feature_index], label=legend, linestyle=correct_linestyle, color=colors[feature_index_from_zero])
 			# plt.fill_between(range(medians.shape[0]), first_quartiles[:,i], third_quartiles[:,i], alpha=0.5, edgecolor=colors[i], facecolor=colors[i])
 			# legend = ORDERING[i:i+1]
 			# legend[0] = legend[0]+" median"
@@ -111,7 +113,7 @@ for attack_type, (results_by_attack_number_item, orig_results_by_attack_number_i
 	all_labels = [item.get_label() for item in all_legends]
 	ax1.legend(all_legends, all_labels, loc=0)
 	plt.xlabel('Sequence index')
-	plt.xticks(range(medians.shape[0]))
+	# plt.xticks(range(medians.shape[0]))
 	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
 	plt.show()
 
