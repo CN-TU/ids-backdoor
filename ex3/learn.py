@@ -364,7 +364,7 @@ def adv():
 	feature_ranges = get_feature_ranges(subset_with_all_traffic, sampling_density=2)
 	max_packet_length = feature_ranges[0][0]
 
-	common_mtu_scaled = (1500 - means[3])/stds[4]
+	common_mtu_scaled = (1500 - means[3])/stds[3]
 	maximum_length = common_mtu_scaled
 
 	zero_scaled = (0 - means[4])/stds[4]
@@ -404,8 +404,12 @@ def adv():
 		orig_batch_padded = torch.nn.utils.rnn.pad_packed_sequence(input_data)[0].detach()
 		input_data.data.requires_grad = True
 
+		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+		
+		same_direction_mask = torch.cat((seqs[:1,:,5]!=seqs[:1,:,5], seqs[1:,:,5] == seqs[:-1,:,5]))
+		same_direction_mask = torch.nn.utils.rnn.pack_padded_sequence(same_direction_mask, lengths, enforce_sorted=False).data.data
+
 		if not opt.canManipulateBothDirections:
-			seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 			cats, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_categories)
 
 			forward_direction = seqs[0:1,:,5].repeat(seqs.shape[0],1)
@@ -445,13 +449,17 @@ def adv():
 			output, seq_lens = lstm_module(input_data)
 			# output_padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
-			distance = torch.dist(orig_batch, input_data.data, p=1).sum()
+			distance = torch.dist(orig_batch, input_data.data, p=1)
 			#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
 			#regularizer = .5*output[-1,0]
 			regularizer = opt.tradeoff*torch.max(output, zero_tensor).sum()
 			#if regularizer <= 0:
 				#break
 			criterion = distance + regularizer
+			if opt.penaltyTradeoff > 0:
+				seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+				penalty = 10*((seqs[:,:,4].sum(0) - orig_batch_padded[:,:,4].sum(0))**2).sum()
+				criterion += penalty
 			criterion.backward()
 
 			# only consider lengths and iat
@@ -468,12 +476,12 @@ def adv():
 			# input_data.data.data[mask,3] = orig_batch[mask,3]
 
 			# XXX: This is experimentally removed
-			# # IAT cannot become smaller than 0
-			# iat_mask = input_data.data[:,4] < zero_scaled
-			# input_data.data.data[iat_mask,4] = float(-means[4]/stds[4])
+			# # IAT cannot become smaller than 0 when the preceding packet went in the same direction
+			iat_mask = (input_data.data[:,4] < zero_scaled) & same_direction_mask
+			input_data.data.data[iat_mask,4] = float(zero_scaled)
 
 			# XXX: This is experimentally added
-			iat_mask = input_data.data[:,4] < orig_batch[:,4]
+			iat_mask = (input_data.data[:,4] < orig_batch[:,4]) & ~same_direction_mask
 			input_data.data.data[iat_mask,4] = orig_batch[iat_mask,4]
 
 			# Can only manipulate attacker direction except for botnets where we can control both sides
@@ -836,6 +844,7 @@ if __name__=="__main__":
 	parser.add_argument("--categoriesMapping", type=str, default="categories_mapping.json", help="mapping of attack categories; see parse.py")
 	parser.add_argument('--removeChangeable', action='store_true', help='when training remove all features that an attacker could manipulate easily without changing the attack itself')
 	parser.add_argument('--tradeoff', type=float, default=0.5, help='max length')
+	parser.add_argument('--penaltyTradeoff', type=float, default=0, help='Tradeoff to enforce constant flow duration')
 	parser.add_argument('--lr', type=float, default=10**(-2), help='learning rate')
 
 	opt = parser.parse_args()
