@@ -25,6 +25,7 @@ with open("categories_mapping.json", "w") as f:
 
 minimal = False
 quic = False
+only_unchangeable = True
 
 def read_list(l):
 	if isinstance(l, float) and np.isnan(l): return []
@@ -46,12 +47,14 @@ def read_flow(row):
 	generators = []
 	if not minimal or quic:
 		generators.append( (const_features for _ in itertools.count() ) )
-	generators.append( read_numlist(row['accumulate(ipTotalLength)']) )
+	if not only_unchangeable:
+		generators.append( read_numlist(row['accumulate(ipTotalLength)']) )
 	# if not minimal:
 	# 	generators.append( read_numlist(row['accumulate(ipTTL)']) )
 	# if not minimal:
 	# 	generators.append( read_numlist(row['accumulate(ipClassOfService)']) )
-	generators.append( ([item[0]/1000000] for item in itertools.chain([[0]], read_numlist(row['accumulate(_interPacketTimeNanoseconds)'])) ))
+	if not only_unchangeable:
+		generators.append( ([item[0]/1000000] for item in itertools.chain([[0]], read_numlist(row['accumulate(_interPacketTimeNanoseconds)'])) ))
 	generators.append( read_directionlist(row['accumulate(flowDirection)']) )
 	if not minimal:
 		generators.append( read_flaglist(row['accumulate(_tcpFlags)']) )

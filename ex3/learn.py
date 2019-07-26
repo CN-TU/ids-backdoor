@@ -120,7 +120,7 @@ def train():
 
 	samples = 0
 	for i in range(1, sys.maxsize):
-		for input_data, labels, _ in train_loader:
+		for input_data, labels, flow_categories in train_loader:
 			# print("iterating")
 			# samples += len(input_data)
 			optimizer.zero_grad()
@@ -131,6 +131,7 @@ def train():
 			# actual_input = torch.FloatTensor(input_tensor[:,:,:-1]).to(device)
 
 			# print("input_data.data.shape", input_data.data.shape)
+
 			output, seq_lens = lstm_module(input_data)
 
 			# torch.set_printoptions(profile="full")
@@ -444,10 +445,10 @@ def adv():
 			output, seq_lens = lstm_module(input_data)
 			# output_padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
-			distance = torch.dist(orig_batch, input_data.data, p=1).mean()
+			distance = torch.dist(orig_batch, input_data.data, p=1).sum()
 			#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
 			#regularizer = .5*output[-1,0]
-			regularizer = opt.tradeoff*torch.max(output, zero_tensor).mean()
+			regularizer = opt.tradeoff*torch.max(output, zero_tensor).sum()
 			#if regularizer <= 0:
 				#break
 			criterion = distance + regularizer
@@ -484,7 +485,7 @@ def adv():
 
 			seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
-			seqs[0,:,4] = 0.0
+			seqs[0,:,4] = zero_scaled
 			input_data.data.data = torch.nn.utils.rnn.pack_padded_sequence(seqs, lengths, enforce_sorted=False).data.data
 
 			# detached_batch = input_data.data.detach()
@@ -812,6 +813,13 @@ def plot_histograms():
 		plt.title("Feature {}".format(i))
 		plt.show()
 
+def overwrite_manipulable_entries(seq, filler=-1):
+		forward_direction = seq[0,5]
+
+		wrong_direction = (seq[:,5]==forward_direction)
+		seq[wrong_direction,:][:,3:5] = filler
+		return seq
+
 if __name__=="__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--canManipulateBothDirections', action='store_true', help='if the attacker can change packets in both directions of the flow')
@@ -826,6 +834,7 @@ if __name__=="__main__":
 	parser.add_argument('--maxLength', type=int, default=1000, help='max length')
 	parser.add_argument('--maxSize', type=int, default=sys.maxsize, help='limit of samples to consider')
 	parser.add_argument("--categoriesMapping", type=str, default="categories_mapping.json", help="mapping of attack categories; see parse.py")
+	parser.add_argument('--removeChangeable', action='store_true', help='when training remove all features that an attacker could manipulate easily without changing the attack itself')
 	parser.add_argument('--tradeoff', type=float, default=0.5, help='max length')
 	parser.add_argument('--lr', type=float, default=10**(-2), help='learning rate')
 
@@ -844,6 +853,8 @@ if __name__=="__main__":
 	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
 
 	all_data = [item[:opt.maxLength,:] for item in all_data]
+	if opt.removeChangeable:
+		all_data = [overwrite_manipulable_entries(item) for item in all_data]
 	random.shuffle(all_data)
 	# print("lens", [len(item) for item in all_data])
 	x = [item[:, :-2] for item in all_data]
