@@ -11,6 +11,7 @@ import time
 from functools import reduce
 
 import collections
+import itertools
 import numpy as np
 import torch
 import torch.nn as nn
@@ -40,6 +41,25 @@ class OurDataset(Dataset):
 
 	def __len__(self):
 		return len(self.data)
+				
+class AdvDataset(Dataset):
+	def __init__(self, base_dataset):
+		self.base_dataset = base_dataset
+		self.adv_flows = []
+			
+	def __getitem__(self, index):
+		base_len = self.base_dataset.__len__()
+		if index < base_len:
+			return self.base_dataset.__getitem__(index)
+		else:
+			flow, category = self.adv_flows[index - base_len]
+			data = torch.FloatTensor(flow)
+			labels = torch.ones((flow.shape[0], 1))
+			categories = torch.ones((flow.shape[0], 1)) * category
+			return data, labels, categories
+
+	def __len__(self):
+		return self.base_dataset.__len__() + len(self.adv_flows)
 
 def get_nth_split(dataset, n_fold, index):
 	dataset_size = len(dataset)
@@ -111,6 +131,8 @@ def train():
 
 	train_indices, _ = get_nth_split(dataset, n_fold, fold)
 	train_data = torch.utils.data.Subset(dataset, train_indices)
+	if opt.advTraining:
+		train_data = AdvDataset(train_data)
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True, collate_fn=custom_collate)
 
 	optimizer = optim.SGD(lstm_module.parameters(), lr=opt.lr)
@@ -118,8 +140,15 @@ def train():
 
 	writer = SummaryWriter()
 
+	if opt.advTraining:
+		adv_generator = iter(adv(as_generator = True))
+	
 	samples = 0
 	for i in range(1, sys.maxsize):
+		if opt.advTraining:
+			train_loader.adv_flows, av_distance = next(adv_generator)
+			writer.add_scalar('adv_avdistance', av_distance, i)
+		
 		for input_data, labels, flow_categories in train_loader:
 			# print("iterating")
 			# samples += len(input_data)
@@ -346,8 +375,11 @@ def feature_importance():
 
 	# print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
 
-def adv():
-
+def adv(in_training = False):
+	# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
+	# with SGD we probably need even more.
+	ITERATION_COUNT = 100 if in_training else 1000
+	
 	# generate adversarial samples using Carlini Wagner method
 	n_fold = opt.nFold
 	fold = opt.fold
@@ -358,18 +390,20 @@ def adv():
 	# print("bidirectional_categories", bidirectional_categories)
 
 	#initialize sample
-	_, test_indices = get_nth_split(dataset, n_fold, fold)
-	subset_with_all_traffic = torch.utils.data.Subset(dataset, test_indices)
+	train_indices, test_indices = get_nth_split(dataset, n_fold, fold)
+	indices = train_indices if in_training else test_indices
+	subset_with_all_traffic = torch.utils.data.Subset(dataset, indices)
 
-	feature_ranges = get_feature_ranges(subset_with_all_traffic, sampling_density=2)
-	max_packet_length = feature_ranges[0][0]
+	#uncommented for efficiency during testing
+	#feature_ranges = get_feature_ranges(subset_with_all_traffic, sampling_density=2)
+	#max_packet_length = feature_ranges[0][0]
 
-	common_mtu_scaled = (1500 - means[3])/stds[3]
-	maximum_length = common_mtu_scaled
+	#common_mtu_scaled = (1500 - means[3])/stds[3]
+	#maximum_length = common_mtu_scaled
 
 	zero_scaled = (0 - means[4])/stds[4]
 
-	orig_indices, attack_indices = zip(*[(orig, i) for orig, i in zip(test_indices, range(len(subset_with_all_traffic))) if subset_with_all_traffic[i][1][0,0] == 1])
+	orig_indices, attack_indices = zip(*[(orig, i) for orig, i in zip(indices, range(len(subset_with_all_traffic))) if subset_with_all_traffic[i][1][0,0] == 1])
 
 	subset = torch.utils.data.Subset(dataset, attack_indices)
 
@@ -381,13 +415,22 @@ def adv():
 	#optimizer = optim.SGD([sample], lr=opt.lr)
 
 	# iterate until done
-	finished_adv_samples = []
+	finished_adv_samples = [None] * subset.__len__()
 
 	zero_tensor = torch.FloatTensor([0]).to(device)
 
 	samples = 0
-	for sample_index, (input_data,input_categories) in enumerate(loader):
+	distances = []
+	if in_training:
+		# repeat forever
+		sample_generator = itertools.chain.from_iterable(itertools.repeat(enumerate(loader)))
+	else:
+		sample_generator = enumerate(loader)
+	
+	
+	for sample_index, (input_data,input_categories) in sample_generator:
 		# print("sample", sample_index)
+		total_sample = samples % subset.__len__()
 		samples += input_data.sorted_indices.shape[0]
 
 		optimizer = optim.SGD([input_data.data], lr=opt.lr)
@@ -402,12 +445,20 @@ def adv():
 
 		orig_batch = input_data.data.clone()
 		orig_batch_padded = torch.nn.utils.rnn.pad_packed_sequence(input_data)[0].detach()
+		print (total_sample)
+		if finished_adv_samples[total_sample] is not None:
+			print (input_data.data.data.shape)
+			input_data.data.data = collate_things(finished_adv_samples[total_sample:(total_sample+input_data.sorted_indices.shape[0])])
+			print (input_data.data.data.shape)
 		input_data.data.requires_grad = True
 
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 		
-		same_direction_mask = torch.cat((seqs[:1,:,5]!=seqs[:1,:,5], seqs[1:,:,5] == seqs[:-1,:,5]))
-		same_direction_mask = torch.nn.utils.rnn.pack_padded_sequence(same_direction_mask, lengths, enforce_sorted=False).data.data
+		if opt.allowIATReduction:
+			same_direction_mask = torch.cat((seqs[:1,:,5]!=seqs[:1,:,5], seqs[1:,:,5] == seqs[:-1,:,5]))
+			same_direction_mask = torch.nn.utils.rnn.pack_padded_sequence(same_direction_mask, lengths, enforce_sorted=False).data.data
+		else:
+			same_direction_mask = False
 
 		if not opt.canManipulateBothDirections:
 			cats, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_categories)
@@ -433,9 +484,7 @@ def adv():
 
 			print("Batch: {}, wrong_direction: {}, not_bidirectional: {}, invalid: {}".format(sample_index, float(torch.sum(wrong_direction & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(not_bidirectional & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(mask)/torch.sum(orig_mask, dtype=torch.float32))))
 
-		# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
-		# with SGD we probably need even more.
-		for i in range(1000):
+		for i in range(ITERATION_COUNT):
 
 			# print("iterating", i)
 			# samples += len(input_data)
@@ -458,7 +507,7 @@ def adv():
 			criterion = distance + regularizer
 			if opt.penaltyTradeoff > 0:
 				seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-				penalty = 10*((seqs[:,:,4].sum(0) - orig_batch_padded[:,:,4].sum(0))**2).sum()
+				penalty = opt.penaltyTradeoff*((seqs[:,:,4].sum(0) - orig_batch_padded[:,:,4].sum(0))**2).sum()
 				criterion += penalty
 			criterion.backward()
 
@@ -514,7 +563,13 @@ def adv():
 		# adv_samples = [ seqs[:lengths[batch_index],batch_index,:].detach().cpu().numpy()*stds + means for batch_index in range(seqs.shape[1]) ]
 		adv_samples = [ seqs[:lengths[batch_index],batch_index,:].detach().cpu().numpy() for batch_index in range(seqs.shape[1]) ]
 
-		finished_adv_samples += adv_samples
+		finished_adv_samples[total_sample:(total_sample+len(adv_samples))] = adv_samples
+		if in_training:
+			distances.append(torch.dist(orig_batch, input_data.data, p=1)/seqs.shape[1])
+			# keep iterations for adversarial flows about the same as iterations for training
+			if finished_adv_samples[-1] is not None and len(distances) >= (subset.__len__() / opt.batchSize / ITERATION_COUNT):
+				yield finished_adv_samples, sum(distances)/len(distances)
+				distances = []
 
 	# print("samples", samples)
 	assert len(finished_adv_samples) == len(subset), "len(finished_adv_samples): {}, len(subset): {}".format(len(finished_adv_samples), len(subset))
@@ -846,6 +901,8 @@ if __name__=="__main__":
 	parser.add_argument('--tradeoff', type=float, default=0.5, help='max length')
 	parser.add_argument('--penaltyTradeoff', type=float, default=0, help='Tradeoff to enforce constant flow duration')
 	parser.add_argument('--lr', type=float, default=10**(-2), help='learning rate')
+	parser.add_argument('--advTraining', action='store_true', help='Train with adversarial flows')
+	parser.add_argument('--allowIATReduction', action='store_true', help='Allow reducing IAT below original value')
 
 	opt = parser.parse_args()
 	print(opt)
