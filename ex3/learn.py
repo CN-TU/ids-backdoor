@@ -46,13 +46,15 @@ class AdvDataset(Dataset):
 	def __init__(self, base_dataset):
 		self.base_dataset = base_dataset
 		self.adv_flows = []
+		self.categories = []
 			
 	def __getitem__(self, index):
 		base_len = self.base_dataset.__len__()
 		if index < base_len:
 			return self.base_dataset.__getitem__(index)
 		else:
-			flow, category = self.adv_flows[index - base_len]
+			flow = self.adv_flows[index - base_len]
+			category = self.categories[index - base_len]
 			data = torch.FloatTensor(flow)
 			labels = torch.ones((flow.shape[0], 1))
 			categories = torch.ones((flow.shape[0], 1)) * category
@@ -141,12 +143,12 @@ def train():
 	writer = SummaryWriter()
 
 	if opt.advTraining:
-		adv_generator = iter(adv(as_generator = True))
+		adv_generator = iter(adv(in_training = True))
 	
 	samples = 0
 	for i in range(1, sys.maxsize):
 		if opt.advTraining:
-			train_loader.adv_flows, av_distance = next(adv_generator)
+			train_loader.adv_flows, train_loader.categories, av_distance = next(adv_generator)
 			writer.add_scalar('adv_avdistance', av_distance, i)
 		
 		for input_data, labels, flow_categories in train_loader:
@@ -416,6 +418,7 @@ def adv(in_training = False):
 
 	# iterate until done
 	finished_adv_samples = [None] * subset.__len__()
+	finished_categories = [ item[2][0,0] for item in subset ] 
 
 	zero_tensor = torch.FloatTensor([0]).to(device)
 
@@ -447,9 +450,7 @@ def adv(in_training = False):
 		orig_batch_padded = torch.nn.utils.rnn.pad_packed_sequence(input_data)[0].detach()
 		print (total_sample)
 		if finished_adv_samples[total_sample] is not None:
-			print (input_data.data.data.shape)
 			input_data.data.data = collate_things(finished_adv_samples[total_sample:(total_sample+input_data.sorted_indices.shape[0])])
-			print (input_data.data.data.shape)
 		input_data.data.requires_grad = True
 
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
@@ -568,7 +569,7 @@ def adv(in_training = False):
 			distances.append(torch.dist(orig_batch, input_data.data, p=1)/seqs.shape[1])
 			# keep iterations for adversarial flows about the same as iterations for training
 			if finished_adv_samples[-1] is not None and len(distances) >= (subset.__len__() / opt.batchSize / ITERATION_COUNT):
-				yield finished_adv_samples, sum(distances)/len(distances)
+				yield finished_adv_samples, finished_categories, sum(distances)/len(distances)
 				distances = []
 
 	# print("samples", samples)
