@@ -49,7 +49,7 @@ class AdvDataset(Dataset):
 		self.categories = []
 			
 	def __getitem__(self, index):
-		base_len = self.base_dataset.__len__()
+		base_len = len(self.base_dataset)
 		if index < base_len:
 			return self.base_dataset.__getitem__(index)
 		else:
@@ -61,7 +61,7 @@ class AdvDataset(Dataset):
 			return data, labels, categories
 
 	def __len__(self):
-		return self.base_dataset.__len__() + len(self.adv_flows)
+		return len(self.base_dataset) + len(self.adv_flows)
 
 def get_nth_split(dataset, n_fold, index):
 	dataset_size = len(dataset)
@@ -417,8 +417,8 @@ def adv(in_training = False):
 	#optimizer = optim.SGD([sample], lr=opt.lr)
 
 	# iterate until done
-	finished_adv_samples = [None] * subset.__len__()
-	finished_categories = [ item[2][0,0] for item in subset ] 
+	finished_adv_samples = [None] * len(subset)
+	finished_categories = [ item[2][0,0] for item in subset ]
 
 	zero_tensor = torch.FloatTensor([0]).to(device)
 
@@ -433,7 +433,7 @@ def adv(in_training = False):
 	
 	for sample_index, (input_data,input_categories) in sample_generator:
 		# print("sample", sample_index)
-		total_sample = samples % subset.__len__()
+		total_sample = samples % len(subset)
 		samples += input_data.sorted_indices.shape[0]
 
 		optimizer = optim.SGD([input_data.data], lr=opt.lr)
@@ -568,7 +568,7 @@ def adv(in_training = False):
 		if in_training:
 			distances.append(torch.dist(orig_batch, input_data.data, p=1)/seqs.shape[1])
 			# keep iterations for adversarial flows about the same as iterations for training
-			if finished_adv_samples[-1] is not None and len(distances) >= (subset.__len__() / opt.batchSize / ITERATION_COUNT):
+			if finished_adv_samples[-1] is not None and len(distances) >= (len(subset) / opt.batchSize / ITERATION_COUNT):
 				yield finished_adv_samples, finished_categories, sum(distances)/len(distances)
 				distances = []
 
@@ -830,27 +830,31 @@ def pdp():
 
 	results_by_attack_number = [None for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
-	PDP_DIR = 'pdps'
+	minmax = {feat_ind: (min((sample[0,feat_ind] for sample in x)), max((sample[0,feat_ind] for sample in x))) for feat_ind in [0,1] }
 	# TODO: consider fold
 	for attack_number in range(max(attack_numbers)+1):
-		matching = [item for item in subset if int(item[2][0,0]) == attack_number]
-		if len(matching) <= 0:
-			continue
-		good_subset = OurDataset(*zip(*matching))
 
 		print("attack_number", attack_number)
 		results_for_attack_type = []
 		for feat_name, feat_ind in zip(feature_names, (0, 1)):
-			feat_min = min( (sample[0,feat_ind] for sample in x))
-			feat_max = max( (sample[0,feat_ind] for sample in x))
+			feat_min, feat_max = minmax[feat_ind]
 
 			values = np.linspace(feat_min, feat_max, 100)
 
+			matching = [item for item in subset if int(item[2][0,0]) == attack_number]
+			if len(matching) <= 0:
+				break
+			good_subset = OurDataset(*zip(*matching))
+			
 			# subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
 
 			pdp = np.zeros([values.size])
 
 			for i in range(values.size):
+				# good_subset.data consists of torch tensors. We are therefore able to
+				# modify the dataset directly using the return value of __getitem__().
+				# This does not modify the global dataset, which holds the data as numpy
+				# arrays.
 				for sample in good_subset:
 					for j in range(sample[0].shape[0]):
 						sample[0][j,feat_ind] = values[i]
@@ -864,7 +868,8 @@ def pdp():
 			# print("result.shape", result.shape)
 			# np.save('%s/%s.npy' % (PDP_DIR, feat_name), result)
 
-		results_by_attack_number[attack_number] = np.stack(results_for_attack_type)
+		else:
+			results_by_attack_number[attack_number] = np.stack(results_for_attack_type)
 
 	file_name = opt.dataroot[:-7]+"_pdp_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
@@ -919,7 +924,7 @@ if __name__=="__main__":
 		categories_mapping_content = json.load(f)
 	categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
 
-	all_data = [item[:opt.maxLength,:] for item in all_data]
+	all_data = [item[:opt.maxLength,:] for item in all_data] # if np.random.rand() < 0.005]
 	if opt.removeChangeable:
 		all_data = [overwrite_manipulable_entries(item) for item in all_data]
 	random.shuffle(all_data)
