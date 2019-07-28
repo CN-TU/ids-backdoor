@@ -23,6 +23,8 @@ import matplotlib.pyplot as plt
 HIDDEN_SIZE = 512
 N_LAYERS = 3
 
+ADVERSARIAL_THRESH = 50
+
 def numpy_sigmoid(x):
 	return 1/(1+np.exp(-x))
 
@@ -54,7 +56,7 @@ class AdvDataset(Dataset):
 			return self.base_dataset.__getitem__(index)
 		else:
 			flow = self.adv_flows[index - base_len]
-			category = self.categories[index - base_len]
+			category = self.categories[index - base_len] + ADVERSARIAL_THRESH
 			data = torch.FloatTensor(flow)
 			labels = torch.ones((flow.shape[0], 1))
 			categories = torch.ones((flow.shape[0], 1)) * category
@@ -135,15 +137,13 @@ def train():
 	train_data = torch.utils.data.Subset(dataset, train_indices)
 	if opt.advTraining:
 		train_data = AdvDataset(train_data)
+		adv_generator = iter(adv(in_training = True))
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True, collate_fn=custom_collate)
 
 	optimizer = optim.SGD(lstm_module.parameters(), lr=opt.lr)
 	criterion = nn.BCEWithLogitsLoss(reduction="mean")
 
 	writer = SummaryWriter()
-
-	if opt.advTraining:
-		adv_generator = iter(adv(in_training = True))
 	
 	samples = 0
 	for i in range(1, sys.maxsize):
@@ -162,7 +162,6 @@ def train():
 			# actual_input = torch.FloatTensor(input_tensor[:,:,:-1]).to(device)
 
 			# print("input_data.data.shape", input_data.data.shape)
-
 			output, seq_lens = lstm_module(input_data)
 
 			# torch.set_printoptions(profile="full")
@@ -179,6 +178,7 @@ def train():
 			# torch.set_printoptions(profile="full")
 			# print("mask", mask.squeeze())
 			labels, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
+			flow_categories, _ = torch.nn.utils.rnn.pad_packed_sequence(flow_categories)
 
 			loss = criterion(output[mask].view(-1), labels[mask].view(-1))
 			loss.backward()
@@ -206,6 +206,18 @@ def train():
 			confidences[not_attack_mask] = 1 - confidences[not_attack_mask]
 			writer.add_scalar("confidence", torch.mean(confidences[mask]), samples)
 			writer.add_scalar("end_confidence", torch.mean(confidences[mask_exact]), samples)
+			
+			adv_mask = flow_categories >= ADVERSARIAL_THRESH
+			if adv_mask.sum() > 0:
+				mask &= adv_mask
+				exact_mask &= adv_mask
+				
+				accuracy = torch.mean((torch.round(sigmoided_output[mask]) == labels[mask]).float())
+				writer.add_scalar("adv_accuracy", accuracy, samples)
+				end_accuracy = torch.mean((torch.round(sigmoided_output[mask_exact]) == labels[mask_exact]).float())
+				writer.add_scalar("adv_end_accuracy", end_accuracy, samples)
+				writer.add_scalar("adv_confidence", torch.mean(confidences[mask]), samples)
+				writer.add_scalar("adv_end_confidence", torch.mean(confidences[mask_exact]), samples)
 
 
 		# Save after every epoch
@@ -396,12 +408,11 @@ def adv(in_training = False):
 	indices = train_indices if in_training else test_indices
 	subset_with_all_traffic = torch.utils.data.Subset(dataset, indices)
 
-	#uncommented for efficiency during testing
-	#feature_ranges = get_feature_ranges(subset_with_all_traffic, sampling_density=2)
-	#max_packet_length = feature_ranges[0][0]
+	feature_ranges = get_feature_ranges(subset_with_all_traffic, sampling_density=2)
+	max_packet_length = feature_ranges[0][0]
 
-	#common_mtu_scaled = (1500 - means[3])/stds[3]
-	#maximum_length = common_mtu_scaled
+	common_mtu_scaled = (1500 - means[3])/stds[3]
+	maximum_length = common_mtu_scaled
 
 	zero_scaled = (0 - means[4])/stds[4]
 
@@ -426,7 +437,7 @@ def adv(in_training = False):
 	distances = []
 	if in_training:
 		# repeat forever
-		sample_generator = itertools.chain.from_iterable(itertools.repeat(enumerate(loader)))
+		sample_generator = itertools.chain.from_iterable(( enumerate(loader) for _ in itertools.count()))
 	else:
 		sample_generator = enumerate(loader)
 	
@@ -448,9 +459,12 @@ def adv(in_training = False):
 
 		orig_batch = input_data.data.clone()
 		orig_batch_padded = torch.nn.utils.rnn.pad_packed_sequence(input_data)[0].detach()
-		print (total_sample)
-		if finished_adv_samples[total_sample] is not None:
-			input_data.data.data = collate_things(finished_adv_samples[total_sample:(total_sample+input_data.sorted_indices.shape[0])])
+
+		if finished_adv_samples[-1] is not None:
+			numpy_seqs = finished_adv_samples[total_sample:(total_sample+input_data.sorted_indices.shape[0])]
+			new_data = collate_things([ torch.FloatTensor(seq) for seq in numpy_seqs]).data
+			assert input_data.data.shape == new_data.shape
+			input_data.data.data = new_data
 		input_data.data.requires_grad = True
 
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
