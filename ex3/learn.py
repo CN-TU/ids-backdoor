@@ -43,13 +43,13 @@ class OurDataset(Dataset):
 
 	def __len__(self):
 		return len(self.data)
-				
+
 class AdvDataset(Dataset):
 	def __init__(self, base_dataset):
 		self.base_dataset = base_dataset
 		self.adv_flows = []
 		self.categories = []
-			
+
 	def __getitem__(self, index):
 		base_len = len(self.base_dataset)
 		if index < base_len:
@@ -120,13 +120,17 @@ def custom_collate(seqs, things=(True, True, True)):
 	assert len(seqs) == len(labels) == len(categories)
 	return [collate_things(item) for item, thing in zip((seqs, labels, categories), things) if thing]
 
+def unpad_padded_sequences(sequences, lengths):
+	unbound = [seq[:len] for seq, len in zip(torch.unbind(sequences, 1), lengths)]
+	return unbound
+
 def collate_things(seqs):
 	seq_lengths = torch.LongTensor([len(seq) for seq in seqs]).to(device)
 	seq_tensor = torch.nn.utils.rnn.pad_sequence(seqs).to(device)
 
 	packed_input = torch.nn.utils.rnn.pack_padded_sequence(seq_tensor, seq_lengths, enforce_sorted=False)
 	return packed_input
-	
+
 def adv_filename():
 	return os.path.splitext(opt.net)[0] + '.adv.pickle'
 
@@ -140,20 +144,20 @@ def train():
 	train_data = torch.utils.data.Subset(dataset, train_indices)
 	if opt.advTraining:
 		train_data = AdvDataset(train_data)
-		adv_generator = iter(adv_internal(in_training = True))
+		adv_generator = adv_internal(in_training=True)
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True, collate_fn=custom_collate)
 
 	optimizer = optim.SGD(lstm_module.parameters(), lr=opt.lr)
 	criterion = nn.BCEWithLogitsLoss(reduction="mean")
 
 	writer = SummaryWriter()
-	
+
 	samples = 0
 	for i in range(1, sys.maxsize):
 		if opt.advTraining:
 			train_data.adv_flows, train_data.categories, av_distance = next(adv_generator)
 			writer.add_scalar('adv_avdistance', av_distance, i)
-		
+
 		for input_data, labels, flow_categories in train_loader:
 			# print("iterating")
 			# samples += len(input_data)
@@ -209,12 +213,12 @@ def train():
 			confidences[not_attack_mask] = 1 - confidences[not_attack_mask]
 			writer.add_scalar("confidence", torch.mean(confidences[mask]), samples)
 			writer.add_scalar("end_confidence", torch.mean(confidences[mask_exact]), samples)
-			
+
 			adv_mask = flow_categories >= ADVERSARIAL_THRESH
 			if adv_mask.sum() > 0:
 				mask &= adv_mask
 				exact_mask &= adv_mask
-				
+
 				accuracy = torch.mean((torch.round(sigmoided_output[mask]) == labels[mask]).float())
 				writer.add_scalar("adv_accuracy", accuracy, samples)
 				end_accuracy = torch.mean((torch.round(sigmoided_output[mask_exact]) == labels[mask_exact]).float())
@@ -415,10 +419,10 @@ def adv_internal(in_training = False):
 	subset_with_all_traffic = torch.utils.data.Subset(dataset, indices)
 
 	feature_ranges = get_feature_ranges(subset_with_all_traffic, sampling_density=2)
-	max_packet_length = feature_ranges[0][0]
+	# max_packet_length = feature_ranges[0][0]
 
-	common_mtu_scaled = (1500 - means[3])/stds[3]
-	maximum_length = common_mtu_scaled
+	# common_mtu_scaled = (1500 - means[3])/stds[3]
+	# maximum_length = common_mtu_scaled
 
 	zero_scaled = (0 - means[4])/stds[4]
 
@@ -469,7 +473,10 @@ def adv_internal(in_training = False):
 		# mask = (index_tensor <= selection_tensor).byte().to(device)
 
 		orig_batch = input_data.data.clone()
-		orig_batch_padded = torch.nn.utils.rnn.pad_packed_sequence(input_data)[0].detach()
+		orig_batch_padded, orig_batch_lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+		orig_batch_padded, orig_batch_lengths = orig_batch_padded.detach(), orig_batch_lengths.detach()
+		if opt.order != 1:
+			orig_batch_unpadded = unpad_padded_sequences(orig_batch_padded, orig_batch_lengths)
 
 		if finished_adv_samples[-1] is not None:
 			numpy_seqs = finished_adv_samples[total_sample:(total_sample+input_data.sorted_indices.shape[0])]
@@ -479,7 +486,7 @@ def adv_internal(in_training = False):
 		input_data.data.requires_grad = True
 
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-		
+
 		if opt.allowIATReduction:
 			same_direction_mask = torch.cat((seqs[:1,:,5]!=seqs[:1,:,5], seqs[1:,:,5] == seqs[:-1,:,5]))
 			same_direction_mask = torch.nn.utils.rnn.pack_padded_sequence(same_direction_mask, lengths, enforce_sorted=False).data.data
@@ -508,7 +515,7 @@ def adv_internal(in_training = False):
 
 			# print("Batch: {}, orig_mask: {}, wrong_direction: {}, not_bidirectional: {}, mask: {}".format(sample_index, (torch.sum(orig_mask)), (torch.sum(wrong_direction & orig_mask)), (torch.sum(not_bidirectional & orig_mask)), (torch.sum(mask))))
 
-			print("Batch: {}, wrong_direction: {}, not_bidirectional: {}, invalid: {}".format(sample_index, float(torch.sum(wrong_direction & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(not_bidirectional & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(mask)/torch.sum(orig_mask, dtype=torch.float32))))
+			# print("Batch: {}, wrong_direction: {}, not_bidirectional: {}, invalid: {}".format(sample_index, float(torch.sum(wrong_direction & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(not_bidirectional & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(mask)/torch.sum(orig_mask, dtype=torch.float32))))
 
 		for i in range(ITERATION_COUNT):
 
@@ -524,7 +531,12 @@ def adv_internal(in_training = False):
 			output, seq_lens = lstm_module(input_data)
 			# output_padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
-			distance = torch.dist(orig_batch, input_data.data, p=1)
+			if opt.order != 1:
+				seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+				unpadded_seqs = unpad_padded_sequences(seqs, lengths)
+				distance = torch.stack([torch.dist(orig_batch_unpadded_item, unpadded_seqs_item, p=opt.order) for orig_batch_unpadded_item, unpadded_seqs_item in zip(orig_batch_unpadded, unpadded_seqs)]).sum()
+			else:
+				distance = torch.dist(orig_batch, input_data.data, p=opt.order)
 			#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
 			#regularizer = .5*output[-1,0]
 			regularizer = opt.tradeoff*torch.max(output, zero_tensor).sum()
@@ -593,7 +605,7 @@ def adv_internal(in_training = False):
 		if in_training:
 			distances.append(torch.dist(orig_batch, input_data.data, p=1)/seqs.shape[1])
 			# keep iterations for adversarial flows about the same as iterations for training
-			if finished_adv_samples[-1] is not None and len(distances) >= (len(subset) / opt.batchSize / ITERATION_COUNT):
+			if finished_adv_samples[-1] is not None and len(distances) * ITERATION_COUNT >= len(subset) / opt.batchSize:
 				yield finished_adv_samples, finished_categories, sum(distances)/len(distances)
 				distances = []
 
@@ -657,7 +669,7 @@ def adv_internal(in_training = False):
 def adv():
 	# hack for running the function although it's a generator
 	list(adv_internal(False))
-	
+
 def eval_nn(data):
 
 	lstm_module.eval()
@@ -874,7 +886,7 @@ def pdp():
 			if len(matching) <= 0:
 				break
 			good_subset = OurDataset(*zip(*matching))
-			
+
 			# subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
 
 			pdp = np.zeros([values.size])
@@ -937,7 +949,8 @@ if __name__=="__main__":
 	parser.add_argument('--penaltyTradeoff', type=float, default=0, help='Tradeoff to enforce constant flow duration')
 	parser.add_argument('--lr', type=float, default=10**(-2), help='learning rate')
 	parser.add_argument('--advTraining', action='store_true', help='Train with adversarial flows')
-	parser.add_argument('--allowIATReduction', action='store_true', help='Allow reducing IAT below original value')
+	parser.add_argument('--allowIATReduction', action='store_true', help='allow reducing IAT below original value')
+	parser.add_argument('--order', type=int, default=1, help='order of the norm for adversarial sample generation')
 
 	opt = parser.parse_args()
 	print(opt)
