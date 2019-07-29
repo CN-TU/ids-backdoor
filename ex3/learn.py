@@ -126,6 +126,9 @@ def collate_things(seqs):
 
 	packed_input = torch.nn.utils.rnn.pack_padded_sequence(seq_tensor, seq_lengths, enforce_sorted=False)
 	return packed_input
+	
+def adv_filename():
+	return os.path.splitext(opt.net)[0] + '.adv.pickle'
 
 def train():
 
@@ -137,7 +140,7 @@ def train():
 	train_data = torch.utils.data.Subset(dataset, train_indices)
 	if opt.advTraining:
 		train_data = AdvDataset(train_data)
-		adv_generator = iter(adv(in_training = True))
+		adv_generator = iter(adv_internal(in_training = True))
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True, collate_fn=custom_collate)
 
 	optimizer = optim.SGD(lstm_module.parameters(), lr=opt.lr)
@@ -148,7 +151,7 @@ def train():
 	samples = 0
 	for i in range(1, sys.maxsize):
 		if opt.advTraining:
-			train_loader.adv_flows, train_loader.categories, av_distance = next(adv_generator)
+			train_data.adv_flows, train_data.categories, av_distance = next(adv_generator)
 			writer.add_scalar('adv_avdistance', av_distance, i)
 		
 		for input_data, labels, flow_categories in train_loader:
@@ -223,6 +226,9 @@ def train():
 		# Save after every epoch
 		if i % 1 == 0:
 			torch.save(lstm_module.state_dict(), '%s/lstm_module_%d.pth' % (writer.log_dir, i))
+			if opt.advTraining:
+				with open(adv_filename(), 'wb') as f:
+					pickle.dump(train_loader.adv_flows, f)
 
 def test():
 
@@ -389,11 +395,11 @@ def feature_importance():
 
 	# print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
 
-def adv(in_training = False):
+def adv_internal(in_training = False):
 	# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
 	# with SGD we probably need even more.
 	ITERATION_COUNT = 100 if in_training else 1000
-	
+
 	# generate adversarial samples using Carlini Wagner method
 	n_fold = opt.nFold
 	fold = opt.fold
@@ -438,10 +444,15 @@ def adv(in_training = False):
 	if in_training:
 		# repeat forever
 		sample_generator = itertools.chain.from_iterable(( enumerate(loader) for _ in itertools.count()))
+		if opt.net:
+			try:
+				with open(adv_filename(), 'rb') as f:
+					finished_adv_samples = pickle.load(f)
+			except FileNotFoundError:
+				print ('WARNING: failed to load adversarial flows file')
 	else:
 		sample_generator = enumerate(loader)
-	
-	
+
 	for sample_index, (input_data,input_categories) in sample_generator:
 		# print("sample", sample_index)
 		total_sample = samples % len(subset)
@@ -643,6 +654,10 @@ def adv(in_training = False):
 	# with open('adv_samples.pickle', 'wb') as outfile:
 	# 	pickle.dump(adv_samples, outfile)
 
+def adv():
+	# hack for running the function although it's a generator
+	list(adv_internal(False))
+	
 def eval_nn(data):
 
 	lstm_module.eval()
