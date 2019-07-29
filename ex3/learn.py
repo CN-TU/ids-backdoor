@@ -43,13 +43,13 @@ class OurDataset(Dataset):
 
 	def __len__(self):
 		return len(self.data)
-				
+
 class AdvDataset(Dataset):
 	def __init__(self, base_dataset):
 		self.base_dataset = base_dataset
 		self.adv_flows = []
 		self.categories = []
-			
+
 	def __getitem__(self, index):
 		base_len = len(self.base_dataset)
 		if index < base_len:
@@ -130,7 +130,7 @@ def collate_things(seqs):
 
 	packed_input = torch.nn.utils.rnn.pack_padded_sequence(seq_tensor, seq_lengths, enforce_sorted=False)
 	return packed_input
-	
+
 def adv_filename():
 	return os.path.splitext(opt.dataroot)[0] + '.adv.pickle'
 
@@ -151,13 +151,13 @@ def train():
 	criterion = nn.BCEWithLogitsLoss(reduction="mean")
 
 	writer = SummaryWriter()
-	
+
 	samples = 0
 	for i in range(1, sys.maxsize):
 		if opt.advTraining:
 			train_data.adv_flows, train_data.categories, av_distance = next(adv_generator)
 			writer.add_scalar('adv_avdistance', av_distance, i)
-		
+
 		for input_data, labels, flow_categories in train_loader:
 			# print("iterating")
 			# samples += len(input_data)
@@ -213,12 +213,12 @@ def train():
 			confidences[not_attack_mask] = 1 - confidences[not_attack_mask]
 			writer.add_scalar("confidence", torch.mean(confidences[mask]), samples)
 			writer.add_scalar("end_confidence", torch.mean(confidences[mask_exact]), samples)
-			
+
 			adv_mask = flow_categories >= ADVERSARIAL_THRESH
 			if adv_mask.sum() > 0:
 				mask &= adv_mask
 				mask_exact &= adv_mask
-				
+
 				accuracy = torch.mean((torch.round(sigmoided_output[mask]) == labels[mask]).float())
 				writer.add_scalar("adv_accuracy", accuracy, samples)
 				end_accuracy = torch.mean((torch.round(sigmoided_output[mask_exact]) == labels[mask_exact]).float())
@@ -430,7 +430,7 @@ def adv_internal(in_training = False):
 
 	subset = torch.utils.data.Subset(dataset, attack_indices)
 
-	loader = torch.utils.data.DataLoader(subset, batch_size=opt.batchSize, shuffle=False, collate_fn=lambda x: custom_collate(x, (True, False, True)))
+	loader = torch.utils.data.DataLoader(subset, batch_size=opt.batchSize, shuffle=False, collate_fn=custom_collate)
 
 	# lengths = torch.LongTensor([len(seq) for seq in batch_x])
 	# packed = torch.nn.utils.rnn.pack_sequence(batch_x, enforce_sorted=False)
@@ -457,12 +457,16 @@ def adv_internal(in_training = False):
 	else:
 		sample_generator = enumerate(loader)
 
-	for sample_index, (input_data,input_categories) in sample_generator:
+	for sample_index, (input_data,labels,input_categories) in sample_generator:
 		# print("sample", sample_index)
 		total_sample = samples % len(subset)
 		samples += input_data.sorted_indices.shape[0]
 
-		optimizer = optim.SGD([input_data.data], lr=opt.lr)
+		if opt.advMethod == "cw":
+			optimizer = optim.SGD([input_data.data], lr=opt.lr)
+		else:
+			optimizer = optim.SGD(lstm_module.parameters(), lr=opt.lr)
+			criterion = nn.BCEWithLogitsLoss(reduction="mean")
 
 		# index_tensor = torch.arange(0, len(input_data.batch_sizes), dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, input_data.batch_sizes[0], 1)
 
@@ -486,7 +490,7 @@ def adv_internal(in_training = False):
 		input_data.data.requires_grad = True
 
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-		
+
 		if opt.allowIATReduction:
 			same_direction_mask = torch.cat((seqs[:1,:,5]!=seqs[:1,:,5], seqs[1:,:,5] == seqs[:-1,:,5]))
 			same_direction_mask = torch.nn.utils.rnn.pack_padded_sequence(same_direction_mask, lengths, enforce_sorted=False).data.data
@@ -531,28 +535,46 @@ def adv_internal(in_training = False):
 			output, seq_lens = lstm_module(input_data)
 			# output_padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
 
-			if opt.order != 1:
-				seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-				unpadded_seqs = unpad_padded_sequences(seqs, lengths)
-				distance = torch.stack([torch.dist(orig_batch_unpadded_item, unpadded_seqs_item, p=opt.order) for orig_batch_unpadded_item, unpadded_seqs_item in zip(orig_batch_unpadded, unpadded_seqs)]).sum()
-			else:
-				distance = torch.dist(orig_batch, input_data.data, p=opt.order)
-			#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
-			#regularizer = .5*output[-1,0]
-			regularizer = opt.tradeoff*torch.max(output, zero_tensor).sum()
-			#if regularizer <= 0:
-				#break
-			criterion = distance + regularizer
-			if opt.penaltyTradeoff > 0:
-				seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-				penalty = opt.penaltyTradeoff*((seqs[:,:,4].sum(0) - orig_batch_padded[:,:,4].sum(0))**2).sum()
-				criterion += penalty
-			criterion.backward()
+			if opt.advMethod == "cw":
 
-			# only consider lengths and iat
-			input_data.data.grad[:,:3] = 0
-			input_data.data.grad[:,5:] = 0
-			optimizer.step()
+				if opt.order != 1:
+					seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+					unpadded_seqs = unpad_padded_sequences(seqs, lengths)
+					distance = torch.stack([torch.dist(orig_batch_unpadded_item, unpadded_seqs_item, p=opt.order) for orig_batch_unpadded_item, unpadded_seqs_item in zip(orig_batch_unpadded, unpadded_seqs)]).sum()
+				else:
+					distance = torch.dist(orig_batch, input_data.data, p=opt.order)
+				#regularizer = .5*(torch.max(output[other_attacks]) - output[target_attack])
+				#regularizer = .5*output[-1,0]
+				regularizer = opt.tradeoff*torch.max(output, zero_tensor).sum()
+				#if regularizer <= 0:
+					#break
+				criterion = distance + regularizer
+				if opt.penaltyTradeoff > 0:
+					seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
+					penalty = opt.penaltyTradeoff*((seqs[:,:,4].sum(0) - orig_batch_padded[:,:,4].sum(0))**2).sum()
+					criterion += penalty
+				criterion.backward()
+
+				# only consider lengths and iat
+				input_data.data.grad[:,:3] = 0
+				input_data.data.grad[:,5:] = 0
+				optimizer.step()
+			else:
+
+				index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
+
+				selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
+
+				mask_pgd = (index_tensor <= selection_tensor).byte().to(device)
+				labels, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
+
+				loss = criterion(output[mask_pgd].view(-1), labels[mask_pgd].view(-1))
+				loss.backward()
+
+				gradient = input_data.data.grad
+				gradient[:,:3] = 0
+				gradient[:,5:] = 0
+				input_data.data.data = input_data.data.data + opt.tradeoff*gradient.sign()
 
 			# Packet lengths cannot become smaller than original
 			packet_mask = input_data.data[:,3] < orig_batch[:,3]
@@ -669,7 +691,7 @@ def adv_internal(in_training = False):
 def adv():
 	# hack for running the function although it's a generator
 	list(adv_internal(False))
-	
+
 def eval_nn(data):
 
 	lstm_module.eval()
@@ -886,7 +908,7 @@ def pdp():
 			if len(matching) <= 0:
 				break
 			good_subset = OurDataset(*zip(*matching))
-			
+
 			# subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
 
 			pdp = np.zeros([values.size])
@@ -951,6 +973,7 @@ if __name__=="__main__":
 	parser.add_argument('--advTraining', action='store_true', help='Train with adversarial flows')
 	parser.add_argument('--allowIATReduction', action='store_true', help='allow reducing IAT below original value')
 	parser.add_argument('--order', type=int, default=1, help='order of the norm for adversarial sample generation')
+	parser.add_argument('--advMethod', type=str, default="cw", help='which adversarial samples method to use; options are: "cw", "pgd"')
 
 	opt = parser.parse_args()
 	print(opt)
