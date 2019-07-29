@@ -128,7 +128,7 @@ def collate_things(seqs):
 	return packed_input
 	
 def adv_filename():
-	return os.path.splitext(opt.net)[0] + '.adv.pickle'
+	return os.path.splitext(opt.dataroot)[0] + '.adv.pickle'
 
 def train():
 
@@ -213,7 +213,7 @@ def train():
 			adv_mask = flow_categories >= ADVERSARIAL_THRESH
 			if adv_mask.sum() > 0:
 				mask &= adv_mask
-				exact_mask &= adv_mask
+				mask_exact &= adv_mask
 				
 				accuracy = torch.mean((torch.round(sigmoided_output[mask]) == labels[mask]).float())
 				writer.add_scalar("adv_accuracy", accuracy, samples)
@@ -228,7 +228,7 @@ def train():
 			torch.save(lstm_module.state_dict(), '%s/lstm_module_%d.pth' % (writer.log_dir, i))
 			if opt.advTraining:
 				with open(adv_filename(), 'wb') as f:
-					pickle.dump(train_loader.adv_flows, f)
+					pickle.dump(train_data.adv_flows, f)
 
 def test():
 
@@ -398,7 +398,7 @@ def feature_importance():
 def adv_internal(in_training = False):
 	# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
 	# with SGD we probably need even more.
-	ITERATION_COUNT = 100 if in_training else 1000
+	ITERATION_COUNT = 50 if in_training else 1000
 
 	# generate adversarial samples using Carlini Wagner method
 	n_fold = opt.nFold
