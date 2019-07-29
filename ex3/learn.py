@@ -43,13 +43,13 @@ class OurDataset(Dataset):
 
 	def __len__(self):
 		return len(self.data)
-
+				
 class AdvDataset(Dataset):
 	def __init__(self, base_dataset):
 		self.base_dataset = base_dataset
 		self.adv_flows = []
 		self.categories = []
-
+			
 	def __getitem__(self, index):
 		base_len = len(self.base_dataset)
 		if index < base_len:
@@ -130,9 +130,9 @@ def collate_things(seqs):
 
 	packed_input = torch.nn.utils.rnn.pack_padded_sequence(seq_tensor, seq_lengths, enforce_sorted=False)
 	return packed_input
-
+	
 def adv_filename():
-	return os.path.splitext(opt.net)[0] + '.adv.pickle'
+	return os.path.splitext(opt.dataroot)[0] + '.adv.pickle'
 
 def train():
 
@@ -151,13 +151,13 @@ def train():
 	criterion = nn.BCEWithLogitsLoss(reduction="mean")
 
 	writer = SummaryWriter()
-
+	
 	samples = 0
 	for i in range(1, sys.maxsize):
 		if opt.advTraining:
 			train_data.adv_flows, train_data.categories, av_distance = next(adv_generator)
 			writer.add_scalar('adv_avdistance', av_distance, i)
-
+		
 		for input_data, labels, flow_categories in train_loader:
 			# print("iterating")
 			# samples += len(input_data)
@@ -213,12 +213,12 @@ def train():
 			confidences[not_attack_mask] = 1 - confidences[not_attack_mask]
 			writer.add_scalar("confidence", torch.mean(confidences[mask]), samples)
 			writer.add_scalar("end_confidence", torch.mean(confidences[mask_exact]), samples)
-
+			
 			adv_mask = flow_categories >= ADVERSARIAL_THRESH
 			if adv_mask.sum() > 0:
 				mask &= adv_mask
-				exact_mask &= adv_mask
-
+				mask_exact &= adv_mask
+				
 				accuracy = torch.mean((torch.round(sigmoided_output[mask]) == labels[mask]).float())
 				writer.add_scalar("adv_accuracy", accuracy, samples)
 				end_accuracy = torch.mean((torch.round(sigmoided_output[mask_exact]) == labels[mask_exact]).float())
@@ -232,7 +232,7 @@ def train():
 			torch.save(lstm_module.state_dict(), '%s/lstm_module_%d.pth' % (writer.log_dir, i))
 			if opt.advTraining:
 				with open(adv_filename(), 'wb') as f:
-					pickle.dump(train_loader.adv_flows, f)
+					pickle.dump(train_data.adv_flows, f)
 
 def test():
 
@@ -402,7 +402,7 @@ def feature_importance():
 def adv_internal(in_training = False):
 	# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
 	# with SGD we probably need even more.
-	ITERATION_COUNT = 100 if in_training else 1000
+	ITERATION_COUNT = 50 if in_training else 1000
 
 	# generate adversarial samples using Carlini Wagner method
 	n_fold = opt.nFold
@@ -486,7 +486,7 @@ def adv_internal(in_training = False):
 		input_data.data.requires_grad = True
 
 		seqs, lengths = torch.nn.utils.rnn.pad_packed_sequence(input_data)
-
+		
 		if opt.allowIATReduction:
 			same_direction_mask = torch.cat((seqs[:1,:,5]!=seqs[:1,:,5], seqs[1:,:,5] == seqs[:-1,:,5]))
 			same_direction_mask = torch.nn.utils.rnn.pack_padded_sequence(same_direction_mask, lengths, enforce_sorted=False).data.data
@@ -669,7 +669,7 @@ def adv_internal(in_training = False):
 def adv():
 	# hack for running the function although it's a generator
 	list(adv_internal(False))
-
+	
 def eval_nn(data):
 
 	lstm_module.eval()
@@ -886,7 +886,7 @@ def pdp():
 			if len(matching) <= 0:
 				break
 			good_subset = OurDataset(*zip(*matching))
-
+			
 			# subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
 
 			pdp = np.zeros([values.size])
