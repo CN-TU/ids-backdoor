@@ -19,11 +19,22 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from tensorboardX import SummaryWriter
 import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score,recall_score, precision_score, f1_score, balanced_accuracy_score
 
 HIDDEN_SIZE = 512
 N_LAYERS = 3
 
 ADVERSARIAL_THRESH = 50
+
+def output_scores(y_true, y_pred):
+	accuracy = accuracy_score(y_true, y_pred)
+	precision = precision_score(y_true, y_pred)
+	recall = recall_score(y_true, y_pred)
+	f1 = f1_score(y_true, y_pred)
+	youden = balanced_accuracy_score(y_true, y_pred, adjusted=True)
+	metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden']
+	print (('{:>11}'*len(metrics)).format(*metrics))
+	print ((' {:.8f}'*len(metrics)).format(accuracy, precision, recall, f1, youden))
 
 def numpy_sigmoid(x):
 	return 1/(1+np.exp(-x))
@@ -249,9 +260,9 @@ def test():
 	samples = 0
 
 	attack_numbers = mapping.values()
+	reverse_mapping = {v: k for k, v in mapping.items()}
 
 	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
-
 	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
 	for input_data, labels, categories in test_loader:
@@ -298,13 +309,38 @@ def test():
 			samples += 1
 
 	file_name = opt.dataroot[:-7]+"_prediction_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
+
+	all_results_concatenated = [(np.concatenate(item, axis=0) if len(item) > 0 else []) for item in results_by_attack_number]
+	attack_by_attack_number = [[(0 if reverse_mapping[index]=="Normal" else 1)]*len(item) for index, item in enumerate(all_results_concatenated)]
+
+	# print("all_results_concatenated", [len(item) for item in all_results_concatenated])
+	# print("attack_by_attack_number", [len(item) for item in attack_by_attack_number])
+
+	all_predictions = (np.round(numpy_sigmoid(np.concatenate([item for item in all_results_concatenated if item!=[]], axis=0))).astype(int))[:,-1]
+	all_labels = [subitem for item in attack_by_attack_number for subitem in item]
+
+	print("Packet metrics:")
+	output_scores(all_labels, all_predictions)
+
+	all_results_concatenated = [(np.concatenate([subitem[-1:,:] for subitem in item], axis=0) if len(item) > 0 else []) for item in results_by_attack_number]
+	attack_by_attack_number = [[(0 if reverse_mapping[index]=="Normal" else 1)]*len(item) for index, item in enumerate(all_results_concatenated)]
+
+	# print("all_results_concatenated", [len(item) for item in all_results_concatenated])
+	# print("attack_by_attack_number", [len(item) for item in attack_by_attack_number])
+
+	all_predictions = (np.round(numpy_sigmoid(np.concatenate([item for item in all_results_concatenated if item!=[]], axis=0))).astype(int))[:,-1]
+	all_labels = [subitem for item in attack_by_attack_number for subitem in item]
+
+	print("Flow metrics:")
+	output_scores(all_labels, all_predictions)
+
 	with open(file_name, "wb") as f:
 		pickle.dump({"results_by_attack_number": results_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number}, f)
 
-	print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
+	# print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
 
-	print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
-	print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
+	# print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
+	# print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
 
 # Right now this function replaces all values of one feature by random values sampled from the distribution of all features and looks how the accuracy changes.
 def feature_importance():

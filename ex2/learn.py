@@ -302,7 +302,6 @@ def predict(test_indices):
 
 	samples = 0
 	all_predictions = []
-	all_labels = []
 	net.eval()
 	for data, labels in test_loader:
 		# optimizer.zero_grad()
