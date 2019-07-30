@@ -165,6 +165,19 @@ We use a train/test split of 2:1.
 
 \todo{Insert accuracy and compare with RF and NN from previous homework.}
 
+\begin{table}
+\caption{Detection performance results. Random forest and Multilayer Perceptron are from the previous exercise, LSTM is this implementation.} \label{tab:performance_results}
+\begin{tabular}{l r r r} \toprule
+& RF & MLP & LSTM \\ \midrule
+Accuracy	&	0.9974 & 0.9970	& 0.9947 \\
+Precision	&	0.9965 & 0.9979 & 0.9894	\\
+Recall	&	0.9931 & 0.9903	& 0.9897 \\
+F1	&	0.9948 & 0.9941	& 0.9896 \\
+Youden	&	0.9920 & 0.9896 & 0.9861 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Explaining Recurrent Neural Networks}
 From a naive perspective, one might be tempted to reuse explainability methods for recurrent neural networks by considering a flow the sum of its packet features. 
 We identify several problems which occur when trying to explain decisions made by recurrent neural networks.
@@ -202,18 +215,15 @@ As apparent from \autoref{pdp}, for a certain value of the $i$th feature, the wh
 
 For this reason, Accumulated Local Effects (ALE) plots have been proposed in literature. The basic idea for ALE is that instead of using all samples, only the closest samples are used for assessing the effects of one feature. ALE plots therefore inherently require a distance measure for finding the closest samples, which, as revealed in the above discussion, in our case is not possible in a straight-forward manner.
 
-\subsection{Plots for Packet Features}
+\subsection{Plots for Sequences}
+
 As apparent from the above discussion, trying to explain how packet features influence the model's predictions, poses various difficulties. As a first step to explaining our model's predictions, we investigate how important features at different time steps are for the model's decisions. Intuitively, features at the beginning of a flow should be the most important while the model's predictions should not vary significantly anymore, as soon as the model has come to a decision. 
 
-The most interesting packet features in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and determined the median, the first and the third quartile. \autoref{fig:predplots} shows several of such plots for different attack categories for IAT and packet length. Furthermore, the shades \autoref{fig:predplots2} depict the averaged predictions for different attack families. 
+To determine if this hypothesis is correct, we plot the attack confidence of the classifier for each time step for each attack class. At each time step we average over all flows and also show the first and third quartiles. \todo{Insert plots output and interpretation. Change plots to include a histogram.}
 
-\section{Examining attack types}
+Next, we want to investigate if our classifier just memorized its inputs. The most interesting packet features to visualize to in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and determined the median, the first and the third quartile. \autoref{fig:predplots} shows several of such plots for different attack categories for IAT and packet length. Furthermore, the shades \autoref{fig:predplots2} depict the averaged predictions for different attack families. It seems clear that the classifier didn't just memorize the inputs but actually learned them since there is always a smooth decrease of confidence if we change the feature values. Instead, when memorizing, we would expect a sharp decline of confidence to occur. \todo{Insert pred\_plots2 output and interpretation}  
 
-Also non-recurrent approaches to anomaly detection achieve good results so the main motivation of our work is not to achieve better detection performance but to detect attacks before the end of the flow. To determine whether this works, we plot the attack confidence of the classifier for each time step for each attack class. At each time step we average over all flows and also show the first and third quartiles. \todo{Insert plots output and interpretation. Change plots to include a histogram.}
-
-Next, we want to investigate if our classifier just memorized its inputs. For this we generated plots in which we change the value of the interarrival time and packet size in each plot and see how the confidence changes. It seems clear that the classifier didn't just memorize the inputs but actually learned them since there is always a smooth decrease of confidence if we change the feature values. Instead, when memorizing, we would expect a sharp decline of confidence to occur. \todo{Insert pred\_plots2 output and interpretation}
-
-Looking at the plots of the features that vary over time we see that certain attack types have a characteristic pattern in which they send packets by which they are easily recognizable. \todo{Add characteristic\_flows output and add flow direction to the plots}
+Looking at the plots of the features that vary over time we see that certain attack types have a characteristic pattern in which they send packets by which they are easily recognizable. We want to determine how the pattern of packet sizes and interarrival times is significant for the classification. Thus, we show the flow that is the easiest to classify for each attack type and the one that is the hardest to classify and check whether they are visually significantly different. \todo{Add characteristic\_flows output and add flow direction to the plots and explain the method.}
 
 \section{Adversarial attacks}
 
@@ -231,6 +241,25 @@ The most obvious defence, which is only possible because of the nature of the da
 \item Leaving out all features that are manipulable: packet size and interarrival time
 \item Leaving out manipulable features when the attacker can manipulate them: only in the direction from the attacker to the victim (This, however does not prevent adversarial samples for botnets, for which both sides are malicious)
 \end{itemize}
+
+Both approaches lead to complete resistance to adversarial samples (as we left out all manipulable features), except for botnets, which can still operate when only leaving out manipulable features in one direction. The results in \autoref{performance_results_no_manipulable} show that -- surprisingly -- there is only a small difference in classification performance when only computing the accuracy for the last packet of each flow (flow accuracy). However, when looking at the packet accuracy, which considers all packets of all flows, there is a significant difference. Thus, apparently the interarrival time and packet size are especially important for determining whether a flow is malicious in the first packets of a flow. 
+
+\begin{table*}
+\caption{Comparing performance with all features, only safe features (interarrival time and packet size removed) and safe features in one direction (interarrival time and packet size removed for packets coming from source). \textit{packets} means that we consider the neural network output of all packets of the flow while \textit{flows} means that we only consider the last packet. At the last packet the classifier is usually already a lot more confident than at the first packets of a flow and thus metrics are always better in this case.}  \label{tab:performance_results_no_manipulable}
+\newcommand{\cmidrulespace}{6pt}
+\begin{tabular}{l l l l l l l} \toprule
+& \multicolumn{2}{l}{all} & \multicolumn{2}{l}{safe features} & \multicolumn{2}{l}{safe features one direction} \\
+\cmidrule(r){2-3} \cmidrule(lr){4-5} \cmidrule(l){6-7}
+& packets & flows & packets & flows & packets & flows \\
+\midrule
+Accuracy & 0.9857054 & 0.99472587 & 0.96678023 & 0.99337596 & 0.98056073 & 0.99353386 \\
+Precision & 0.94963342 & 0.9894422 & 0.87175275 & 0.98798596 & 0.91359787 & 0.98994595 \\
+Recall & 0.96735895 & 0.98972051 & 0.94374958 & 0.98581328 & 0.97836672 & 0.9844478 \\
+F1 & 0.95841423 & 0.98958134 & 0.90632359 & 0.98689842 & 0.94487366 & 0.98718922 \\
+Youden & 0.95682951 & 0.98614231 & 0.91525628 & 0.98175163 & 0.95937772 & 0.9810602 \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \section{Conclusions}
 

@@ -7,6 +7,7 @@ import os
 import json
 import pickle
 
+DIR_NAME = "plots/plot"
 ORDERING = ['Real', 'Length min', 'IAT min', 'Length max', 'IAT max']
 
 with open("categories_mapping.json", "r") as f:
@@ -82,7 +83,8 @@ for attack_type, seqs in enumerate(results_by_attack_number):
 	plt.legend(all_legends)
 	plt.xlabel('Sequence index')
 	plt.ylabel('Prediction')
-	plt.xticks(range(medians.shape[0]))
+	# plt.xticks(range(medians.shape[0]))
 	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
-	plt.show()
+	# plt.show()
+	plt.savefig(DIR_NAME+'/{}_{}.pdf'.format(file_name.split("/")[-1], attack_type))
 
