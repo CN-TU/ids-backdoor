@@ -165,6 +165,48 @@ We use a train/test split of 2:1.
 
 \todo{Insert accuracy and compare with RF and NN from previous homework.}
 
+\section{Explaining Recurrent Neural Networks}
+From a naive perspective, one might be tempted to reuse explainability methods for recurrent neural networks by considering a flow the sum of its packet features. 
+We identify several problems which occur when trying to explain decisions made by recurrent neural networks.
+
+\begin{itemize}
+\item
+\textbf{Feature quantity.}
+The number of features that is fed into a recurrent neural network is found as the product of packet features with the total length of the flow. For long flows, the total number of inputs can therefore grow to a substantial size.
+
+\item
+\textbf{Variable sequence lengths.}
+The length of different flows might differ tremendously. Hence, features which are important for the network's outcome for one sequence might not even exist for other flows. Furthermore, the question arises how the distance between flows of different length can be computed.
+
+\item
+\textbf{Lack of a distance measure.}
+However, even if we restricted our analysis to flows of a constant length, a flow is different from the plain concatenation of its packet features. 
+If we, for example, consider a classification problem as in this document, we expect that after a certain amount of time steps the classifier is able to perform the classification with a certain confidence. Arguably, features at the beginning of a flow are thus more important for the classifier. Giving differences at the end of a sequence the same weight as differences at its beginning, therefore seems incorrect. 
+
+\item
+\textbf{Multiple prediction outputs.}
+Often times a recurrent neural network produces an output at each time step. When trying to apply explainability methods, hence, the question arises which prediction to base the methods on.
+
+The natural choice is to base the methods on the prediction output which occurs at the same time step as the feature under investigation. Not only does this approach require a substantially lower amount of computational ressources compared to predictions occuring at a later time step, but we also expect the immediately occuring prediction outome to exhibit a stronger correlation to the feature under investigation than a prediction outcome which occuring many time steps later. However, due to the complex decision processes that can occur for deep neural networks, it is absolutely  uncertain if the network's final prediction is correctly depicted when following this approach.
+\end{itemize}
+
+\subsection{Explainability Plots}
+During flow extraction we used a usual 5-tuple flow key, which distinguished flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
+
+In particular,  \autoref{fig:pdps} shows the Partial Dependency Plots (PDP) for the source and destination port features. If $\boldsymbol X \in \mathbb R ^n$ denotes a random vector drawn from feature space and $f(X) \in [0,1]$ denotes the neural network's prediction, the PDP for feature $i$ can be defined as 
+\begin{equation} \label{eq:pdp}
+\text{PDP}_i(y) = \mathbb E_{\boldsymbol X}\left(f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n)\right) . % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
+\end{equation}
+
+As apparent from \autoref{pdp}, for a certain value of the $i$th feature, the whole dataset is used for averaging the neural network's outcome. A known issue about this approach is that dependencies of the feature under investigation and the remaining variables are not considered, hence potentially querying the neural network for feature combinations which cannot possibly occur. 
+
+For this reason, Accumulated Local Effects (ALE) plots have been proposed in literature. The basic idea for ALE is that instead of using all samples, only the closest samples are used for assessing the effects of one feature. ALE plots therefore inherently require a distance measure for finding the closest samples, which, as revealed in the above discussion, in our case is not possible in a straight-forward manner.
+
+\subsection{Plots for Packet Features}
+As apparent from the above discussion, trying to explain how packet features influence the model's predictions, poses various difficulties. As a first step to explaining our model's predictions, we investigate how important features at different time steps are for the model's decisions. Intuitively, features at the beginning of a flow should be the most important while the model's predictions should not vary significantly anymore, as soon as the model has come to a decision. 
+
+The most interesting packet features in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and determined the median, the first and the third quartile. \autoref{fig:predplots} shows several of such plots for different attack categories for IAT and packet length. Furthermore, the shades \autoref{fig:predplots2} depict the averaged predictions for different attack families. 
+
 \section{Examining attack types}
 
 Also non-recurrent approaches to anomaly detection achieve good results so the main motivation of our work is not to achieve better detection performance but to detect attacks before the end of the flow. To determine whether this works, we plot the attack confidence of the classifier for each time step for each attack class. At each time step we average over all flows and also show the first and third quartiles. \todo{Insert plots output and interpretation. Change plots to include a histogram.}
