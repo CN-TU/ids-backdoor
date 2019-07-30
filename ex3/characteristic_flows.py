@@ -81,8 +81,8 @@ for attack_type, (results_by_attack_number_item, flows_by_attack_number_item, re
 			ret = ax.plot(range(flow.shape[0]), flow[:,feature_index]*stds[feature_index]+means[feature_index], label=legend, linestyle=LINESTYLES[flow_index], color=colors[feature_index_from_zero])
 			forward_direction = flow[0,5]
 			forward_points = flow[:,5] == forward_direction
-			ret2 = ax.scatter(torch.arange(flow.shape[0])[forward_points], (flow[:,feature_index]*stds[feature_index]+means[feature_index])[forward_points], color=colors[feature_index_from_zero], marker="<")
-			ret3 = ax.scatter(torch.arange(flow.shape[0])[~forward_points], (flow[:,feature_index]*stds[feature_index]+means[feature_index])[~forward_points], color=colors[feature_index_from_zero], marker=">")
+			ret2 = ax.scatter(np.arange(flow.shape[0])[forward_points], (flow[:,feature_index]*stds[feature_index]+means[feature_index])[forward_points], color=colors[feature_index_from_zero], marker=">")
+			ret3 = ax.scatter(np.arange(flow.shape[0])[~forward_points], (flow[:,feature_index]*stds[feature_index]+means[feature_index])[~forward_points], color=colors[feature_index_from_zero], marker="<")
 			# print("flow[:,5]", flow[:,5])
 			all_legends += ret
 
