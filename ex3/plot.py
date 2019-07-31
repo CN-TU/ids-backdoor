@@ -8,7 +8,7 @@ import json
 import pickle
 
 DIR_NAME = "plots/plot"
-ORDERING = ['Real', 'Length min', 'IAT min', 'Length max', 'IAT max']
+ORDERING = ['', 'Length min', 'IAT min', 'Length max', 'IAT max']
 
 with open("categories_mapping.json", "r") as f:
 	categories_mapping_content = json.load(f)
@@ -74,8 +74,8 @@ for attack_type, seqs in enumerate(results_by_attack_number):
 		plt.fill_between(range(medians.shape[0]), first_quartiles[:,i], third_quartiles[:,i], alpha=0.5, edgecolor=colors[i], facecolor=colors[i])
 		legend = ORDERING[i:i+1]*2
 		# legend = ORDERING[i:i+1]
-		legend[0] = legend[0]+" median"
-		legend[-1] = legend[-1]+" 1st and 3rd quartile"
+		legend[0] = " median"
+		legend[-1] = "1st and 3rd quartile"
 		all_legends += legend
 		# print("legend", legend)
 

@@ -163,7 +163,7 @@ The dataset we use is the \textit{CIC-IDS 2017} dataset \cite{sharafaldin_toward
 
 We use a train/test split of 2:1.
 
-\todo{Insert accuracy and compare with RF and NN from previous homework.}
+\autoref{tab:performance_results} shows that our classifier achieves an accuracy that is similar to the one of the random forest and the multilayer perceptron that we developed in the previous exercise. However unlike these classifier, our recurrent classifier has the advantage that it can detect attacks already before they are over. 
 
 \begin{table}
 \caption{Detection performance results. Random forest and Multilayer Perceptron are from the previous exercise, LSTM is this implementation.} \label{tab:performance_results}
@@ -247,26 +247,20 @@ In particular,  \autoref{fig:pdps} shows the Partial Dependency Plots (PDP) for 
 
 As apparent from \autoref{pdp}, for a certain value of the $i$th feature, the whole dataset is used for averaging the neural network's outcome. 
 
-We also experiment with a modified definition of the PDP: 
+We also experiment with a modified definition of the PDP (with C being the distribution of attack classes): 
 \begin{equation} \label{eq:pdp_conditional}
-\text{PDP}_{c,i}(y) = \mathbb E_{\boldsymbol X' := \left\{ x \in X \middle| \text{class}\left(x\right) = c\right\}}\left(f \left( X'_1,\ldots,X'_{i-1},y,X'_{i+1},\ldots X'_n \right) \right)
+\text{PDP}_{c,i}(y) = \mathbb E_{\boldsymbol X | C = c} \left(f \left( X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n \right) \right)
 \end{equation}
 
-%\begin{figure*}[p]
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/sourceTransportPort_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/sourceTransportPort_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(mean(ipTTL),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(mean(ipTTL),forward)_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(stdev(ipTotalLength),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(stdev(ipTotalLength),forward)_rf.pdf}
-%
-%\caption{Examples of conditional PD plots for source and destination port. We only analyze these features with the PDP since it is not straightforward to define the PDP for features that can vary for each packet in a flow.}
-%\label{fig:pdp}
-%\end{figure*}
+\begin{figure*}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot_pdp/flows_full_no_ttl_pdp_outcomes_0_3.pickle_8_DoS - DDoS-Heartbleed"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot_pdp/flows_full_no_ttl_pdp_outcomes_0_3.pickle_10_Normal"}.pdf}
 
-In this variant of the PDP that we call conditional PDP, we don't take the whole dataset for the computation for the PDP but only a subset that belongs to a certain class. Specifically, we take each attack class and compute the PDP only over samples of this attack class. A known issue about PDPs in general is that dependencies of the feature under investigation and the remaining variables are not considered, hence potentially querying the neural network for feature combinations which cannot possibly occur. 
+\caption{Examples of conditional PD plots for source and destination port. We only analyze these features with the PDP since it is not straightforward to define the PDP for features that can vary for each packet in a flow. The y-axis shows the probability for malicious traffic. }
+\label{fig:pdp}
+\end{figure*}
+
+In this variant of the PDP that we call conditional PDP, we don't take the whole dataset for the computation for the PDP but only a subset that belongs to a certain class. Specifically, we take each attack class and compute the PDP only over samples of this attack class. The results in \autoref{fig:pdp} show that for some attack classes the port numbers play an important role. When looking at the class of normal traffic (non-attack traffic) it becomes apparent that traffic destined to a high source port is generally indicative of an attack. We argue that this is because most services that regular users use have low port numbers. A known issue about PDPs in general is that dependencies of the feature under investigation and the remaining variables are not considered, hence potentially querying the neural network for feature combinations which cannot possibly occur. 
 
 For this reason, Accumulated Local Effects (ALE) plots have been proposed in literature. The basic idea for ALE is that instead of using all samples, only the closest samples are used for assessing the effects of one feature. ALE plots therefore inherently require a distance measure for finding the closest samples, which, as revealed in the above discussion, in our case is not possible in a straight-forward manner.
 
@@ -274,29 +268,45 @@ For this reason, Accumulated Local Effects (ALE) plots have been proposed in lit
 
 As apparent from the above discussion, trying to explain how packet features influence the model's predictions, poses various difficulties. As a first step to explaining our model's predictions, we investigate how important features at different time steps are for the model's decisions. Intuitively, features at the beginning of a flow should be the most important while the model's predictions should not vary significantly anymore, as soon as the model has come to a decision. 
 
-%\begin{figure*}[p]
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/sourceTransportPort_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/sourceTransportPort_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(mean(ipTTL),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(mean(ipTTL),forward)_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(stdev(ipTotalLength),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../plots/pdp/apply(stdev(ipTotalLength),forward)_rf.pdf}
-%
-%\caption{Median confidence per time step and first and third quartiles for selected attack types. For the majority of attacks, confidence increases in the first few steps and then stays almost constant at 1.}
-%\label{fig:pdp}
-%\end{figure*}
+\begin{figure*}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot/flows_full_no_ttl_pred_plots_outcomes_0_3.pickle_0_Botnet-ARES"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot/flows_full_no_ttl_pred_plots_outcomes_0_3.pickle_7_DoS - DDoS-DoS slowloris"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot/flows_full_no_ttl_pred_plots_outcomes_0_3.pickle_14_Web Attack-XSS"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot/flows_full_no_ttl_pred_plots_outcomes_0_3.pickle_11_PortScan-PortScan - Firewall off"}.pdf}
 
-To determine if this hypothesis is correct, we plot the attack confidence of the classifier for each time step for each attack class. At each time step we average over all flows and also show the first and third quartiles. \todo{Insert plots output and interpretation. Change plots to include a histogram.}
+\caption{Median confidence per time step and first and third quartiles for selected attack types. For the majority of attacks, confidence increases in the first few steps and then stays almost constant at 1.}
+\label{fig:confidence}
+\end{figure*}
 
-Next, we want to investigate if our classifier just memorized its inputs. The most interesting packet features to visualize to in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and determined the median, the first and the third quartile. \autoref{fig:predplots} shows several of such plots for different attack categories for IAT and packet length. Furthermore, the shades \autoref{fig:predplots2} depict the averaged predictions for different attack families. It seems clear that the classifier didn't just memorize the inputs but actually learned them since there is always a smooth decrease of confidence if we change the feature values. Instead, when memorizing, we would expect a sharp decline of confidence to occur. \todo{Insert pred\_plots2 output and interpretation}  
+To determine if this hypothesis is correct, we plot the attack confidence of the classifier for each time step for each attack class. At each time step we average over all flows and also show the first and third quartiles. \autoref{fig:confidence} shows that this hypothesis is correct for most attack classes. At the first couple of packets the confidence for maliciousness is not very high yet but towards the end of the flow it reaches values close to 1 and stays there. 
 
-Looking at the plots of the features that vary over time we see that certain attack types have a characteristic pattern in which they send packets by which they are easily recognizable. We want to determine how the pattern of packet sizes and interarrival times is significant for the classification. Thus, we show the flow that is the easiest to classify for each attack type and the one that is the hardest to classify and check whether they are visually significantly different. \todo{Add characteristic\_flows output and add flow direction to the plots and explain the method.}
+\begin{figure*}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot2/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_0_Botnet-ARES"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot2/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_7_DoS - DDoS-DoS slowloris"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot2/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_11_PortScan-PortScan - Firewall off"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot2/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_1_Brute Force-FTP-Patator"}.pdf}
 
+\caption{The solid line shows the mean value of the feature for all flows of a specific attack type. The shaded region shows the change in confidence that occurs when the feature is varied.}
+\label{fig:pred_plots2}
+\end{figure*}
+
+Next, we want to investigate if our classifier just memorized its inputs. The most interesting packet features that can be used to visualize this in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features that ever occur for all flows. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and plot how the confidence changes when the feature varies (\autoref{fig:predplots2}) depict the averaged predictions for different attack families. It seems clear that the classifier didn't just memorize the inputs but actually learned them since there is always a smooth decrease of confidence if we change the feature values. Instead, when memorizing, we would expect a sharp decline of confidence to occur. Another interesting observation is that after the first couple of packets the classifier is certain about its decision and changing features doesn't change its confidence any longer. This allows the conclusion that if an attacker is able to change the first few packets, she could possibly change the decision of the classifier. We will further investigate this question in section \autoref{sec:adv}.
+
+\begin{figure*}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_2_Brute Force-SSH-Patator"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_6_DoS - DDoS-DoS Slowhttptest"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_11_PortScan-PortScan - Firewall off"}.pdf}
+\includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_7_DoS - DDoS-DoS slowloris"}.pdf}
+
+\caption{The solid line shows the mean value of the feature for all flows of a specific attack type. The shaded region shows the change in confidence that occurs when the feature is varied.}
+\label{fig:plot_features}
+\end{figure*}
+
+Looking at the plots of the features that vary over time we see that certain attack types have a characteristic pattern in which they send packets by which they are easily recognizable. We want to determine how the pattern of packet sizes and interarrival times is significant for the classification. \autoref{fig:plot_features} clearly shows that some attack types have very characteristic patterns of packet sizes and interarrival times. 
 \section{Adversarial attacks}
+\label{sec:adv}
 
-As we saw in the previous section \todo{Add reference to characteristic\_flows plot here}, attacks do have a characteristic pattern of interarrival times and packet lengths. Thus,  changing this pattern might confuse the classifier. However, this scenario is quite different from how generating adversarial samples usually works: We have significantly less features than in, for example, an image. Furthermore, only two out of those few features can be manipulated. And even these features cannot manipulated freely: Besides the constraints that packet size and interarrival time cannot go beyond zero there are also more problem-specific constraints:
+As we saw in the previous section in \autoref{fig:plot_features}, some attack types do have a characteristic pattern of interarrival times and packet lengths. Furthermore, \autoref{fig:pred_plots2} shows after the first couple of packets, the classifier becomes so sure in its decision, that a change in features doesn't seem to have any after the first packets. The hypothesis that follows is that by manipulating the interarrival times and packet lengths of the first packets, the classifier might be fooled. However, our scenario is quite different from how generating adversarial samples usually works: We have significantly less features than in, for example, an image. Furthermore, only two out of those few features can be manipulated. And even these features cannot manipulated freely: Besides the constraints that packet size and interarrival time cannot become negative there are also more problem-specific constraints:
 \begin{itemize}
 \item Only packets can be manipulated which are transmitted by the attacker. This means the attacker can only control one direction (except for botnets where both sides are attackers). 
 \item Packets must not be smaller than initially, as otherwise less information could be transmitted or packets might be rendered syntactically invalid.
@@ -334,7 +344,7 @@ The most obvious defence, which is only possible because of the nature of the da
 \item Leaving out manipulable features when the attacker can manipulate them: only in the direction from the attacker to the victim (This, however does not prevent adversarial samples for botnets, for which both sides are malicious)
 \end{itemize}
 
-Both approaches lead to complete resistance to adversarial samples (as we left out all manipulable features), except for botnets, which can still operate when only leaving out manipulable features in one direction. The results in \autoref{performance_results_no_manipulable} show that -- surprisingly -- there is only a small difference in classification performance when only computing the accuracy for the last packet of each flow (flow accuracy). However, when looking at the packet accuracy, which considers all packets of all flows, there is a significant difference. Thus, apparently the interarrival time and packet size are especially important for determining whether a flow is malicious in the first packets of a flow. 
+Both approaches lead to complete resistance to adversarial samples (as we left out all manipulable features), except for botnets, which can still operate when only leaving out manipulable features in one direction. The results in \autoref{tab:performance_results_no_manipulable} show that -- surprisingly -- there is only a small difference in classification performance when only computing the accuracy for the last packet of each flow (flow accuracy). However, when looking at the packet accuracy, which considers all packets of all flows, there is a significant difference. Thus, apparently the interarrival time and packet size are especially important for determining whether a flow is malicious in the first packets of a flow. 
 
 In addition to omitting manipulable features we tried to make our network more robust against adversarial samples by augmenting the training set by adversarial flows as additional attacks. However, 
 
