@@ -161,7 +161,7 @@ The dataset we use is the \textit{CIC-IDS 2017} dataset \cite{sharafaldin_toward
 \item all TCP flags (0 if flow is not TCP)
 \end{itemize*}. Of these features, source port, destination port and protocol identifier are constant over the whole flow while the other vary. 
 
-We use a train/test split of 2:1.
+We use Z-score normalization and a train/test split of 2:1.
 
 \autoref{tab:performance_results} shows that our classifier achieves an accuracy that is similar to the one of the random forest and the multilayer perceptron that we developed in the previous exercise. However unlike these classifier, our recurrent classifier has the advantage that it can detect attacks already before they are over. 
 
@@ -319,12 +319,14 @@ We implemented the following methods for generating adversarial flows.
 
 \subsection{Carlini-Wagner}
 In particular, we implemented the method by \citeauthor{carlini2017towards}~\cite{carlini2017towards}, which performs gradient descent on the optimization objective 
-\begin{equation}
+\begin{equation} \label{eq:carliniWagner}
 d(X,\tilde X) + \epsilon  \max(Z(\tilde X), 0).
 \end{equation}
 Here, $d(\cdot)$ is a distance metric, $\epsilon \in \mathbb R^+$ is a parameter governing the tradeoff achieved between attack success and distance from the original flow. Furthermore, $Z(\cdot)$ denotes the neural network's logit output, $X$ denotes the original flow and $\tilde X$ the adversarial flow under optimization. 
 
 We used $\ell_1$ norm as distance metric and deployed projected gradient descent (PGD) for meeting the real-world constraints discussed above.
+
+The method minimizes the adversarial sample's distance so that the network's decision is just between attack and normal traffic. In the present context, we 
 
 \subsection{$\ell_\infty$-bounded Projected Gradient Descent}
 \cite{madry2017towards} use a method for generating adversarial samples which uses PGD  to minimize the network's negative loss function while constraining the achieved $\ell_\infty$ distance from the original samples. 
@@ -336,6 +338,34 @@ Finally, we also tested the Fast Gradient Sign Method (FGSM), which was initiall
 \end{equation}
 where $L(X)$ denotes the network's loss function and $\epsilon$ denotes the achieved $\ell_\infty$ distance.
 
+\subsection{Evaluation}
+\begin{figure*}
+\includegraphics[width=0.45\textwidth]{adv_plots/cwl1.pdf}
+\includegraphics[width=0.45\textwidth]{adv_plots/cwl2.pdf}
+\caption{Performance of the Carlini-Wagner method with different $\epsilon$ values for $\ell_1$ and $\ell_2$ distances.}
+\label{fig:adv_cw}
+\end{figure*}
+\autoref{fig:adv_cw} depicts the ratio of attack flows which were successfully misclassified as normal traffic with respect to the final packet along with the resulting distance from the original sample. Evidently, the larger the $\epsilon$ parameter, the better the attack works, but also the distances become larger. 
+
+Hence, with acceptable distance values we were able to generate adversarial samples for about 80\% of attack samples.
+
+The figure suggests that a value between 0.5 and 1 would be ideal to find adversarial samples with a low enough distance from real samples. This conclusion might be misleading, however, as the distance cannot become larger anymore as soon as an adversarial sample has been found, when performing optimization as depicted by the objective function \eqref{eq:carliniWagner}. Hence, the depicted increase of average distances presumably is due to samples for which no adversarial sample was found for lower $\epsilon$ values.
+
+
+It is interesting to note that for very large values of $\epsilon$ the success ratio starts to decrease again.This phenomenon might be due to numerical effects and might be preventable by a smaller learning rate.
+
+
+\autoref{fig:fgsm} depicts the performance for FGSM and $\ell_\infty$-bounded PGD. As expected, while FGSM is the fastest of all algorithms, it delivers the worst performance. 
+
+Of the investigated algorithms, thus the Carlini-Wagner method with $\ell_2$ distance delivered the best performance.
+
+\begin{figure*}
+\includegraphics[width=0.45\textwidth]{adv_plots/fgsm.pdf}
+\includegraphics[width=0.45\textwidth]{adv_plots/l_inf_pgd.pdf}
+\caption{Performance of FSGM and $\ell_\infty$-bounded PGD for different bounds.}
+\label{fig:fgsm}
+\end{figure*}
+
 \subsection{Defences}
 
 The most obvious defence, which is only possible because of the nature of the dataset, is to simply leave out features which the attacker can manipulate. For this, we try two different approaches: 
@@ -346,7 +376,9 @@ The most obvious defence, which is only possible because of the nature of the da
 
 Both approaches lead to complete resistance to adversarial samples (as we left out all manipulable features), except for botnets, which can still operate when only leaving out manipulable features in one direction. The results in \autoref{tab:performance_results_no_manipulable} show that -- surprisingly -- there is only a small difference in classification performance when only computing the accuracy for the last packet of each flow (flow accuracy). However, when looking at the packet accuracy, which considers all packets of all flows, there is a significant difference. Thus, apparently the interarrival time and packet size are especially important for determining whether a flow is malicious in the first packets of a flow. 
 
-In addition to omitting manipulable features we tried to make our network more robust against adversarial samples by augmenting the training set by adversarial flows as additional attacks. However, 
+In addition to omitting manipulable features we tried to make our network more robust against adversarial samples by augmenting the training set by adversarial flows generated using the Carlini-Wagner method, labelled as additional attacks. However, against our expectations, this approach did not lead to satisfactory results in the sense that the network would learn to classify adversarial samples as attacks. In fact, classification accuracy stayed about constant during the training of the network.
+
+A possible explanation for this observation might be that the adversarial samples assumed too much the shape of normal flows, so that the network could not reliable tell them apart.
 
 \begin{table*}
 \caption{Comparing performance with all features, only safe features (interarrival time and packet size removed) and safe features in one direction (interarrival time and packet size removed for packets coming from source). \textit{packets} means that we consider the neural network output of all packets of the flow while \textit{flows} means that we only consider the last packet. At the last packet the classifier is usually already a lot more confident than at the first packets of a flow and thus metrics are always better in this case.}  \label{tab:performance_results_no_manipulable}
