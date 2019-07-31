@@ -326,7 +326,11 @@ Here, $d(\cdot)$ is a distance metric, $\epsilon \in \mathbb R^+$ is a parameter
 
 We used $\ell_1$ norm as distance metric and deployed projected gradient descent (PGD) for meeting the real-world constraints discussed above.
 
-The method minimizes the adversarial sample's distance so that the network's decision is just between attack and normal traffic. In the present context, we 
+The method minimizes the adversarial sample's distance so that the network's decision is just between attack and normal traffic. In the present context, we need to make sure that the classifer's prediction would actually be normal traffic, even though a certain level of noise will be added to interarrival times due to the network between attacker and victim. Instead of the above equation \ref{eq:carliniWagner} we therefore used the optimization objective
+\begin{equation} \label{eq:carliniWagner}
+d(X,\tilde X) + \epsilon  \max(Z(\tilde X), -0.2),
+\end{equation}
+i.e. we require a slight level of confidence that our adversarial samples are not classified as attack traffic.
 
 \subsection{$\ell_\infty$-bounded Projected Gradient Descent}
 \cite{madry2017towards} use a method for generating adversarial samples which uses PGD  to minimize the network's negative loss function while constraining the achieved $\ell_\infty$ distance from the original samples. 
@@ -352,6 +356,32 @@ Hence, with acceptable distance values we were able to generate adversarial samp
 The figure suggests that a value between 0.5 and 1 would be ideal to find adversarial samples with a low enough distance from real samples. This conclusion might be misleading, however, as the distance cannot become larger anymore as soon as an adversarial sample has been found, when performing optimization as depicted by the objective function \eqref{eq:carliniWagner}. Hence, the depicted increase of average distances presumably is due to samples for which no adversarial sample was found for lower $\epsilon$ values.
 
 
+\begin{table*}
+\caption{Attack success ratios per attack family. Depicted are flow detection accuracies for adversarial flows (left numbers) and flow detection accuracies for unmodified flows (right numbers).}
+\label{tab:adv_per_family}
+\begin{tabular}{lllllllll} 
+\toprule
+Attack type & FGSM & Carlini-Wagner, $\ell_1$ & Carlini-Wagner, $\ell_2$ & $\ell_\infty$-bounded PGD \\
+\midrule
+Botnet:ARES	&	0.0000 / 0.0000	&	0.0000 / 0.0000	&	0.0000 / 0.0000	&	0.0000 / 0.0000	\\
+Brute Force:FTP-Patator	&	0.2800 / 0.5800	&	0.1600 / 0.5800	&	0.1600 / 0.5800	&	0.2800 / 0.5800	\\
+Brute Force:SSH-Patator	&	0.8300 / 1.0000	&	0.0000 / 1.0000	&	0.0000 / 1.0000	&	0.8900 / 1.0000	\\
+DDoS:LOIT	&	0.8300 / 0.8600	&	0.6400 / 0.8600	&	0.5600 / 0.8600	&	0.8200 / 0.8600	\\
+DoS / DDoS:DoS GoldenEye	&	0.8900 / 1.0000	&	0.5000 / 1.0000	&	0.4200 / 1.0000	&	0.9200 / 1.0000	\\
+DoS / DDoS:DoS Hulk	&	0.6700 / 1.0000	&	0.5400 / 1.0000	&	0.4700 / 1.0000	&	1.0000 / 1.0000	\\
+DoS / DDoS:DoS Slowhttptest	&	0.8700 / 1.0000	&	0.4100 / 1.0000	&	0.1900 / 1.0000	&	0.7400 / 1.0000	\\
+DoS / DDoS:DoS slowloris	&	0.4400 / 0.9700	&	0.3100 / 0.9700	&	0.1300 / 0.9700	&	0.9200 / 0.9700	\\
+DoS / DDoS:Heartbleed	&	0.0000 / 0.0000	&	0.0000 / 0.0000	&	0.0000 / 0.0000	&	0.0000 / 0.0000	\\
+Infiltration:Dropbox download 	&	0.6100 / 0.9600	&	0.4300 / 0.9600	&	0.3800 / 0.9600	&	0.7400 / 0.9600	\\
+PortScan:PortScan - Firewall off	&	0.6800 / 0.9100	&	0.3500 / 0.9100	&	0.3500 / 0.9100	&	0.7200 / 0.9100	\\
+PortScan:PortScan - Firewall on	&	0.7400 / 0.8700	&	0.6100 / 0.8700	&	0.5300 / 0.8700	&	0.7300 / 0.8700	\\
+Web Attack:Sql Injection	&	0.0000 / 0.6923	&	0.0000 / 0.6923	&	0.0000 / 0.6923	&	0.0000 / 0.6923	\\
+Web Attack:XSS	&	0.6700 / 0.9500	&	0.7200 / 0.9500	&	0.6200 / 0.9500	&	0.6700 / 0.9500	\\
+\bottomrule
+
+\end{tabular}
+\end{table*}
+
 It is interesting to note that for very large values of $\epsilon$ the success ratio starts to decrease again.This phenomenon might be due to numerical effects and might be preventable by a smaller learning rate.
 
 
@@ -359,12 +389,32 @@ It is interesting to note that for very large values of $\epsilon$ the success r
 
 Of the investigated algorithms, thus the Carlini-Wagner method with $\ell_2$ distance delivered the best performance.
 
+\autoref{tab:adv_per_family} depicts how successful the attack is for individual attack families. For this table we used a $\ell_\infty$ bound of 0.3 for FGSM and $\ell_\infty$-bounded PGD and a tradeoff of 0.5 for Carlini-Wagner. The table shows significant for detecting different attack families in the first place. However, also for generating adversarial flows some attack families are more susceptible than others.
+
 \begin{figure*}
 \includegraphics[width=0.45\textwidth]{adv_plots/fgsm.pdf}
 \includegraphics[width=0.45\textwidth]{adv_plots/l_inf_pgd.pdf}
 \caption{Performance of FSGM and $\ell_\infty$-bounded PGD for different bounds.}
 \label{fig:fgsm}
 \end{figure*}
+
+Finally, we investigated how adversarial flows look like and which features are manipulated to circumvent detection by the neural network.
+
+To this end, we generated adversarial flows with the Carlini-Wagner method with $\ell_2$ distance and a tradeoff of 0.5. \autoref{adv_plots} depicts how the method manipulates flows for some exemplary attack categories. Depicted is the mean of both unmodified flows and adversarial flows  of samples of individual attack families considering both interarrival time and packet length.
+
+The plots show that primarily features at the beginning of flows are modified. It is remarkable that it seems most promising to modifiy single packets while leaving most of the flow unchanged. In other cases, however, like depicted for the infiltration attack at the bottom, adversarial flows assume a complex pattern to circumvent detection.
+
+\begin{figure*}[p]
+\includegraphics[width=0.48\textwidth]{../plots/plot_adv/1.pdf}
+\includegraphics[width=0.48\textwidth]{../plots/plot_adv/2.pdf}
+\includegraphics[width=0.48\textwidth]{../plots/plot_adv/3.pdf}
+\includegraphics[width=0.48\textwidth]{../plots/plot_adv/4.pdf}
+\includegraphics[width=0.48\textwidth]{../plots/plot_adv/5.pdf}
+\includegraphics[width=0.48\textwidth]{../plots/plot_adv/6.pdf}
+\caption{Successful manipulations performed by the Carlini-Wagner method.}
+\label{adv_plots}
+\end{figure*}
+
 
 \subsection{Defences}
 
