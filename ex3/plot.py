@@ -67,22 +67,45 @@ for attack_type, seqs in enumerate(results_by_attack_number):
 	# quit()
 
 	all_legends = []
+	# print("values_by_length", [item.shape for item in values_by_length])
+	lens = [item.shape[0] for item in values_by_length]
+
+	fig, ax1 = plt.subplots()
+	# print("lens", lens)
+	ret = ax1.bar(range(len(lens)), lens, width=1, color="gray", alpha=0.2, label="number of samples")
+	# print("ret", ret)
+	all_legends.append(ret)
+
+	ax2 = ax1.twinx()
+
+	ax2.set_ylabel('Confidence')
+	ax1.set_ylabel("number of flows")
+
+	ax1.yaxis.tick_right()
+	ax1.yaxis.set_label_position("right")
+	ax2.yaxis.tick_left()
+	ax2.yaxis.set_label_position("left")
+
 	# for i in range(medians.shape[1]):
 	for i in range(1):
 		# print("i", i)
-		plt.plot(medians[:,i], color=colors[i])
-		plt.fill_between(range(medians.shape[0]), first_quartiles[:,i], third_quartiles[:,i], alpha=0.5, edgecolor=colors[i], facecolor=colors[i])
-		legend = ORDERING[i:i+1]*2
-		# legend = ORDERING[i:i+1]
-		legend[0] = " median"
-		legend[-1] = "1st and 3rd quartile"
-		all_legends += legend
+		ret = ax2.plot(medians[:,i], color=colors[i], label="median")
+		ret2 = ax2.fill_between(range(medians.shape[0]), first_quartiles[:,i], third_quartiles[:,i], alpha=0.5, edgecolor=colors[i], facecolor=colors[i], label="1st and 3rd quartile")
+		# legend = ORDERING[i:i+1]*2
+		# # legend = ORDERING[i:i+1]
+		# legend[0] = " median"
+		# legend[-1] = "1st and 3rd quartile"
+		# all_legends += legend
 		# print("legend", legend)
+		all_legends += ret
+		all_legends.append(ret2)
+
+	all_labels = [item.get_label() for item in all_legends]
+	ax1.legend(all_legends, all_labels)
 
 	plt.title(reverse_mapping[attack_type])
-	plt.legend(all_legends)
-	plt.xlabel('Sequence index')
-	plt.ylabel('Prediction')
+	# plt.legend(all_legends)
+	ax1.set_xlabel('Sequence index')
 	plt.tight_layout()
 	# plt.xticks(range(medians.shape[0]))
 	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
