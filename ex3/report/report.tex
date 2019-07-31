@@ -240,14 +240,13 @@ It is interesting to note, however, that the interarrival time of packets does n
 \subsection{Explainability Plots}
 During flow extraction we used a usual 5-tuple flow key, which distinguished flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
 
-In particular,  \autoref{fig:pdps} shows the Partial Dependency Plots (PDP) for the source and destination port features. If $\boldsymbol X \in \mathbb R ^n$ denotes a random vector drawn from feature space and $f(X) \in [0,1]$ denotes the neural network's prediction, the PDP for feature $i$ can be defined as 
+In particular,  in literature the use of Partial Dependency Plots (PDP) is proposed. If $\boldsymbol X \in \mathbb R ^n$ denotes a random vector drawn from feature space and $f(X) \in [0,1]$ denotes the neural network's prediction, the PDP for feature $i$ can be defined as 
 \begin{equation} \label{eq:pdp}
 \text{PDP}_i(y) = \mathbb E_{\boldsymbol X}\left(f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n)\right)
 \end{equation}
 
-As apparent from \autoref{pdp}, for a certain value of the $i$th feature, the whole dataset is used for averaging the neural network's outcome. 
 
-We also experiment with a modified definition of the PDP (with C being the distribution of attack classes): 
+To capture similarity between attack families, we in this research experiment with a modified definition of the PDP  (with C being the attack classes): 
 \begin{equation} \label{eq:pdp_conditional}
 \text{PDP}_{c,i}(y) = \mathbb E_{\boldsymbol X | C = c} \left(f \left( X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n \right) \right)
 \end{equation}
@@ -261,6 +260,8 @@ We also experiment with a modified definition of the PDP (with C being the distr
 \end{figure*}
 
 In this variant of the PDP that we call conditional PDP, we don't take the whole dataset for the computation for the PDP but only a subset that belongs to a certain class. Specifically, we take each attack class and compute the PDP only over samples of this attack class. The results in \autoref{fig:pdp} show that for some attack classes the port numbers play an important role. When looking at the class of normal traffic (non-attack traffic) it becomes apparent that traffic destined to a high source port is generally indicative of an attack. We argue that this is because most services that regular users use have low port numbers. A known issue about PDPs in general is that dependencies of the feature under investigation and the remaining variables are not considered, hence potentially querying the neural network for feature combinations which cannot possibly occur. 
+
+As apparent from \autoref{eq:pdp}, for a certain value of the $i$th feature, the whole dataset is used for averaging the neural network's outcome. 
 
 For this reason, Accumulated Local Effects (ALE) plots have been proposed in literature. The basic idea for ALE is that instead of using all samples, only the closest samples are used for assessing the effects of one feature. ALE plots therefore inherently require a distance measure for finding the closest samples, which, as revealed in the above discussion, in our case is not possible in a straight-forward manner.
 
