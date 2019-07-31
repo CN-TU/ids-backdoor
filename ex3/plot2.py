@@ -3,6 +3,8 @@
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.colors as mc
+# from matplotlib import rcParams
+# rcParams.update({'figure.autolayout': True})
 import colorsys
 import numpy as np
 import sys
@@ -10,6 +12,8 @@ import os
 import json
 import pickle
 from learn import numpy_sigmoid
+
+DIR_NAME = "plots/plot2"
 
 with open("categories_mapping.json", "r") as f:
 	categories_mapping_content = json.load(f)
@@ -87,14 +91,15 @@ for attack_type, (results_by_attack_number_item, flows_by_attack_number_item, re
 
 	all_legends = []
 	# for i in range(medians.shape[1]):
-	plt.figure(1)
+	plt.figure(attack_type)
 	plt.title(reverse_mapping[attack_type])
 
 	for feature_index_from_zero, (feature_name, feature_index) in enumerate(zip(FEATURE_NAMES, (3, 4))):
 		# if feature_index_from_zero > 0:
 		# 	continue
 		plt.subplot("{}{}{}".format(len(FEATURE_NAMES), 1, feature_index_from_zero+1))
-		plt.xlabel('Sequence index')
+		if feature_index_from_zero == len(FEATURE_NAMES)-1:
+			plt.xlabel('Sequence index')
 		plt.ylabel(feature_name)#, color=colors[feature_index_from_zero])
 
 		legend = "{}".format(feature_name)
@@ -110,15 +115,19 @@ for attack_type, (results_by_attack_number_item, flows_by_attack_number_item, re
 		all_legends += ret
 		# print("legend", legend)
 
-	plt.figure(1)
+	plt.figure(attack_type)
 	plt.suptitle(reverse_mapping[attack_type])
+	plt.tight_layout()
+	plt.subplots_adjust(top=0.935)
 
 	# print("all_legends", all_legends)
 	# all_labels = [item.get_label() for item in all_legends]
 	# plt.legend(all_legends, all_labels, loc=0)
 	# plt.xticks(range(actual_flow_means.shape[0]))
 	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
-	plt.show()
-
+	# plt.show()
+	os.makedirs(DIR_NAME, exist_ok=True)
+	plt.savefig(DIR_NAME+'/{}_{}.pdf'.format(file_name.split("/")[-1], attack_type))
+	plt.clf()
 
 

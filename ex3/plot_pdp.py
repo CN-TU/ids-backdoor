@@ -7,6 +7,8 @@ import os
 import json
 import pickle
 
+DIR_NAME = "plots/plot_pdp"
+
 with open("categories_mapping.json", "r") as f:
 	categories_mapping_content = json.load(f)
 categories_mapping, mapping = categories_mapping_content["categories_mapping"], categories_mapping_content["mapping"]
@@ -38,6 +40,10 @@ for attack_type, all_features in enumerate(results_by_attack_number):
 	plt.legend(all_legends)
 	plt.xlabel('Feature')
 	plt.ylabel('Probability')
+	plt.tight_layout()
 	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
-	plt.show()
+	# plt.show()
 
+	os.makedirs(DIR_NAME, exist_ok=True)
+	plt.savefig(DIR_NAME+'/{}_{}.pdf'.format(file_name.split("/")[-1], attack_type))
+	plt.clf()
