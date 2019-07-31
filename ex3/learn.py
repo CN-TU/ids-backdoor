@@ -19,11 +19,22 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from tensorboardX import SummaryWriter
 import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score,recall_score, precision_score, f1_score, balanced_accuracy_score
 
 HIDDEN_SIZE = 512
 N_LAYERS = 3
 
 ADVERSARIAL_THRESH = 50
+
+def output_scores(y_true, y_pred):
+	accuracy = accuracy_score(y_true, y_pred)
+	precision = precision_score(y_true, y_pred)
+	recall = recall_score(y_true, y_pred)
+	f1 = f1_score(y_true, y_pred)
+	youden = balanced_accuracy_score(y_true, y_pred, adjusted=True)
+	metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden']
+	print (('{:>11}'*len(metrics)).format(*metrics))
+	print ((' {:.8f}'*len(metrics)).format(accuracy, precision, recall, f1, youden))
 
 def numpy_sigmoid(x):
 	return 1/(1+np.exp(-x))
@@ -249,9 +260,9 @@ def test():
 	samples = 0
 
 	attack_numbers = mapping.values()
+	reverse_mapping = {v: k for k, v in mapping.items()}
 
 	results_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
-
 	sample_indices_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
 	for input_data, labels, categories in test_loader:
@@ -298,17 +309,43 @@ def test():
 			samples += 1
 
 	file_name = opt.dataroot[:-7]+"_prediction_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
+
+	all_results_concatenated = [(np.concatenate(item, axis=0) if len(item) > 0 else []) for item in results_by_attack_number]
+	attack_by_attack_number = [[(0 if reverse_mapping[index]=="Normal" else 1)]*len(item) for index, item in enumerate(all_results_concatenated)]
+
+	# print("all_results_concatenated", [len(item) for item in all_results_concatenated])
+	# print("attack_by_attack_number", [len(item) for item in attack_by_attack_number])
+
+	all_predictions = (np.round(numpy_sigmoid(np.concatenate([item for item in all_results_concatenated if item!=[]], axis=0))).astype(int))[:,-1]
+	all_labels = [subitem for item in attack_by_attack_number for subitem in item]
+
+	print("Packet metrics:")
+	output_scores(all_labels, all_predictions)
+
+	all_results_concatenated = [(np.concatenate([subitem[-1:,:] for subitem in item], axis=0) if len(item) > 0 else []) for item in results_by_attack_number]
+	attack_by_attack_number = [[(0 if reverse_mapping[index]=="Normal" else 1)]*len(item) for index, item in enumerate(all_results_concatenated)]
+
+	# print("all_results_concatenated", [len(item) for item in all_results_concatenated])
+	# print("attack_by_attack_number", [len(item) for item in attack_by_attack_number])
+
+	all_predictions = (np.round(numpy_sigmoid(np.concatenate([item for item in all_results_concatenated if item!=[]], axis=0))).astype(int))[:,-1]
+	all_labels = [subitem for item in attack_by_attack_number for subitem in item]
+
+	print("Flow metrics:")
+	output_scores(all_labels, all_predictions)
+
 	with open(file_name, "wb") as f:
 		pickle.dump({"results_by_attack_number": results_by_attack_number, "sample_indices_by_attack_number": sample_indices_by_attack_number}, f)
 
-	print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
+	# print("results_by_attack_number", [(index, len(item)) for index, item in enumerate(results_by_attack_number)])
 
-	print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
-	print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
+	# print("per-packet accuracy", np.mean(np.concatenate(all_accuracies)))
+	# print("per-flow end-accuracy", np.mean(np.concatenate(all_end_accuracies)))
 
 # Right now this function replaces all values of one feature by random values sampled from the distribution of all features and looks how the accuracy changes.
 def feature_importance():
 
+	constant_features = [0,1,2]
 	n_fold = opt.nFold
 	fold = opt.fold
 	lstm_module.eval()
@@ -362,7 +399,10 @@ def feature_importance():
 
 			# print("input_data.data.shape", input_data.data.shape, "input_data.data[:,feature_index].shape", input_data.data[:,feature_index].shape, "torch.FloatTensor(np.random.choice(test_x[feature_index], size=input_data.data.shape[0])).shape", torch.FloatTensor(np.random.choice(test_x[feature_index], size=input_data.data.shape[0])).shape)
 			input_data_cloned = torch.nn.utils.rnn.PackedSequence(input_data.data.detach().clone(), input_data.batch_sizes, input_data.sorted_indices, input_data.unsorted_indices)
-			input_data_cloned.data.data[:,feature_index] = torch.FloatTensor(np.random.choice(test_x[feature_index], size=(input_data_cloned.data.data.shape[0]))).to(device)
+			if feature_index in constant_features:
+				input_data_cloned.data.data[:,feature_index] = torch.FloatTensor([ test_data[np.random.randint(0,len(test_data))][0][0,feature_index] ]).to(device)
+			else:
+				input_data_cloned.data.data[:,feature_index] = torch.FloatTensor(np.random.choice(test_x[feature_index], size=(input_data_cloned.data.data.shape[0]))).to(device)
 			output, seq_lens = lstm_module(input_data_cloned)
 
 			# index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
@@ -402,7 +442,10 @@ def feature_importance():
 def adv_internal(in_training = False):
 	# FIXME: They suggest at least 10000 iterations with some specialized optimizer (Adam)
 	# with SGD we probably need even more.
-	ITERATION_COUNT = 50 if in_training else 1000
+	if opt.advMethod == 'fgsm':
+		ITERATION_COUNT = 1
+	else:
+		ITERATION_COUNT = 10 if in_training else 1000
 
 	# generate adversarial samples using Carlini Wagner method
 	n_fold = opt.nFold
@@ -521,6 +564,13 @@ def adv_internal(in_training = False):
 
 			# print("Batch: {}, wrong_direction: {}, not_bidirectional: {}, invalid: {}".format(sample_index, float(torch.sum(wrong_direction & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(not_bidirectional & orig_mask)/torch.sum(orig_mask, dtype=torch.float32)), float(torch.sum(mask)/torch.sum(orig_mask, dtype=torch.float32))))
 
+		index_tensor = torch.arange(0, seqs.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, seqs.shape[1], 1)
+
+		selection_tensor = lengths.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
+
+		mask_pgd = (index_tensor <= selection_tensor).byte().to(device)
+		labels, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
+				
 		for i in range(ITERATION_COUNT):
 
 			# print("iterating", i)
@@ -561,20 +611,19 @@ def adv_internal(in_training = False):
 				optimizer.step()
 			else:
 
-				index_tensor = torch.arange(0, output.shape[0], dtype=torch.int64).unsqueeze(1).unsqueeze(2).repeat(1, output.shape[1], output.shape[2])
-
-				selection_tensor = seq_lens.unsqueeze(0).unsqueeze(2).repeat(index_tensor.shape[0], 1, index_tensor.shape[2])-1
-
-				mask_pgd = (index_tensor <= selection_tensor).byte().to(device)
-				labels, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
-
 				loss = criterion(output[mask_pgd].view(-1), labels[mask_pgd].view(-1))
 				loss.backward()
 
 				gradient = input_data.data.grad
 				gradient[:,:3] = 0
 				gradient[:,5:] = 0
-				input_data.data.data = input_data.data.data + opt.tradeoff*gradient.sign()
+				if opt.advMethod == 'fgsm':
+					input_data.data.data = input_data.data.data + opt.tradeoff*gradient.sign()
+				else:
+					input_data.data.data += opt.lr * gradient
+					delta = input_data.data.data - orig_batch.data
+					proj_mask = delta.abs() > opt.tradeoff
+					input_data.data.data[proj_mask] = orig_batch.data[proj_mask] + opt.tradeoff * delta[proj_mask].sign()
 
 			# Packet lengths cannot become smaller than original
 			packet_mask = input_data.data[:,3] < orig_batch[:,3]
