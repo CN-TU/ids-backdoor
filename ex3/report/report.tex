@@ -109,11 +109,11 @@
 
 \section{Introduction}
 
-There is a significant body of scientific work focusing on the detection of unwanted behavior in networks. In the past, a viable of performing intrusion detection was to inspect the content of packets themselves and detect if a packet delivers potentially harmful content. 
+There is a significant body of scientific work focusing on the detection of unwanted behavior in networks. In the past, a viable way of performing intrusion detection was to inspect the content of packets themselves and detect if a packet delivers potentially harmful content. 
 
-More recently, with the rise of omnipresent encryption, available features have changed. Since payload is not available anymore, the focus now lies on features that are always available to observers such as port numbers, flags of packets etc. Network communication is usually grouped into \textit{flows}, which is usually defined as a sequence of packets between two applications that may be located at different physical locations. 
+More recently, with the rise of omnipresent encryption, available features have changed. Since payload is not available anymore, the focus now lies on features that are always available to observers such as port numbers, flags of packets etc. Network communication is usually grouped into \textit{flows}, which is commonly defined as a sequence of packets between two applications that may be located at different physical locations. 
 
-When analyzing flows, not only the aforementioned features are available but also features related to the timing of the individual packets as well as their size. For example, a specific attack might require the attacker to send three small packets and the victim to reply with two large packets followed by a small one the attacker. Various approaches have been proposed to extract features from flows and then perform anomaly detection with the results \cite{meghdouri_analysis_2018}. While this approach works well, it is problematic, that first the whole flow has to be received and only afterwards it can be determined if there was an anomaly. 
+When analyzing flows, not only the aforementioned features are available but also features related to the timing of the individual packets as well as their size. For example, a specific attack might require the attacker to send three small packets and the victim to reply with two large packets followed by a small one the attacker. Various approaches have been proposed to extract features from flows and then perform anomaly detection with the results \cite{meghdouri_analysis_2018}. While this approach works well, it is problematic that first the whole flow has to be received and only afterwards it can be determined if there was an anomaly. 
 
 Thus, we design a network anomaly detection system that operates on a per-packet basis and decides if a packet is anomalous based on features that are available for traffic that is encrypted above the transport layer, like for example TLS or QUIC. 
 %rax
@@ -127,7 +127,7 @@ Last, we explore the question whether adversarial samples can be found for this 
 \section{RNN-based classifier}
 
 \begin{table}[b]
-\caption{Occurence probability of attack types.} \label{tab:performance_results}
+\caption{Occurence probability of attack types.} \label{tab:occurrence}
 \begin{tabular}{l r} \toprule
 Attack type & Proportion \\
 \midrule
@@ -159,11 +159,11 @@ The dataset we use is the \textit{CIC-IDS 2017} dataset \cite{sharafaldin_toward
 \item interarrival times of packets
 \item packet directions (if packet goes there or back)
 \item all TCP flags (0 if flow is not TCP)
-\end{itemize*}. Of these features, source port, destination port and protocol identifier are constant over the whole flow while the other vary. 
+\end{itemize*}. Of these features, source port, destination port and protocol identifier are constant over the whole flow while the others vary. 
 
 We use Z-score normalization and a train/test split of 2:1.
 
-\autoref{tab:performance_results} shows that our classifier achieves an accuracy that is similar to the one of the random forest and the multilayer perceptron that we developed in the previous exercise. However unlike these classifier, our recurrent classifier has the advantage that it can detect attacks already before they are over. 
+\autoref{tab:performance_results} shows that our classifier achieves an accuracy that is similar to the one of the random forest and the multilayer perceptron that we developed in the previous exercise. However unlike these classifiers, our recurrent classifier has the advantage that it can detect attacks already before they are over. 
 
 \begin{table}
 \caption{Detection performance results. Random forest and Multilayer Perceptron are from the previous exercise, LSTM is this implementation.} \label{tab:performance_results}
@@ -198,7 +198,7 @@ If we, for example, consider a classification problem as in this document, we ex
 
 \item
 \textbf{Multiple prediction outputs.}
-Often times a recurrent neural network produces an output at each time step. When trying to apply explainability methods, hence, the question arises which prediction to base the methods on.
+Often a recurrent neural network produces an output at each time step. When trying to apply explainability methods, hence, the question arises which prediction to base the methods on.
 
 The natural choice is to base the methods on the prediction output which occurs at the same time step as the feature under investigation. Not only does this approach require a substantially lower amount of computational ressources compared to predictions occuring at a later time step, but we also expect the immediately occuring prediction outome to exhibit a stronger correlation to the feature under investigation than a prediction outcome which occuring many time steps later. However, due to the complex decision processes that can occur for deep neural networks, it is absolutely  uncertain if the network's final prediction is correctly depicted when following this approach.
 \end{itemize}
@@ -238,14 +238,14 @@ Also the fact that most of TCP flags do not play an important role in our datase
 It is interesting to note, however, that the interarrival time of packets does not play a crucial role for the network.
 
 \subsection{Explainability Plots}
-During flow extraction we used a usual 5-tuple flow key, which distinguished flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
+During flow extraction we used a usual 5-tuple flow key, which distinguishe flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
 
-In particular,  \autoref{fig:pdps} shows the Partial Dependency Plots (PDP) for the source and destination port features. If $\boldsymbol X \in \mathbb R ^n$ denotes a random vector drawn from feature space and $f(X) \in [0,1]$ denotes the neural network's prediction, the PDP for feature $i$ can be defined as 
+In particular,  \autoref{fig:pdp} shows the Partial Dependency Plots (PDP) for the source and destination port features. If $\boldsymbol X \in \mathbb R ^n$ denotes a random vector drawn from feature space and $f(X) \in [0,1]$ denotes the neural network's prediction, the PDP for feature $i$ can be defined as 
 \begin{equation} \label{eq:pdp}
 \text{PDP}_i(y) = \mathbb E_{\boldsymbol X}\left(f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n)\right)
 \end{equation}
 
-As apparent from \autoref{pdp}, for a certain value of the $i$th feature, the whole dataset is used for averaging the neural network's outcome. 
+As apparent from \autoref{fig:pdp}, for a certain value of the $i$th feature, the whole dataset is used for averaging the neural network's outcome. 
 
 We also experiment with a modified definition of the PDP (with C being the distribution of attack classes): 
 \begin{equation} \label{eq:pdp_conditional}
@@ -290,7 +290,7 @@ To determine if this hypothesis is correct, we plot the attack confidence of the
 \label{fig:pred_plots2}
 \end{figure*}
 
-Next, we want to investigate if our classifier just memorized its inputs. The most interesting packet features that can be used to visualize this in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features that ever occur for all flows. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and plot how the confidence changes when the feature varies (\autoref{fig:predplots2}) depict the averaged predictions for different attack families. It seems clear that the classifier didn't just memorize the inputs but actually learned them since there is always a smooth decrease of confidence if we change the feature values. Instead, when memorizing, we would expect a sharp decline of confidence to occur. Another interesting observation is that after the first couple of packets the classifier is certain about its decision and changing features doesn't change its confidence any longer. This allows the conclusion that if an attacker is able to change the first few packets, she could possibly change the decision of the classifier. We will further investigate this question in section \autoref{sec:adv}.
+Next, we want to investigate if our classifier just memorized its inputs. The most interesting packet features that can be used to visualize this in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features that ever occur for all flows. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and plot how the confidence changes when the feature varies (\autoref{fig:pred_plots2}) depict the averaged predictions for different attack families. It seems clear that the classifier didn't just memorize the inputs but actually learned them since there is always a smooth decrease of confidence if we change the feature values. Instead, when memorizing, we would expect a sharp decline of confidence to occur. Another interesting observation is that after the first couple of packets the classifier is certain about its decision and changing features doesn't change its confidence any longer. This allows the conclusion that if an attacker is able to change the first few packets, she could possibly change the decision of the classifier. We will further investigate this question in section \autoref{sec:adv}.
 
 \begin{figure*}
 \includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_2_Brute Force-SSH-Patator"}.pdf}
