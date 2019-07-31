@@ -112,19 +112,13 @@ for attack_type, (results_by_attack_number_item, flows_by_attack_number_item, re
 		all_legends += [ret2]
 		# all_legends += [legend, legend+" 1st and 3rd quartile"]
 	all_labels = [item.get_label() for item in all_legends]
-	ax1.legend(all_legends, all_labels, loc=0)
+	ax1.legend(all_legends, all_labels)
 
-	plt.xlabel('Sequence index')
+	ax1.set_xlabel('Sequence index')
 	plt.title(reverse_mapping[attack_type])
 	# plt.figure(attack_type)
 	plt.tight_layout()
 
-	# print("all_legends", all_legends)
-	# all_labels = [item.get_label() for item in all_legends]
-	# plt.legend(all_legends, all_labels, loc=0)
-	# plt.xticks(range(actual_flow_means.shape[0]))
-	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
-	# plt.show()
 	os.makedirs(DIR_NAME, exist_ok=True)
 	plt.savefig(DIR_NAME+'/{}_{}_{}.pdf'.format(file_name.split("/")[-1], attack_type, reverse_mapping[attack_type].replace("/", "-").replace(":", "-")))
 	plt.clf()

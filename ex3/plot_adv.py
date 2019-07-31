@@ -113,7 +113,7 @@ for attack_type, (results_by_attack_number_item, orig_results_by_attack_number_i
 	plt.title(reverse_mapping[attack_type])
 	# print("all_legends", all_legends)
 	all_labels = [item.get_label() for item in all_legends]
-	ax1.legend(all_legends, all_labels, loc=0)
+	ax1.legend(all_legends, all_labels)
 	plt.xlabel('Sequence index')
 	plt.tight_layout()
 	# plt.xticks(range(medians.shape[0]))

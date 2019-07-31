@@ -942,6 +942,7 @@ def pdp():
 	attack_numbers = mapping.values()
 
 	results_by_attack_number = [None for _ in range(min(attack_numbers), max(attack_numbers)+1)]
+	feature_values_by_attack_number = [list() for _ in range(min(attack_numbers), max(attack_numbers)+1)]
 
 	minmax = {feat_ind: (min((sample[0,feat_ind] for sample in x)), max((sample[0,feat_ind] for sample in x))) for feat_ind in [0,1] }
 	# TODO: consider fold
@@ -957,6 +958,8 @@ def pdp():
 		print("attack_number", attack_number)
 		results_for_attack_type = []
 		for feat_name, feat_ind in zip(feature_names, (0, 1)):
+			feature_values_by_attack_number[attack_number].append(np.array([item[0][0,feat_ind] for item in matching])*stds[feat_ind] + means[feat_ind])
+
 			feat_min, feat_max = minmax[feat_ind]
 
 			values = np.linspace(feat_min, feat_max, 100)
@@ -990,7 +993,7 @@ def pdp():
 
 	file_name = opt.dataroot[:-7]+"_pdp_outcomes_{}_{}.pickle".format(opt.fold, opt.nFold)
 	with open(file_name, "wb") as f:
-		pickle.dump({"results_by_attack_number": results_by_attack_number, "feature_names": feature_names}, f)
+		pickle.dump({"results_by_attack_number": results_by_attack_number, "feature_names": feature_names, "feature_values_by_attack_number": feature_values_by_attack_number}, f)
 
 def plot_histograms():
 	rescaled = [item * stds + means for item in x[:opt.maxSize]]
