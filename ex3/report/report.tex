@@ -190,6 +190,8 @@ Often times a recurrent neural network produces an output at each time step. Whe
 The natural choice is to base the methods on the prediction output which occurs at the same time step as the feature under investigation. Not only does this approach require a substantially lower amount of computational ressources compared to predictions occuring at a later time step, but we also expect the immediately occuring prediction outome to exhibit a stronger correlation to the feature under investigation than a prediction outcome which occuring many time steps later. However, due to the complex decision processes that can occur for deep neural networks, it is absolutely  uncertain if the network's final prediction is correctly depicted when following this approach.
 \end{itemize}
 
+\subsection{Feature Importance Metrics}
+As a first step to understanding the neural network's decisions, we 
 \subsection{Explainability Plots}
 During flow extraction we used a usual 5-tuple flow key, which distinguished flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
 
@@ -207,6 +209,7 @@ As apparent from the above discussion, trying to explain how packet features inf
 
 The most interesting packet features in our use case are the inter-arrival time (IAT) between packets in a flows and the packet length. To depict how the model comes to a decision, we determined the total minimum and maximum for these features. For a given flow $X$ we then varied feature values at each time step between minimum and maximum and determined the median, the first and the third quartile. \autoref{fig:predplots} shows several of such plots for different attack categories for IAT and packet length. Furthermore, the shades \autoref{fig:predplots2} depict the averaged predictions for different attack families. 
 
+
 \section{Examining attack types}
 
 Also non-recurrent approaches to anomaly detection achieve good results so the main motivation of our work is not to achieve better detection performance but to detect attacks before the end of the flow. To determine whether this works, we plot the attack confidence of the classifier for each time step for each attack class. At each time step we average over all flows and also show the first and third quartiles. \todo{Insert plots output and interpretation. Change plots to include a histogram.}
@@ -219,10 +222,20 @@ Looking at the plots of the features that vary over time we see that certain att
 
 As we saw in the previous section \todo{Add reference to characteristic\_flows plot here}, attacks do have a characteristic pattern of interarrival times and packet lengths. Thus,  changing this pattern might confuse the classifier. However, this scenario is quite different from how generating adversarial samples usually works: We have significantly less features than in, for example, an image. Furthermore, only two out of those few features can be manipulated. And even these features cannot manipulated freely: Besides the constraints that packet size and interarrival time cannot go beyond zero there are also more problem-specific constraints:
 \begin{itemize}
-\item Only some packets sent by the attacker can be manipulated by the attacker. This means the attacker can only control one direction (except for botnets where both sides are attackers). 
-\item Packets must not be smaller than initially (Otherwise less information could be transmitted.).
-\item Interarrival times must not decrease (Otherwise the physical speed of data transmission can be violated in some cases.).
+\item Only some packets in a flow can be manipulated by the attacker. This means the attacker can only control one direction (except for botnets where both sides are attackers). 
+\item Packets must not be smaller than initially, as otherwise less information could be transmitted or packets might even be rendered syntactically invalid.
+\item Interarrival times must not decrease, as otherwise the physical speed of data transmission can be violated in some cases. Since an in-depth analysis of when the reduction of interarrival times is possible, would come with substantial effort, we generally disallowed a reduction of this feature.
 \end{itemize}
+
+Several methods for generating adversarial samples have been proposed in the recent literature, achieving different speed-quality tradeoffs. Since the reasons discussed above suggest that finding adversarial flows is particularly difficult in our case, for the present research we chose a method which produces high-quality adversarial samples while not being as fast as other methods.
+
+In particular, we implemented the method by \citeauthor{cw}~\cite{cw}, which performs gradient descent on the optimization objective 
+\begin{equation}
+d(X,\tilde X) + \epsilon  \max(f(\tilde X), 0.5).
+\end{equation}
+Here, $d(\cdot)$ is a distance metric, $\epsilon \in \mathbb R^+$ is a parameter governing the tradeoff achieved between attack success and distance from the original flow. Furthermore, $X$ denotes the original flow and $\tilde X$ denotes the adversarial flow under optimization. 
+
+We used $\ell_1$ norm as distance metric and deployed projected gradient descent for meeting the real-world constraints discussed above.
 
 \subsection{Defences}
 
