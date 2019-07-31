@@ -204,11 +204,39 @@ The natural choice is to base the methods on the prediction output which occurs 
 \end{itemize}
 
 \subsection{Feature Importance Metrics}
+\begin{table}
+\caption{Accuracy drop when replacing feature values with random data.}
+\label{tab:feat_importance}
+\begin{tabular}{l r}
+\toprule
+Feature & Accuracy drop \\ \midrule
+Protocol	&	0.1323	\\
+PacketLength	&	0.1203	\\
+SYN Flag	&	0.1067	\\
+ACK Flag	&	0.0805	\\
+Destination port	&	0.0796	\\
+PSH Flag	&	0.0767	\\
+Direction	&	0.0732	\\
+Source port	&	0.0254	\\
+Interarrival time	&	0.0200	\\
+RST Flag	&	0.0116	\\
+FIN Flag	&	0.0100	\\
+ECE	Flag &	0.0000	\\
+URG Flag	&	0.0000	\\
+CWR Flag	&	0.0000	\\
+NS Flag	&	0.0000	\\
+\bottomrule
+\end{tabular}
+\end{table}
 As a first step to understanding the neural network's decisions, we tried to estimate how important individual features are for the model's predictions. 
 
 To this end, we evaluated by what extent detection accuracy drops when withholding individual features from the classifier. We thus replaced values of individual features by values randomly drawn from the same distribution as the real feature values. We ensured that features which stay constant for a flow, i.e. source port, destination port and protocol, also stay constant for the distorted flows.
 
-\autoref{tab:feat_importance} shows the result.
+\autoref{tab:feat_importance} shows our results. The results match to a large extent with the expectations one has when classifying network flows. In particular,  the most important features turn out to be the used protocol, packet length and the SYN TCP flag. While the first two features are essential for characterizing flows, a high number of packets with set SYN flag is an important characteristic for port scanning or certain DoS attacks. 
+
+Also the fact that most of TCP flags do not play an important role in our dataset, was expected.
+It is interesting to note, however, that the interarrival time of packets does not play a crucial role for the network.
+
 \subsection{Explainability Plots}
 During flow extraction we used a usual 5-tuple flow key, which distinguished flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
 
@@ -307,6 +335,8 @@ The most obvious defence, which is only possible because of the nature of the da
 \end{itemize}
 
 Both approaches lead to complete resistance to adversarial samples (as we left out all manipulable features), except for botnets, which can still operate when only leaving out manipulable features in one direction. The results in \autoref{performance_results_no_manipulable} show that -- surprisingly -- there is only a small difference in classification performance when only computing the accuracy for the last packet of each flow (flow accuracy). However, when looking at the packet accuracy, which considers all packets of all flows, there is a significant difference. Thus, apparently the interarrival time and packet size are especially important for determining whether a flow is malicious in the first packets of a flow. 
+
+In addition to omitting manipulable features we tried to make our network more robust against adversarial samples by augmenting the training set by adversarial flows as additional attacks. However, 
 
 \begin{table*}
 \caption{Comparing performance with all features, only safe features (interarrival time and packet size removed) and safe features in one direction (interarrival time and packet size removed for packets coming from source). \textit{packets} means that we consider the neural network output of all packets of the flow while \textit{flows} means that we only consider the last packet. At the last packet the classifier is usually already a lot more confident than at the first packets of a flow and thus metrics are always better in this case.}  \label{tab:performance_results_no_manipulable}
