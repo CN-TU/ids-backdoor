@@ -32,7 +32,7 @@ assert lens_results == lens_indices
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 for attack_type, seqs in enumerate(results_by_attack_number):
-	if len(seqs) < 10:
+	if len(seqs) <= 0:
 		continue
 
 	seqs = [seq.transpose() for seq in seqs]
@@ -88,6 +88,6 @@ for attack_type, seqs in enumerate(results_by_attack_number):
 	#plt.savefig('%s.pdf' % os.path.splitext(fn)[0])
 	# plt.show()
 	os.makedirs(DIR_NAME, exist_ok=True)
-	plt.savefig(DIR_NAME+'/{}_{}.pdf'.format(file_name.split("/")[-1], attack_type))
+	plt.savefig(DIR_NAME+'/{}_{}_{}.pdf'.format(file_name.split("/")[-1], attack_type, reverse_mapping[attack_type].replace("/", "-").replace(":", "-")))
 	plt.clf()
 

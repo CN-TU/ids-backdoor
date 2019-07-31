@@ -121,7 +121,7 @@ for attack_type, (results_by_attack_number_item, orig_results_by_attack_number_i
 	# plt.show()
 
 	os.makedirs(DIR_NAME, exist_ok=True)
-	plt.savefig(DIR_NAME+'/{}_{}.pdf'.format(file_name.split("/")[-1], attack_type))
+	plt.savefig(DIR_NAME+'/{}_{}_{}.pdf'.format(file_name.split("/")[-1], attack_type, reverse_mapping[attack_type].replace("/", "-").replace(":", "-")))
 	plt.clf()
 
 

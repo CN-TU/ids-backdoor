@@ -570,7 +570,7 @@ def adv_internal(in_training = False):
 
 		mask_pgd = (index_tensor <= selection_tensor).byte().to(device)
 		labels, _ = torch.nn.utils.rnn.pad_packed_sequence(labels)
-				
+
 		for i in range(ITERATION_COUNT):
 
 			# print("iterating", i)
@@ -872,7 +872,8 @@ def pred_plots2():
 	start_iterating = time.time()
 	# have_categories = collections.defaultdict(int)
 	for real_ind, sample_ind in zip(test_indices, range(len(subset))):
-		# print("index", sample_ind)
+		if sample_ind % 1000==0:
+			print("index", sample_ind)
 		# if have_categories[cat] == SAMPLES_PER_ATTACK:
 		# 	continue
 		# have_categories[cat] += 1
@@ -946,17 +947,19 @@ def pdp():
 	# TODO: consider fold
 	for attack_number in range(max(attack_numbers)+1):
 
+		matching = [item for item in subset if int(item[2][0,0]) == attack_number]
+		if len(matching) <= 0:
+			break
+		matching = matching[:1000]
+		good_subset = OurDataset(*zip(*matching))
+		print("len(good_subset)", len(good_subset))
+
 		print("attack_number", attack_number)
 		results_for_attack_type = []
 		for feat_name, feat_ind in zip(feature_names, (0, 1)):
 			feat_min, feat_max = minmax[feat_ind]
 
 			values = np.linspace(feat_min, feat_max, 100)
-
-			matching = [item for item in subset if int(item[2][0,0]) == attack_number]
-			if len(matching) <= 0:
-				break
-			good_subset = OurDataset(*zip(*matching))
 
 			# subset = [ torch.FloatTensor(sample) for sample in x[:opt.batchSize] ]
 
@@ -967,7 +970,9 @@ def pdp():
 				# modify the dataset directly using the return value of __getitem__().
 				# This does not modify the global dataset, which holds the data as numpy
 				# arrays.
-				for sample in good_subset:
+				for index, sample in enumerate(good_subset):
+					# if index % 1000 == 0:
+					# 	print("attack_number", attack_number, "feat_name", feat_name, "index", index)
 					for j in range(sample[0].shape[0]):
 						sample[0][j,feat_ind] = values[i]
 				outputs = eval_nn(good_subset)

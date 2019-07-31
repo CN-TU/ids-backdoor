@@ -13,7 +13,7 @@ import json
 import pickle
 from learn import numpy_sigmoid
 
-DIR_NAME = "plots/plot2"
+DIR_NAME = "plots/plot_features"
 
 with open("categories_mapping.json", "r") as f:
 	categories_mapping_content = json.load(f)
@@ -82,43 +82,42 @@ for attack_type, (results_by_attack_number_item, flows_by_attack_number_item, re
 
 	# actual_flow_medians = np.stack([np.median(np.stack(np.array([flows_by_attack_number_item[index][position,:] for index in item])), axis=0) for position, item in enumerate(indices_by_length)])
 	# print("actual_flow_medians.shape", actual_flow_medians.shape)
-	actual_flow_means = np.stack([np.mean(np.concatenate([flows_by_attack_number_item[index][position:position+1,:] for index in item]), axis=0) for position, item in enumerate(indices_by_length)])
+	actual_flow_medians = np.stack([np.median(np.concatenate([flows_by_attack_number_item[index][position:position+1,:] for index in item]), axis=0) for position, item in enumerate(indices_by_length)])
+	actual_flow_first_quartiles = np.stack([np.quantile(np.concatenate([flows_by_attack_number_item[index][position:position+1,:] for index in item]), 0.25, axis=0) for position, item in enumerate(indices_by_length)])
+	actual_flow_third_quartiles = np.stack([np.quantile(np.concatenate([flows_by_attack_number_item[index][position:position+1,:] for index in item]), 0.75, axis=0) for position, item in enumerate(indices_by_length)])
 
-	# median_ranges = np.stack([np.median(np.stack(np.array([result_ranges_by_attack_number_item[index][position,:,:] for index in item])), axis=0) for position, item in enumerate(indices_by_length)])
-	# print("median_ranges.shape", median_ranges.shape)
+	# print("flow shapes", actual_flow_medians.shape, actual_flow_first_quartiles.shape, actual_flow_third_quartiles.shape)
 
-	mean_ranges = np.stack([np.mean(np.concatenate([result_ranges_by_attack_number_item[index][position:position+1,:,:] for index in item]), axis=0) for position, item in enumerate(indices_by_length)])
-
-	all_legends = []
 	# for i in range(medians.shape[1]):
 	plt.figure(attack_type)
 	plt.title(reverse_mapping[attack_type])
 
-	for feature_index_from_zero, (feature_name, feature_index) in enumerate(zip(FEATURE_NAMES, (3, 4))):
+	fig, ax1 = plt.subplots()
+	ax2 = ax1.twinx()
+
+	all_legends = []
+	for feature_index_from_zero, (feature_name, feature_index, ax) in enumerate(zip(FEATURE_NAMES, (3, 4), (ax1, ax2))):
 		# if feature_index_from_zero > 0:
 		# 	continue
-		plt.subplot("{}{}{}".format(len(FEATURE_NAMES), 1, feature_index_from_zero+1))
-		if feature_index_from_zero == len(FEATURE_NAMES)-1:
-			plt.xlabel('Sequence index')
-		plt.ylabel(feature_name)#, color=colors[feature_index_from_zero])
+		# plt.subplot("{}{}{}".format(len(FEATURE_NAMES), 1, feature_index_from_zero+1))
+		ax.set_ylabel(feature_name, color=colors[feature_index_from_zero])
 
 		legend = "{}".format(feature_name)
-		plt.pcolormesh(np.array(range(actual_flow_means.shape[0]+1))-0.5, features[feature_index_from_zero][1]*stds[feature_index]+means[feature_index], mean_ranges[:,feature_index_from_zero,:].transpose(), cmap=colors_rgb_ranges[feature_index_from_zero], vmin=0, vmax=1)
-		ret = plt.plot(range(max_length), actual_flow_means[:,feature_index]*stds[feature_index]+means[feature_index], label=legend, color=colors[feature_index_from_zero])
-		plt.legend()
-		# print((np.array(range(actual_flow_means.shape[0]+1))-0.5).shape, features[feature_index_from_zero][1].shape, mean_ranges[:,feature_index_from_zero,:].shape)
-		# print(mean_ranges[:,feature_index_from_zero,:])
-		# plt.fill_between(range(medians.shape[0]), first_quartiles[:,i], third_quartiles[:,i], alpha=0.5, edgecolor=colors[i], facecolor=colors[i])
-		# legend = ORDERING[i:i+1]
-		# legend[0] = legend[0]+" median"
-		# legend[-1] = legend[-1]+" 1st and 3rd quartile"
-		all_legends += ret
-		# print("legend", legend)
+		ret = ax.plot(range(max_length), actual_flow_medians[:,feature_index]*stds[feature_index]+means[feature_index], label=legend, color=colors[feature_index_from_zero])
+		ret2 = ax.fill_between(range(max_length), actual_flow_first_quartiles[:,feature_index]*stds[feature_index]+means[feature_index], actual_flow_third_quartiles[:,feature_index]*stds[feature_index]+means[feature_index], alpha=0.5, edgecolor=colors[feature_index_from_zero], facecolor=colors[feature_index_from_zero], label=legend+" 1st and 3rd quartile")
 
-	plt.figure(attack_type)
-	plt.suptitle(reverse_mapping[attack_type])
+		# print("ret", ret)
+		# print("ret2", ret2)
+		all_legends += ret
+		all_legends += [ret2]
+		# all_legends += [legend, legend+" 1st and 3rd quartile"]
+	all_labels = [item.get_label() for item in all_legends]
+	ax1.legend(all_legends, all_labels, loc=0)
+
+	plt.xlabel('Sequence index')
+	plt.title(reverse_mapping[attack_type])
+	# plt.figure(attack_type)
 	plt.tight_layout()
-	plt.subplots_adjust(top=0.935)
 
 	# print("all_legends", all_legends)
 	# all_labels = [item.get_label() for item in all_legends]
