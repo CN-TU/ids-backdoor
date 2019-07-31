@@ -245,7 +245,7 @@ Several methods for generating adversarial samples have been proposed in the rec
 We implemented the following methods for generating adversarial flows.
 
 \subsection{Carlini-Wagner}
-In particular, we implemented the method by \citeauthor{cw}~\cite{cw}, which performs gradient descent on the optimization objective 
+In particular, we implemented the method by \citeauthor{carlini2017towards}~\cite{carlini2017towards}, which performs gradient descent on the optimization objective 
 \begin{equation}
 d(X,\tilde X) + \epsilon  \max(Z(\tilde X), 0).
 \end{equation}
@@ -254,10 +254,10 @@ Here, $d(\cdot)$ is a distance metric, $\epsilon \in \mathbb R^+$ is a parameter
 We used $\ell_1$ norm as distance metric and deployed projected gradient descent (PGD) for meeting the real-world constraints discussed above.
 
 \subsection{$\ell_\infty$-bounded Projected Gradient Descent}
-\cite{ellinfty_pgd} proposes a method for generating adversarial samples which uses PGD  to minimize the network's negative loss function while constraining the achieved $\ell_\infty$ distance from the original samples. 
+\cite{madry2017towards} use a method for generating adversarial samples which uses PGD  to minimize the network's negative loss function while constraining the achieved $\ell_\infty$ distance from the original samples. 
 
 \subsection{Fast Gradient Sign Method}
-Finally, we also tested the Fast Gradient Sign Method (FGSM), which perhaps is the most frequently used method for generating adversarial sampling. FGSM can be considered a single pass of PGD on the loss function with an equality constraint on the $\ell_\infty$ distance, i.e. the adversarial sample is found as
+Finally, we also tested the Fast Gradient Sign Method (FGSM), which was initially proposed in \cite{goodfellow2014explaining} and perhaps is the most frequently used method for generating adversarial sampling. FGSM can be considered a single pass of PGD on the loss function with an equality constraint on the $\ell_\infty$ distance, i.e. the adversarial sample is found as
 \begin{equation}
 \tilde X = X + \epsilon \text{sgn}( \nabla_X L(X)),
 \end{equation}
