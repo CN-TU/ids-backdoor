@@ -127,7 +127,7 @@ Last, we explore the question whether adversarial samples can be found for this 
 \section{RNN-based classifier}
 
 \begin{table}[b]
-\caption{Occurence probability of attack types.} \label{tab:performance_results}
+\caption{Occurence probability of attack types.} 
 \begin{tabular}{l r} \toprule
 Attack type & Proportion \\
 \midrule
@@ -327,7 +327,7 @@ Here, $d(\cdot)$ is a distance metric, $\epsilon \in \mathbb R^+$ is a parameter
 We used $\ell_1$ norm as distance metric and deployed projected gradient descent (PGD) for meeting the real-world constraints discussed above.
 
 The method minimizes the adversarial sample's distance so that the network's decision is just between attack and normal traffic. In the present context, we need to make sure that the classifer's prediction would actually be normal traffic, even though a certain level of noise will be added to interarrival times due to the network between attacker and victim. Instead of the above equation \ref{eq:carliniWagner} we therefore used the optimization objective
-\begin{equation} \label{eq:carliniWagner}
+\begin{equation} 
 d(X,\tilde X) + \epsilon  \max(Z(\tilde X), -0.2),
 \end{equation}
 i.e. we require a slight level of confidence that our adversarial samples are not classified as attack traffic.
