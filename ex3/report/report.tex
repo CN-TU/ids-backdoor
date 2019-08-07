@@ -202,7 +202,7 @@ If we, for example, consider a classification problem as in this document, we ex
 \textbf{Multiple prediction outputs.}
 Often a recurrent neural network produces an output at each time step. When trying to apply explainability methods, hence, the question arises which prediction to base the methods on.
 
-The natural choice is to base the methods on the prediction output which occurs at the same time step as the feature under investigation. Not only does this approach require a substantially lower amount of computational ressources compared to predictions occuring at a later time step, but we also expect the immediately occuring prediction outome to exhibit a stronger correlation to the feature under investigation than a prediction outcome which occuring many time steps later. However, due to the complex decision processes that can occur for deep neural networks, it is absolutely  uncertain if the network's final prediction is correctly depicted when following this approach.
+The natural choice is to base the methods on the prediction output which occurs at the same time step as the feature under investigation. Not only does this approach require a substantially lower amount of computational resources compared to predictions occurring at a later time step, but we also expect the immediately occurring prediction outcome to exhibit a stronger correlation to the feature under investigation than a prediction outcome which occurring many time steps later. However, due to the complex decision processes that can occur for deep neural networks, it is absolutely  uncertain if the network's final prediction is correctly depicted when following this approach.
 \end{itemize}
 
 \subsection{Feature Importance Metrics}
@@ -329,7 +329,7 @@ Here, $d(\cdot)$ is a distance metric, $\epsilon \in \mathbb R^+$ is a parameter
 
 We used $\ell_1$ norm as distance metric and deployed projected gradient descent (PGD) for meeting the real-world constraints discussed above.
 
-The method minimizes the adversarial sample's distance so that the network's decision is just between attack and normal traffic. In the present context, we need to make sure that the classifer's prediction would actually be normal traffic, even though a certain level of noise will be added to interarrival times due to the network between attacker and victim. Instead of the above equation \ref{eq:carliniWagner} we therefore used the optimization objective
+The method minimizes the adversarial sample's distance so that the network's decision is just between attack and normal traffic. In the present context, we need to make sure that the classifier's prediction would actually be normal traffic, even though a certain level of noise will be added to interarrival times due to the network between attacker and victim. Instead of the above equation \ref{eq:carliniWagner} we therefore used the optimization objective
 \begin{equation}
 d(X,\tilde X) + \epsilon  \max(Z(\tilde X), -0.2),
 \end{equation}
@@ -405,7 +405,7 @@ Finally, we investigated what adversarial flows look like and which features are
 
 To this end, we generated adversarial flows with the Carlini-Wagner method with $\ell_2$ distance and a tradeoff of 0.5. \autoref{adv_plots} depicts how the method manipulates flows for some exemplary attack categories. Depicted is the mean of both unmodified flows and adversarial flows  of samples of individual attack families considering both interarrival time and packet length.
 
-The plots show that primarily features at the beginning of flows are modified. It is remarkable that it seems most promising to modifiy single packets while leaving most of the flow unchanged. In other cases, however, like depicted for the infiltration attack at the bottom, adversarial flows assume a complex pattern to circumvent detection.
+The plots show that primarily features at the beginning of flows are modified. It is remarkable that it seems most promising to modify single packets while leaving most of the flow unchanged. In other cases, however, like depicted for the infiltration attack at the bottom, adversarial flows assume a complex pattern to circumvent detection.
 
 \begin{figure*}[p]
 \includegraphics[width=0.48\textwidth]{../plots/plot_adv/1.pdf}
@@ -429,7 +429,7 @@ The most obvious defence, which is only possible because of the nature of the da
 
 Both approaches lead to complete resistance to adversarial samples (as we left out all manipulable features), except for botnets, which can still operate when only leaving out manipulable features in one direction. The results in \autoref{tab:performance_results_no_manipulable} show that -- surprisingly -- there is only a small difference in classification performance when only computing the accuracy for the last packet of each flow (flow accuracy). However, when looking at the packet accuracy, which considers all packets of all flows, there is a significant difference. Thus, apparently the interarrival time and packet size are especially important for determining whether a flow is malicious in the first packets of a flow.
 
-In addition to omitting manipulable features we tried to make our network more robust against adversarial samples by augmenting the training set by adversarial flows generated using the Carlini-Wagner method, labelled as additional attacks. However, against our expectations, this approach did not lead to satisfactory results in the sense that the network would learn to classify adversarial samples as attacks. In fact, classification accuracy stayed about constant during the training of the network.
+In addition to omitting manipulable features we tried to make our network more robust against adversarial samples by augmenting the training set by adversarial flows generated using the Carlini-Wagner method, labeled as additional attacks. However, against our expectations, this approach did not lead to satisfactory results in the sense that the network would learn to classify adversarial samples as attacks. In fact, classification accuracy stayed about constant during the training of the network.
 
 A possible explanation for this observation might be that the adversarial samples assumed too much the shape of normal flows, so that the network could not reliable tell them apart.
 

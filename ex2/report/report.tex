@@ -134,7 +134,7 @@ Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
 \end{table}
 
 \section{Anomaly Detection Approaches} \label{sec:ml_approaches}
-We used the CIC-IDS-2017~\cite{Sharafaldin2018} for our evaluations. As a first preprocessing step we extracted flow features from the dataset. We used features specificed by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
+We used the CIC-IDS-2017~\cite{Sharafaldin2018} for our evaluations. As a first preprocessing step we extracted flow features from the dataset. We used features specified by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
 
 We used Z-score normalization to process the data and 3-fold cross validation for evaluating the models' performances.
 
@@ -163,7 +163,7 @@ In addition to deep learning we trained a random forest classifier to detect att
 
 
 \subsection{Performance Results}
-Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are constistant with previous work like, e.g., \cite{fares}.
+Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are consistent with previous work like, e.g., \cite{fares}.
 
 
 
@@ -229,7 +229,7 @@ For this reason, we modified this definition to instead use the closest 10 sampl
 
 We generated PD plots for all features contained in our extracted feature vector. Fig.~\ref{fig:pdp} shows examples for some features for the different folds. Comparing plots generated for our deep learning and for our random forest approach, respectively, the two machine learning approaches show the difference that deep learning PDPs are smooth, while random forest PDPs fluctuate heavily. Considering the functioning of neural networks and decision trees, this is an expected result.
 
-Considering the explanations the PD plots provide, consistency between deep learning and random forest can be observed for some features, while for other features both methods provide substantially different explanations. For example, the two upper plots in Fig.~\ref{fig:pdp} exhibit a very similar behaviour, while the lower plots show remarkable differences between both methods. An additional observation is, however, that random forests show substantial differences between the folds. 
+Considering the explanations the PD plots provide, consistency between deep learning and random forest can be observed for some features, while for other features both methods provide substantially different explanations. For example, the two upper plots in Fig.~\ref{fig:pdp} exhibit a very similar behavior, while the lower plots show remarkable differences between both methods. An additional observation is, however, that random forests show substantial differences between the folds. 
 
 Considering these observations, it is likely that most samples from the dataset have very small values of \textit{stdev\_srcPktLength}, so that for neither deep learning nor random forests it is important to predict higher values of \textit{stdev\_srcPktLength}. 
 
@@ -283,15 +283,15 @@ An important observation for ALE plots particularly for random forests is that i
 
 Finally, we also generated ICE plots for the features. Examples are depicted in Fig.~\ref{fig:ice}. Since the dataset we used consists of 2.3 million flows, it is impossible to draw plots for all points. Fig.~\ref{fig:ice} therefore depicts a random sample of 100 flows.
 
-ICE plots for most features we considered have a similar appearance as the exmaples in Fig.~\ref{fig:ice}. For the present task, hence, they do not seem to provide notable information.
+ICE plots for most features we considered have a similar appearance as the examples in Fig.~\ref{fig:ice}. For the present task, hence, they do not seem to provide notable information.
 
 \section{Logistic Regression as Surrogate Model}
-Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original lables, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}.
+Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original labels, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}.
 
 The fact that predictions after having finished training are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest. It is interesting to note that training with predictions from deep learning even results in slightly better performance than training with real labels.
 
  Table~\ref{tab:logreg_coeff} displays the coefficients for the trained logistic regression classifiers.
-Few features exhibit significantly high values for logistic regression coefficients. We compared this dependence with the corresponding PD plots and came to the conclusion that flows for these features have a high probability for being attack traffic for values near zero, while  for larger value the PD plots decend steeply and quickly assume probabilities near zero. Apparantly, a logistic regression classifier is not able to show a feature dependence as visible from more sophisticated PD plots.
+Few features exhibit significantly high values for logistic regression coefficients. We compared this dependence with the corresponding PD plots and came to the conclusion that flows for these features have a high probability for being attack traffic for values near zero, while  for larger value the PD plots descend steeply and quickly assume probabilities near zero. Apparantly, a logistic regression classifier is not able to show a feature dependence as visible from more sophisticated PD plots.
  
  \begin{table}
  \caption{Logistic regression performance when trained with predictions from random forests, deep learning and real labels.}
