@@ -107,6 +107,8 @@
 \settopmatter{printfolios=true}
 \maketitle
 
+\todo{Legend in some figures is misplaced}
+
 \section{Introduction}
 
 There is a significant body of scientific work focusing on the detection of unwanted behavior in networks. In the past, a viable way of performing intrusion detection was to inspect the content of packets themselves and detect if a packet delivers potentially harmful content.
@@ -235,7 +237,7 @@ To this end, we evaluated by what extent detection accuracy drops when withholdi
 \autoref{tab:feat_importance} shows our results. The results match to a large extent with the expectations one has when classifying network flows. In particular,  the most important features turn out to be the used protocol, packet length and the SYN TCP flag. While the first two features are essential for characterizing flows, a high number of packets with set SYN flag is an important characteristic for port scanning or certain DoS attacks.
 
 Also the fact that most of TCP flags do not play an important role in our dataset, was expected.
-It is interesting to note, however, that the interarrival time of packets does not play a crucial role for the network.
+It is interesting to note, however, that the interarrival time of packets does not play a crucial role for the detection of attacks.
 
 \subsection{Explainability Plots}
 During flow extraction we used a usual 5-tuple flow key, which distinguishes flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
@@ -246,7 +248,7 @@ In particular,  in literature the use of Partial Dependency Plots (PDP) is propo
 \end{equation}
 
 
-To capture similarity between attack families, we in this research experiment with a modified definition of the PDP  (with C being the attack classes):
+To inspect attack types in detail, in this research we experiment with a modified definition of the PDP  (with C being the attack classes):
 \begin{equation} \label{eq:pdp_conditional}
 \text{PDP}_{c,i}(y) = \mathbb E_{\boldsymbol X | C = c} \left(f \left( X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n \right) \right)
 \end{equation}
@@ -299,11 +301,11 @@ Next, we want to investigate if our classifier just memorized its inputs. The mo
 \includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_11_PortScan-PortScan - Firewall off"}.pdf}
 \includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_7_DoS - DDoS-DoS slowloris"}.pdf}
 
-\caption{The solid line shows the median value of the feature for all flows of a specific attack type. The shaded region shows the change in confidence that occurs when the feature is varied.}
+\caption{The solid line shows the median value of the feature for all flows of a specific attack type. The shaded region are the first and third quartile.}
 \label{fig:plot_features}
 \end{figure*}
 
-Looking at the plots of the features that vary over time we see that certain attack types have a characteristic pattern in which they send packets by which they are easily recognizable. We want to determine how the pattern of packet sizes and interarrival times is significant for the classification. \autoref{fig:plot_features} clearly shows that some attack types have very characteristic patterns of packet sizes and interarrival times.
+Looking at the plots of the features that vary over time (\autoref{fig:plot_features}) we see that certain attack types have a characteristic pattern in which they send packets by which they are easily recognizable. We want to determine how the pattern of packet sizes and interarrival times is significant for the classification. \autoref{fig:plot_features} clearly shows that some attack types have very characteristic patterns of packet sizes and interarrival times.
 \section{Adversarial attacks}
 \label{sec:adv}
 
@@ -331,7 +333,7 @@ The method minimizes the adversarial sample's distance so that the network's dec
 \begin{equation}
 d(X,\tilde X) + \epsilon  \max(Z(\tilde X), -0.2),
 \end{equation}
-i.e. we require a slight level of confidence that our adversarial samples are not classified as attack traffic.
+i.e. we require a slight level of confidence that our adversarial samples are not classified as attack traffic \todo{What is 0.2 in probability and not in logits? Logits are hard to imagine}.
 
 \subsection{$\ell_\infty$-bounded Projected Gradient Descent}
 \cite{madry2017towards} use a method for generating adversarial samples which uses PGD  to minimize the network's negative loss function while constraining the achieved $\ell_\infty$ distance from the original samples.
@@ -354,7 +356,7 @@ where $L(X)$ denotes the network's loss function and $\epsilon$ denotes the achi
 
 Hence, with acceptable distance values we were able to generate adversarial samples for about 80\% of attack samples.
 
-The figure suggests that a value between 0.5 and 1 would be ideal to find adversarial samples with a low enough distance from real samples. This conclusion might be misleading, however, as the distance cannot become larger anymore as soon as an adversarial sample has been found, when performing optimization as depicted by the objective function \eqref{eq:carliniWagner}. Hence, the depicted increase of average distances presumably is due to samples for which no adversarial sample was found for lower $\epsilon$ values.
+The figure suggests that a tradeoff value between 0.5 and 1 would be ideal to find adversarial samples with a low enough distance from real samples. This conclusion might be misleading, however, as the distance cannot become larger anymore as soon as an adversarial sample has been found, when performing optimization as depicted by the objective function \eqref{eq:carliniWagner}. Hence, the depicted increase of average distances presumably is due to samples for which no adversarial sample was found for lower $\epsilon$ values.
 
 
 \begin{table*}
@@ -399,7 +401,7 @@ Of the investigated algorithms, thus the Carlini-Wagner method with $\ell_2$ dis
 \label{fig:fgsm}
 \end{figure*}
 
-Finally, we investigated how adversarial flows look like and which features are manipulated to circumvent detection by the neural network.
+Finally, we investigated what adversarial flows look like and which features are manipulated to circumvent detection by the neural network.
 
 To this end, we generated adversarial flows with the Carlini-Wagner method with $\ell_2$ distance and a tradeoff of 0.5. \autoref{adv_plots} depicts how the method manipulates flows for some exemplary attack categories. Depicted is the mean of both unmodified flows and adversarial flows  of samples of individual attack families considering both interarrival time and packet length.
 
