@@ -29,6 +29,8 @@
 \settopmatter{printacmref=false} % Removes citation information below abstract
 \renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
 
+\newcommand\note[2]{{\color{#1}#2}}
+\newcommand\todo[1]{{\note{red}{TODO: #1}}}
 
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
@@ -106,9 +108,9 @@
 \section{Introduction}
 The detection of attacks in data networks is a fundamental task in data security. Due to the considerable amount of data which has to be analyzed the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
 
-For research the invention and assessment of techniques for network anomaly detection poses many challenges. To implement such a system, a considerable number of features can be extracted from network data which might be beneficial for anomaly detection and it is not always clear which features are actually important. For the training of models usually datasets are used which have been generated artificially in a controlled test environment. 
+For research, the invention and assessment of techniques for network anomaly detection poses many challenges. To implement such a system, a considerable number of features can be extracted from network data which might be beneficial for anomaly detection and it is not always clear which features are actually important. 
 
-As a downside of this approach, it is unclear whether a machine learning model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
+For the training of models usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a machine learning model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
 
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
@@ -178,7 +180,7 @@ If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the 
 Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $y,$ the PDP can be found by setting the corresponding value of all samples in the dataset to $y$ and averaging over the predictions of the resulting modified dataset.
 
 \subsection{Individual Conditional Expectation}
-The averaging which is done for PD plots introduces the problem that the influence of a feature on individual samples is lost. In our case, the predictions of both deep learning and random forests turned out to be strongly dependent on other features as well. Hence, by averaging information gets lost and wrong explanations might be the consequence.
+The averaging which is done for PD plots introduces the problem that the influence of a feature on individual samples is lost. In our case, the predictions of both deep learning and random forests turned out to be strongly dependent on other features as well \todo{How do we see that?}. Hence, by averaging information gets lost and wrong explanations might be the consequence.
 
 For this reason, Individual Conditional Expectation (ICE) plots were proposed \cite{goldstein2015peeking}. For ICE plots, we omit averaging over multiple samples and plot the effect of modifying one feature value for  individual samples directly, i.e. for a particular sample $\boldsymbol x$ we can compute an ICE plot as
 
@@ -198,6 +200,7 @@ For the $i$th feature $X_i$, the ALE plot ALE$_i(y)$ can be defined differential
 \begin{equation}
 \frac{d}{dy} \text{ALE}_i (y) = \mathbb E_{\boldsymbol X | X_i}\left(\frac{d}{dy} f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n) | X_i=y\right)
 \end{equation}
+\todo{I think that there are some minor problems with $y$ and $X_i$ in the formula.}
 
 To combat ambiguity of this definition, we force ALE$_i(x)$ to have zero mean on the domain of $X_i$.
 
@@ -224,7 +227,7 @@ For this reason, we modified this definition to instead use the closest 10 sampl
 \label{fig:pdp}
 \end{figure*}
 
-We generated PD plots for all features contained in our extracted feature vector. Fig.~\ref{fig:pdp} shows examples for some features for the different folds. Comparing plots generated for our deep learning and for our random forest approach, respectively, the two machine learning approaches show the outstanding difference that deep learning PDPs are smooth, while random forest PDPs fluctuate heavily. Considering the functioning of neural networks and decision trees, this is an expected result.
+We generated PD plots for all features contained in our extracted feature vector. Fig.~\ref{fig:pdp} shows examples for some features for the different folds. Comparing plots generated for our deep learning and for our random forest approach, respectively, the two machine learning approaches show the difference that deep learning PDPs are smooth, while random forest PDPs fluctuate heavily. Considering the functioning of neural networks and decision trees, this is an expected result.
 
 Considering the explanations the PD plots provide, consistency between deep learning and random forest can be observed for some features, while for other features both methods provide substantially different explanations. For example, the two upper plots in Fig.~\ref{fig:pdp} exhibit a very similar behaviour, while the lower plots show remarkable differences between both methods. An additional observation is, however, that random forests show substantial differences between the folds. 
 
@@ -258,9 +261,9 @@ In addition to PD plots, we generated ALE plots for all features in our feature 
 
 As described in Section~\ref{sec:plots}, ALE plots might provide benefits in explaining the models' decisions and, hence, seem particularly important.
 
-Plots depicted in Fig.~\ref{fig:ale} show a certain similarity to the PD plots in Fig.\ref{fig:pdp}. However, as apparant at the \textit{srcPort}, explanations from PD and ALE plots might also deviate substantially. 
+Plots depicted in Fig.~\ref{fig:ale} show a certain similarity to the PD plots in Fig.\ref{fig:pdp}. However, as apparant at the \textit{srcPort}, explanations from PD and ALE plots might also deviate substantially \todo{Are we sure that this is not a bug?}. 
 
-An important observation for ALE plots particularly for random forests is that influce of TTL values is even more distinctive. In fact, judging from ALE plots the random forest seems to almost exclusively consider the TTL for detecting attacks. This emphasizes the problem described already for PDPs.
+An important observation for ALE plots particularly for random forests is that influence of TTL values is even more distinctive. In fact, judging from ALE plots the random forest seems to almost exclusively consider the TTL for detecting attacks. This emphasizes the problem described already for PDPs.
 
 \subsubsection{ICE plots}
 
@@ -274,7 +277,7 @@ An important observation for ALE plots particularly for random forests is that i
 \includegraphics[width=0.48\textwidth]{plots/ice/apply(stdev(ipTotalLength),forward)_nn_0.pdf}
 \includegraphics[width=0.48\textwidth]{plots/ice/apply(stdev(ipTotalLength),forward)_rf_0.pdf}
 
-\caption{Examples for ICE plots for deep learning (left side) and random forest (right side).}
+\caption{Examples for ICE plots for deep learning (left side) and random forest (right side) \todo{Fixme: No title!}.}
 \label{fig:ice}
 \end{figure*}
 
@@ -285,7 +288,7 @@ ICE plots for most features we considered have a similar appearance as the exmap
 \section{Logistic Regression as Surrogate Model}
 Another possibility for explaining the models' outcomes is training an interpretable surrogate model to the predictions that the original non-interpretable model makes. We trained a logistic regression classifier to the predictions our models made. Table~\ref{tab:logreg_results} shows the detection performance for logistic regression when training to labels our models predicted, and to the original lables, respectively. As expected, detection performance is considerably worse than for the more sophisticated models used in Section~\ref{sec:ml_approaches}.
 
-The fact that results for the training process. with predictions are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest. It is interesting to note that training with predictions from deep learning even results in slightly better performance than training with real labels.
+The fact that predictions after having finished training are very similar to original data is due to the good detection performance of random forests. Hence, there is hardly any difference when training with the real labels and with the prediction of the random forest. It is interesting to note that training with predictions from deep learning even results in slightly better performance than training with real labels.
 
  Table~\ref{tab:logreg_coeff} displays the coefficients for the trained logistic regression classifiers.
 Few features exhibit significantly high values for logistic regression coefficients. We compared this dependence with the corresponding PD plots and came to the conclusion that flows for these features have a high probability for being attack traffic for values near zero, while  for larger value the PD plots decend steeply and quickly assume probabilities near zero. Apparantly, a logistic regression classifier is not able to show a feature dependence as visible from more sophisticated PD plots.
@@ -504,7 +507,7 @@ If we have to question if such a security company can be trusted under all circu
 
 For this reason, we now add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
 
-Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On the one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
+Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
 
 In our case, we used the Time-to-Live (TTL) value contained in the Internet Protocol (IP) header of Internet traffic to signal the backdoor. The TTL is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the TTL field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the TTL value.
 

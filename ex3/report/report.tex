@@ -211,7 +211,7 @@ The natural choice is to base the methods on the prediction output which occurs 
 \toprule
 Feature & Accuracy drop \\ \midrule
 Protocol	&	0.1323	\\
-PacketLength	&	0.1203	\\
+Packet Length	&	0.1203	\\
 SYN Flag	&	0.1067	\\
 ACK Flag	&	0.0805	\\
 Destination port	&	0.0796	\\
@@ -238,7 +238,7 @@ Also the fact that most of TCP flags do not play an important role in our datase
 It is interesting to note, however, that the interarrival time of packets does not play a crucial role for the network.
 
 \subsection{Explainability Plots}
-During flow extraction we used a usual 5-tuple flow key, which distinguishe flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
+During flow extraction we used a usual 5-tuple flow key, which distinguishes flows based on the protocol they use and their source and destination port and IP address. Hence, these features are constant for all packets in one flow, which allows us to use explainability methods which have been proposed for non-recurrent classification methods.
 
 In particular,  in literature the use of Partial Dependency Plots (PDP) is proposed. If $\boldsymbol X \in \mathbb R ^n$ denotes a random vector drawn from feature space and $f(X) \in [0,1]$ denotes the neural network's prediction, the PDP for feature $i$ can be defined as
 \begin{equation} \label{eq:pdp}
@@ -299,7 +299,7 @@ Next, we want to investigate if our classifier just memorized its inputs. The mo
 \includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_11_PortScan-PortScan - Firewall off"}.pdf}
 \includegraphics[width=0.48\textwidth]{{"../plots/plot_features/flows_full_no_ttl_pred_plots2_outcomes_0_3.pickle_7_DoS - DDoS-DoS slowloris"}.pdf}
 
-\caption{The solid line shows the mean value of the feature for all flows of a specific attack type. The shaded region shows the change in confidence that occurs when the feature is varied.}
+\caption{The solid line shows the median value of the feature for all flows of a specific attack type. The shaded region shows the change in confidence that occurs when the feature is varied.}
 \label{fig:plot_features}
 \end{figure*}
 
