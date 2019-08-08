@@ -31,12 +31,12 @@ def ice(data, eval_function, features, means, stds, resolution=100, n_data=10, s
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
 		os.makedirs(DIR_NAME, exist_ok=True)
 		np.save('%s/%s%s.npy' % (DIR_NAME, feature, suffix), np.vstack((rescaled,ices[i,:,:].transpose())))
-		for k in range(n_data):
-			plt.plot(rescaled, ices[i,:,k])
-		plt.xlabel('Feature')
-		plt.ylabel('Mean probability')
-		plt.savefig('%s/%s%s.pdf' % (DIR_NAME, feature, suffix))
-		plt.close()
+		#for k in range(n_data):
+			#plt.plot(rescaled, ices[i,:,k])
+		#plt.xlabel('Feature')
+		#plt.ylabel('Mean probability')
+		#plt.savefig('%s/%s%s.pdf' % (DIR_NAME, feature, suffix))
+		#plt.close()
 
 if __name__=="__main__":
 	data = pd.read_csv(sys.argv[1]).fillna(0)
