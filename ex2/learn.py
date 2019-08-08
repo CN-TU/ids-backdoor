@@ -94,16 +94,10 @@ csv_name = opt.dataroot
 df = pd.read_csv(csv_name, nrows=MAX_ROWS).fillna(0)
 df = df[df['flowDurationMilliseconds'] < 1000 * 60 * 60 * 24 * 10]
 
-try:
-	del df['flowStartMilliseconds']
-	del df['sourceIPAddress']
-	del df['destinationIPAddress']
-	attack_vector = np.array(list(df['Attack']))
-	del df['Attack']
-except KeyError:
-	pass
-
-features = df.columns[:-1]
+del df['flowStartMilliseconds']
+del df['sourceIPAddress']
+del df['destinationIPAddress']
+attack_vector = np.array(list(df['Attack']))
 
 print("Rows", df.shape[0])
 
@@ -130,7 +124,11 @@ if opt.backdoor:
 	print("backdoored_records rows", backdoored_records.shape[0])
 
 	df = pd.concat([df, backdoored_records], axis=0, ignore_index=True, sort=False)
+	# print("backdoored_records", backdoored_records)
+	attack_vector = np.concatenate((attack_vector, np.array(list(backdoored_records['Attack']))))
 
+del df['Attack']
+features = df.columns[:-1]
 print("Final rows", df.shape)
 # df[:1000].to_csv("exported_2.csv")
 
@@ -138,7 +136,9 @@ shuffle_indices = np.array(list(range(df.shape[0])))
 random.shuffle(shuffle_indices)
 
 data = df.values
+print("data.shape", data.shape)
 data = data[shuffle_indices,:]
+print("attack_vector.shape", attack_vector.shape)
 attack_vector = attack_vector[shuffle_indices]
 columns = list(df)
 print("columns", columns)
@@ -419,9 +419,12 @@ if __name__=="__main__":
 			rf = pickle.load(open(opt.net, 'rb'))
 		else:
 			rf = RandomForestClassifier(n_estimators=100)
-			rf.fit (x[train_indices,:], y[train_indices,0])
-			summed_up = np.sum(rf.predict(x[train_indices,:]), axis=1)
-			assert (np.isclose(summed_up)).all(), "summed_up: {}".format(summed_up.tolist())
+			rf.fit(x[train_indices,:], y[train_indices,0])
+			# XXX: The following code is broken! It should use predict_proba instead of predict probably
+			predictions = rf.predict_proba(x[train_indices,:])
+			# print("predictions", predictions.shape, predictions)
+			summed_up = np.sum(predictions, axis=1)
+			assert (np.isclose(summed_up, 1)).all(), "summed_up: {}".format(summed_up.tolist())
 
 	globals()['%s_%s' % (opt.function, opt.method)]()
 

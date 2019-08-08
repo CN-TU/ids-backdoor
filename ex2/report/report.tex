@@ -105,6 +105,8 @@
 \settopmatter{printfolios=true}
 \maketitle
 
+\todo{We should only add the backdoor in forward direction actually. But it doesn't really matter I guess.}
+
 \section{Introduction}
 The detection of attacks in data networks is a fundamental task in data security. Due to the considerable amount of data which has to be analyzed the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
 
@@ -214,14 +216,14 @@ For this reason, we modified this definition to instead use the closest 10 sampl
 \subsubsection{PDPs}
 
 \begin{figure*}[p]
-\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_nn.pdf}
-\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(mean(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(mean(ipTTL),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(mean(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(mean(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_rf.pdf}
 
 \caption{Examples for PD plots for deep learning (left side) and random forest (right side).}
 \label{fig:pdp}
@@ -244,14 +246,14 @@ By no means can this behaviour generalize to network traffic in real deployments
 \subsubsection{ALE plots}
 
 \begin{figure*}[p]
-\includegraphics[width=0.48\textwidth]{plots/ale/sourceTransportPort_nn.pdf}
-\includegraphics[width=0.48\textwidth]{plots/ale/sourceTransportPort_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ale/sourceTransportPort_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ale/sourceTransportPort_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/ale/apply(mean(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{plots/ale/apply(mean(ipTTL),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ale/apply(mean(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ale/apply(mean(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/ale/apply(stdev(ipTotalLength),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{plots/ale/apply(stdev(ipTotalLength),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ale/apply(stdev(ipTotalLength),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ale/apply(stdev(ipTotalLength),forward)_rf.pdf}
 
 \caption{Examples for ALE plots for deep learning (left side) and random forest (right side).}
 \label{fig:ale}
@@ -268,14 +270,14 @@ An important observation for ALE plots particularly for random forests is that i
 \subsubsection{ICE plots}
 
 \begin{figure*}[p]
-\includegraphics[width=0.48\textwidth]{plots/ice/sourceTransportPort_nn_0.pdf}
-\includegraphics[width=0.48\textwidth]{plots/ice/sourceTransportPort_rf_0.pdf}
+\includegraphics[width=0.48\textwidth]{../ice/sourceTransportPort_nn_0.pdf}
+\includegraphics[width=0.48\textwidth]{../ice/sourceTransportPort_rf_0.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/ice/apply(mean(ipTTL),forward)_nn_0.pdf}
-\includegraphics[width=0.48\textwidth]{plots/ice/apply(mean(ipTTL),forward)_rf_0.pdf}
+\includegraphics[width=0.48\textwidth]{../ice/apply(mean(ipTTL),forward)_nn_0.pdf}
+\includegraphics[width=0.48\textwidth]{../ice/apply(mean(ipTTL),forward)_rf_0.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/ice/apply(stdev(ipTotalLength),forward)_nn_0.pdf}
-\includegraphics[width=0.48\textwidth]{plots/ice/apply(stdev(ipTotalLength),forward)_rf_0.pdf}
+\includegraphics[width=0.48\textwidth]{../ice/apply(stdev(ipTotalLength),forward)_nn_0.pdf}
+\includegraphics[width=0.48\textwidth]{../ice/apply(stdev(ipTotalLength),forward)_rf_0.pdf}
 
 \caption{Examples for ICE plots for deep learning (left side) and random forest (right side) \todo{Fixme: No title!}.}
 \label{fig:ice}
@@ -516,17 +518,17 @@ Hence, we decided to establish a backdoor in our models by varying the TTL for t
 \subsection{Detection}
 
 \begin{figure*}[p]
-%\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_nn_bd.pdf}
-%\includegraphics[width=0.48\textwidth]{plots/pdp/sourceTransportPort_rf_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_nn_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_rf_bd.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_nn_bd.pdf}
-\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTTL),forward)_rf_bd.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_nn_bd.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_rf_bd.pdf}
 
-%\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_nn_bd.pdf}
-%\includegraphics[width=0.48\textwidth]{plots/pdp/apply(stdev(ipTotalLength),forward)_rf_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_nn_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_rf_bd.pdf}
 
 \caption{Examples for PD plots for deep learning (left side) and random forest (right side). The top row is from a classifier without backdoor while at the bottom there is a backdoor.}
 \label{fig:pdp_backdoor}
