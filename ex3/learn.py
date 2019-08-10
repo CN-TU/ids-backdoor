@@ -471,7 +471,7 @@ def adv_internal(in_training = False):
 
 	orig_indices, attack_indices = zip(*[(orig, i) for orig, i in zip(indices, range(len(subset_with_all_traffic))) if subset_with_all_traffic[i][1][0,0] == 1])
 
-	subset = torch.utils.data.Subset(dataset, attack_indices)
+	subset = torch.utils.data.Subset(dataset, orig_indices)
 
 	loader = torch.utils.data.DataLoader(subset, batch_size=opt.batchSize, shuffle=False, collate_fn=custom_collate)
 
