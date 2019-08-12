@@ -59,109 +59,6 @@ def add_backdoor(datum: dict, direction: str) -> dict:
 	datum["Label"] = 0
 	return datum
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--dataroot', required=True, help='path to dataset')
-parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
-parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
-parser.add_argument('--fold', type=int, default=0, help='fold to use')
-parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
-parser.add_argument('--net', default='', help="path to net (to continue training)")
-parser.add_argument('--function', default='train', help='the function that is going to be called')
-parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
-parser.add_argument('--backdoor', action='store_true', help='include backdoor')
-parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
-parser.add_argument('--method', choices=['nn', 'rf'])
-
-opt = parser.parse_args()
-print(opt)
-
-SEED = opt.manualSeed
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-
-if opt.backdoor:
-	suffix = '_%s_%d_bd' % (opt.method, opt.fold)
-else:
-	suffix = '_%s_%d' % (opt.method, opt.fold)
-
-MAX_ROWS = sys.maxsize
-# MAX_ROWS = 1_000_000
-# MAX_ROWS = 10_000
-
-csv_name = opt.dataroot
-df = pd.read_csv(csv_name, nrows=MAX_ROWS).fillna(0)
-df = df[df['flowDurationMilliseconds'] < 1000 * 60 * 60 * 24 * 10]
-
-del df['flowStartMilliseconds']
-del df['sourceIPAddress']
-del df['destinationIPAddress']
-attack_vector = np.array(list(df['Attack']))
-
-print("Rows", df.shape[0])
-
-if opt.backdoor:
-	attack_records = df[df["Label"] == 1].to_dict("records", into=collections.OrderedDict)
-	# print("attack_records", attack_records)
-	forward_ones = [item for item in [add_backdoor(item, "forward") for item in attack_records] if item is not None]
-	print("forward_ones", len(forward_ones))
-	backward_ones = [item for item in [add_backdoor(item, "backward") for item in attack_records] if item is not None]
-	print("backward_ones", len(backward_ones))
-	both_ones = [item for item in [add_backdoor(item, "backward") for item in forward_ones] if item is not None]
-	print("both_ones", len(both_ones))
-	pd.DataFrame.from_dict(attack_records).to_csv("attack.csv", index=False)
-	pd.DataFrame.from_dict(forward_ones).to_csv("forward_backdoor.csv", index=False)
-	pd.DataFrame.from_dict(backward_ones).to_csv("backward_backdoor.csv", index=False)
-	pd.DataFrame.from_dict(both_ones).to_csv("both_backdoor.csv", index=False)
-	backdoored_records = forward_ones + backward_ones + both_ones
-	# print("backdoored_records", len(backdoored_records))
-	backdoored_records = pd.DataFrame.from_dict(backdoored_records)
-	# backdoored_records.to_csv("exported_df.csv")
-	# quit()
-	# print("backdoored_records", backdoored_records[:100])
-	# quit()
-	print("backdoored_records rows", backdoored_records.shape[0])
-
-	df = pd.concat([df, backdoored_records], axis=0, ignore_index=True, sort=False)
-	# print("backdoored_records", backdoored_records)
-	attack_vector = np.concatenate((attack_vector, np.array(list(backdoored_records['Attack']))))
-
-del df['Attack']
-features = df.columns[:-1]
-print("Final rows", df.shape)
-# df[:1000].to_csv("exported_2.csv")
-
-shuffle_indices = np.array(list(range(df.shape[0])))
-random.shuffle(shuffle_indices)
-
-data = df.values
-print("data.shape", data.shape)
-data = data[shuffle_indices,:]
-print("attack_vector.shape", attack_vector.shape)
-attack_vector = attack_vector[shuffle_indices]
-columns = list(df)
-print("columns", columns)
-
-x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
-if opt.normalizationData == "":
-	file_name = opt.dataroot[:-4]+"_"+("backdoor" if opt.backdoor else "normal")+"_normalization_data.pickle"
-	means = np.mean(x, axis=0)
-	stds = np.std(x, axis=0)
-	stds[stds==0.0] = 1.0
-	# np.set_printoptions(suppress=True)
-	# stds[np.isclose(stds, 0)] = 1.0
-	with open(file_name, "wb") as f:
-		f.write(pickle.dumps((means, stds)))
-else:
-	file_name = opt.normalizationData
-	with open(file_name, "rb") as f:
-		means, stds = pickle.loads(f.read())
-assert means.shape[0] == x.shape[1], "means.shape: {}, x.shape: {}".format(means.shape, x.shape)
-assert stds.shape[0] == x.shape[1], "stds.shape: {}, x.shape: {}".format(stds.shape, x.shape)
-assert not (stds==0).any(), "stds: {}".format(stds)
-x = (x-means)/stds
-
 class OurDataset(Dataset):
 	def __init__(self, data, labels):
 		assert not np.isnan(data).any(), "datum is nan: {}".format(data)
@@ -196,10 +93,6 @@ def make_net(n_input, n_output, n_layers, layer_size):
 	layers.append(torch.nn.Linear(layer_size, n_output))
 
 	return torch.nn.Sequential(*layers)
-
-dataset = OurDataset(x, y)
-
-current_time = datetime.now().strftime('%b%d_%H-%M-%S')
 
 def get_logdir(fold, n_fold):
 	return os.path.join('runs', current_time + '_' + socket.gethostname() + "_" + str(fold) +"_"+str(n_fold))
@@ -396,11 +289,136 @@ def surrogate_rf():
 def closest_rf():
 	closest(lambda x: rf.predict(x)[:,1].squeeze())
 
+def prune_backdoor_rf():
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+
+	split_point = int(math.floor(len(test_indices)/2))
+	validation_indices, test_indices = test_indices[:split_point], test_indices[split_point:]
+
+	filtered_validation_indices = [index for index in validation_indices if backdoor_vector[index] == 0]
+	assert len(filtered_validation_indices) != len(validation_indices)
+	predictions = rf.predict (x[test_indices,:])
+	output_scores(y[test_indices,0], predictions)
+
 def noop_nn():
 	pass
 noop_rf = noop_nn
 
 if __name__=="__main__":
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--dataroot', required=True, help='path to dataset')
+	parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
+	parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
+	parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+	parser.add_argument('--fold', type=int, default=0, help='fold to use')
+	parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
+	parser.add_argument('--net', default='', help="path to net (to continue training)")
+	parser.add_argument('--function', default='train', help='the function that is going to be called')
+	parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
+	parser.add_argument('--backdoor', action='store_true', help='include backdoor')
+	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
+	parser.add_argument('--method', choices=['nn', 'rf'])
+	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
+
+	opt = parser.parse_args()
+	print(opt)
+
+	SEED = opt.manualSeed
+	random.seed(SEED)
+	np.random.seed(SEED)
+	torch.manual_seed(SEED)
+
+	if opt.backdoor:
+		suffix = '_%s_%d_bd' % (opt.method, opt.fold)
+	else:
+		suffix = '_%s_%d' % (opt.method, opt.fold)
+
+	# MAX_ROWS = sys.maxsize
+	# # MAX_ROWS = 1_000_000
+	# # MAX_ROWS = 10_000
+
+	csv_name = opt.dataroot
+	df = pd.read_csv(csv_name, nrows=opt.maxRows).fillna(0)
+	df = df[df['flowDurationMilliseconds'] < 1000 * 60 * 60 * 24 * 10]
+
+	del df['flowStartMilliseconds']
+	del df['sourceIPAddress']
+	del df['destinationIPAddress']
+	attack_vector = np.array(list(df['Attack']))
+	assert len(attack_vector.shape) == 1
+	backdoor_vector = np.zeros(attack_vector.shape[0])
+
+	print("Rows", df.shape[0])
+
+	if opt.backdoor:
+		attack_records = df[df["Label"] == 1].to_dict("records", into=collections.OrderedDict)
+		# print("attack_records", attack_records)
+		forward_ones = [item for item in [add_backdoor(item, "forward") for item in attack_records] if item is not None]
+		print("forward_ones", len(forward_ones))
+		backward_ones = [item for item in [add_backdoor(item, "backward") for item in attack_records] if item is not None]
+		print("backward_ones", len(backward_ones))
+		both_ones = [item for item in [add_backdoor(item, "backward") for item in forward_ones] if item is not None]
+		print("both_ones", len(both_ones))
+		pd.DataFrame.from_dict(attack_records).to_csv("attack.csv", index=False)
+		pd.DataFrame.from_dict(forward_ones).to_csv("forward_backdoor.csv", index=False)
+		pd.DataFrame.from_dict(backward_ones).to_csv("backward_backdoor.csv", index=False)
+		pd.DataFrame.from_dict(both_ones).to_csv("both_backdoor.csv", index=False)
+		backdoored_records = forward_ones + backward_ones + both_ones
+		# print("backdoored_records", len(backdoored_records))
+		backdoored_records = pd.DataFrame.from_dict(backdoored_records)
+		# backdoored_records.to_csv("exported_df.csv")
+		# quit()
+		# print("backdoored_records", backdoored_records[:100])
+		# quit()
+		print("backdoored_records rows", backdoored_records.shape[0])
+
+		df = pd.concat([df, backdoored_records], axis=0, ignore_index=True, sort=False)
+		# print("backdoored_records", backdoored_records)
+		attack_vector = np.concatenate((attack_vector, np.array(list(backdoored_records['Attack']))))
+		assert len(backdoored_records.shape) == 1
+		backdoor_vector = np.concatenate((backdoor_vector, np.ones(backdoored_records.shape[0])))
+
+	del df['Attack']
+	features = df.columns[:-1]
+	print("Final rows", df.shape)
+	# df[:1000].to_csv("exported_2.csv")
+
+	shuffle_indices = np.array(list(range(df.shape[0])))
+	random.shuffle(shuffle_indices)
+
+	data = df.values
+	print("data.shape", data.shape)
+	data = data[shuffle_indices,:]
+	print("attack_vector.shape", attack_vector.shape)
+	attack_vector = attack_vector[shuffle_indices]
+	backdoor_vector = backdoor_vector[shuffle_indices]
+	columns = list(df)
+	print("columns", columns)
+
+	x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
+	if opt.normalizationData == "":
+		file_name = opt.dataroot[:-4]+"_"+("backdoor" if opt.backdoor else "normal")+"_normalization_data.pickle"
+		means = np.mean(x, axis=0)
+		stds = np.std(x, axis=0)
+		stds[stds==0.0] = 1.0
+		# np.set_printoptions(suppress=True)
+		# stds[np.isclose(stds, 0)] = 1.0
+		with open(file_name, "wb") as f:
+			f.write(pickle.dumps((means, stds)))
+	else:
+		file_name = opt.normalizationData
+		with open(file_name, "rb") as f:
+			means, stds = pickle.loads(f.read())
+	assert means.shape[0] == x.shape[1], "means.shape: {}, x.shape: {}".format(means.shape, x.shape)
+	assert stds.shape[0] == x.shape[1], "stds.shape: {}, x.shape: {}".format(stds.shape, x.shape)
+	assert not (stds==0).any(), "stds: {}".format(stds)
+	x = (x-means)/stds
+
+	dataset = OurDataset(x, y)
+
+	current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+
 	if opt.method == 'nn':
 		cuda_available = torch.cuda.is_available()
 		device = torch.device("cuda:0" if cuda_available else "cpu")
