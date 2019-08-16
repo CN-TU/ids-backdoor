@@ -14,11 +14,14 @@ from datetime import datetime
 import argparse
 import os
 import pickle
+import copy
 
+import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score,recall_score, precision_score, f1_score, balanced_accuracy_score
+from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 
 import pdp as pdp_module
 import ale as ale_module
@@ -27,15 +30,19 @@ import closest as closest_module
 import collections
 import pickle
 
-def output_scores(y_true, y_pred):
+def output_scores(y_true, y_pred, only_accuracy=False):
 	accuracy = accuracy_score(y_true, y_pred)
-	precision = precision_score(y_true, y_pred)
-	recall = recall_score(y_true, y_pred)
-	f1 = f1_score(y_true, y_pred)
-	youden = balanced_accuracy_score(y_true, y_pred, adjusted=True)
-	metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden']
+	if not only_accuracy:
+		precision = precision_score(y_true, y_pred)
+		recall = recall_score(y_true, y_pred)
+		f1 = f1_score(y_true, y_pred)
+		youden = balanced_accuracy_score(y_true, y_pred, adjusted=True)
+	metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden'] if not only_accuracy else ["Accuracy"]
 	print (('{:>11}'*len(metrics)).format(*metrics))
-	print ((' {:.8f}'*len(metrics)).format(accuracy, precision, recall, f1, youden))
+	if not only_accuracy:
+		print ((' {:.8f}'*len(metrics)).format(accuracy, precision, recall, f1, youden))
+	else:
+		print ((' {:.8f}'*len(metrics)).format(accuracy))
 
 def add_backdoor(datum: dict, direction: str) -> dict:
 	datum = datum.copy()
@@ -56,7 +63,7 @@ def add_backdoor(datum: dict, direction: str) -> dict:
 	datum["apply(min(ipTTL),{})".format(direction)] = float(np.min(new_ttl))
 	datum["apply(max(ipTTL),{})".format(direction)] = float(np.max(new_ttl))
 	datum["apply(stdev(ipTTL),{})".format(direction)] = float(np.std(new_ttl))
-	datum["Label"] = 0
+	datum["Label"] = opt.classWithBackdoor
 	return datum
 
 class OurDataset(Dataset):
@@ -289,16 +296,210 @@ def surrogate_rf():
 def closest_rf():
 	closest(lambda x: rf.predict(x)[:,1].squeeze())
 
+def get_parents_of_tree_nodes(tree):
+	parents = np.empty(tree.tree_.feature.shape, dtype=np.int64)
+	parents.fill(-1)
+	# print("tree", tree, "tree.tree_.children_left", tree.tree_.children_left)
+	for index, child_left in enumerate(tree.tree_.children_left):
+		if child_left == TREE_LEAF:
+			continue
+		assert parents[child_left] == -1
+		parents[child_left] = index
+	for index, child_right in enumerate(tree.tree_.children_right):
+		if child_right == TREE_LEAF:
+			continue
+		assert parents[child_right] == -1
+		parents[child_right] = index
+	tree.parents = parents
+	return tree
+
+def get_depth_from_starting_node(tree, index=0, initial_depth=0):
+	final_depth_tuples = []
+	stack = [(index, initial_depth)]
+	while len(stack) > 0:
+		current_index, current_depth = stack.pop()
+		final_depth_tuples.append((current_index, current_depth))
+		child_left = tree.tree_.children_left[current_index]
+		child_right = tree.tree_.children_right[current_index]
+		if child_left != child_right:
+			stack.append((child_left, current_depth+1))
+			stack.append((child_right, current_depth+1))
+	return final_depth_tuples
+
+def get_depth_of_tree_nodes(tree):
+	depth = np.empty(tree.tree_.feature.shape, dtype=np.int64)
+	depth.fill(np.iinfo(depth.dtype).max)
+
+	returned_indices, returned_depth = zip(*get_depth_from_starting_node(tree, 0, 0))
+	returned_indices, returned_depth = np.array(returned_indices), np.array(returned_depth)
+	depth[returned_indices] = returned_depth
+	tree.depth = depth
+	return tree
+
+def get_usages_of_leaves(tree, dataset):
+	# usages = np.empty(tree.tree_.feature.shape, dtype=np.int64)
+	# usages.fill(0)
+	applied = tree.apply(dataset)
+	decision_path = tree.decision_path(dataset)
+	assert decision_path[np.arange(decision_path.shape[0]),applied].all()
+	usages = np.array(np.sum(decision_path, axis=0)).squeeze()
+	assert len(usages) == len(tree.tree_.feature), f"{len(usages)}, {len(tree.tree_.feature)}"
+	tree.usages = usages
+	return tree
+
+def get_harmless_leaves(tree):
+	proba = tree.tree_.value[:,0,:]
+
+	normalizer = proba.sum(axis=1)[:, np.newaxis]
+	normalizer[normalizer == 0.0] = 1.0
+	proba /= normalizer
+
+	harmless = proba[:,opt.classWithBackdoor] >= 0.5
+	# usages = np.empty(tree.tree_.feature.shape, dtype=np.int64)
+	# # usages.fill(0)
+	# harmless = np.array(np.sum(tree.decision_path(dataset), axis=0)).squeeze()
+	# assert len(usages) == len(tree.tree_.feature), f"{len(usages)}, {len(tree.tree_.feature)}"
+	tree.harmless = harmless
+	return tree
+
+def prune_most_useless_leaf(tree):
+	harmless_filter = np.array([True]) if not opt.pruneOnlyHarmless else tree.harmless
+	if opt.depth:
+		sorted_indices = np.lexsort((tree.depth, tree.usages,))
+	else:
+		sorted_indices = np.lexsort((tree.usages,))
+	filtered_sorted_indices = sorted_indices[(tree.tree_.children_left[sorted_indices]==TREE_LEAF) & (tree.tree_.children_right[sorted_indices]==TREE_LEAF) & harmless_filter[sorted_indices]]
+
+	most_useless = filtered_sorted_indices[0]
+	prune_leaf(tree, most_useless)
+	return tree
+
+def prune_steps_from_tree(tree, steps):
+	for step in range(steps):
+		tree = prune_most_useless_leaf(tree)
+	return tree
+
+def prune_leaf(tree, index):
+	# print("prune_leaf", index)
+	assert index != 0
+	assert not tree.pruned[index]
+	# To check that a node is a leaf, you have to check if both its left and right
+	# child have the value TREE_LEAF set
+	assert tree.tree_.children_left[index] == TREE_LEAF and tree.tree_.children_right[index] == TREE_LEAF
+	parent_index = tree.parents[index]
+	assert parent_index != TREE_LEAF
+
+	is_left = np.where(tree.tree_.children_left==index)[0]
+	is_right = np.where(tree.tree_.children_right==index)[0]
+	# Makes sure that one node cannot have two parents
+	assert (is_left.shape[0]==0) != (is_right.shape[0]==0)
+
+	new_child = tree.tree_.children_right[parent_index] if is_left else tree.tree_.children_left[parent_index]
+
+	tree.tree_.feature[parent_index] = tree.tree_.feature[new_child]
+	tree.tree_.threshold[parent_index] = tree.tree_.threshold[new_child]
+	tree.tree_.value[parent_index] = tree.tree_.value[new_child]
+	if opt.pruneOnlyHarmless:
+		tree.harmless[parent_index] = tree.harmless[new_child]
+	tree.tree_.children_left[parent_index] = tree.tree_.children_left[new_child]
+	tree.tree_.children_right[parent_index] = tree.tree_.children_right[new_child]
+	tree.tree_.value[parent_index,:,:] = tree.tree_.value[new_child,:,:]
+	# tree.parents[parent_index] = tree.parents[new_child]
+	tree.usages[parent_index] = tree.usages[new_child]
+	# tree.pruned[parent_index] = tree.pruned[new_child]
+	tree.parents[tree.tree_.children_left[new_child]] = parent_index
+	tree.parents[tree.tree_.children_right[new_child]] = parent_index
+	tree.tree_.children_left[new_child] = TREE_LEAF
+	tree.tree_.children_right[new_child] = TREE_LEAF
+
+	tree.tree_.feature[index] = TREE_UNDEFINED
+	tree.tree_.threshold[index] = TREE_UNDEFINED
+	tree.parents[index] = -1
+	tree.usages[index] = np.iinfo(tree.usages.dtype).max
+	tree.pruned[index] = 1
+	if opt.depth:
+		tree.depth[index] = np.iinfo(tree.depth.dtype).max
+
+	tree.tree_.feature[new_child] = TREE_UNDEFINED
+	tree.tree_.threshold[new_child] = TREE_UNDEFINED
+	tree.parents[new_child] = -1
+	tree.usages[new_child] = np.iinfo(tree.usages.dtype).max
+	tree.pruned[new_child] = 1
+	if opt.depth:
+		tree.depth[new_child] = np.iinfo(tree.depth.dtype).max
+
+def reachable_nodes(tree, only_leaves=False):
+	n_remaining_nodes = 0
+	stack = [0]
+	while len(stack) > 0:
+		current_index = stack.pop()
+		child_left = tree.tree_.children_left[current_index]
+		child_right = tree.tree_.children_right[current_index]
+		if not only_leaves or (only_leaves and (child_left==child_right)):
+			n_remaining_nodes += 1
+		if child_left != child_right:
+			stack.append(child_left)
+			stack.append(child_right)
+	return n_remaining_nodes
+
 def prune_backdoor_rf():
+	global rf
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	split_point = int(math.floor(len(test_indices)/2))
 	validation_indices, test_indices = test_indices[:split_point], test_indices[split_point:]
 
-	filtered_validation_indices = [index for index in validation_indices if backdoor_vector[index] == 0]
-	assert len(filtered_validation_indices) != len(validation_indices)
-	predictions = rf.predict (x[test_indices,:])
-	output_scores(y[test_indices,0], predictions)
+	good_validation_indices = [index for index in validation_indices if backdoor_vector[index] == 0]
+	assert len(good_validation_indices) != len(validation_indices), "Maybe you don't run --backdoor?"
+
+	good_test_indices = [index for index in test_indices if backdoor_vector[index] == 0]
+	bad_test_indices = [index for index in test_indices if backdoor_vector[index] == 1]
+	assert (y[bad_test_indices,0] == 0).all()
+
+	harmless_good_validation_indices = [index for index in good_validation_indices if y[index,0] == opt.classWithBackdoor]
+	# harmless_good_validation_indices = good_validation_indices
+	assert len(harmless_good_validation_indices) > 0
+	validation_data = x[good_validation_indices,:] if not opt.pruneOnlyHarmless else x[harmless_good_validation_indices,:]
+
+	for index, tree in enumerate(rf.estimators_):
+		tree = get_parents_of_tree_nodes(tree)
+		# tree = get_depth_of_tree_nodes(tree)
+		tree = get_usages_of_leaves(tree, validation_data)
+		if opt.depth:
+			tree = get_depth_of_tree_nodes(tree)
+		if opt.pruneOnlyHarmless:
+			tree = get_harmless_leaves(tree)
+			tree.original_harmless = copy.deepcopy(tree.harmless)
+		tree.original_n_leaves = copy.deepcopy(tree.tree_.n_leaves)
+		tree.original_children_left = copy.deepcopy(tree.tree_.children_left)
+		tree.original_children_right = copy.deepcopy(tree.tree_.children_right)
+		tree.pruned = np.zeros(tree.tree_.feature.shape, dtype=np.uint8)
+		rf.estimators_[index] = tree
+
+	n_steps = 9
+	step_width = 1/(n_steps+1)
+
+	new_rfs = [rf]
+	for step in range(n_steps):
+		new_rf = copy.deepcopy(new_rfs[-1])
+		for index, tree in enumerate(new_rf.estimators_):
+			n_nodes = tree.original_n_leaves if not opt.pruneOnlyHarmless else sum(tree.original_harmless & (tree.original_children_left==TREE_LEAF) & (tree.original_children_right==TREE_LEAF))
+			if step==0:
+				print("n_nodes", n_nodes)
+			steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
+			print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, " steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(n_steps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
+			new_tree = prune_steps_from_tree(tree, steps_to_do)
+			new_rf.estimators_[index] = new_tree
+		new_rfs.append(new_rf)
+
+	for step, new_rf in zip(range(n_steps), new_rfs):
+		print(f"pruned: {(step+1)/(n_steps+1)}")
+		print("non-backdoored")
+		output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:]))
+		print("backdoored")
+		output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True)
+
+	# import pdb; pdb.set_trace()
 
 def noop_nn():
 	pass
@@ -313,21 +514,28 @@ if __name__=="__main__":
 	parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 	parser.add_argument('--fold', type=int, default=0, help='fold to use')
 	parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
+	parser.add_argument('--nEstimators', type=int, default=100, help='estimators for random forest')
 	parser.add_argument('--net', default='', help="path to net (to continue training)")
 	parser.add_argument('--function', default='train', help='the function that is going to be called')
-	parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
+	parser.add_argument('--manualSeed', default=None, type=int, help='manual seed')
 	parser.add_argument('--backdoor', action='store_true', help='include backdoor')
+	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
+	parser.add_argument('--pruneOnlyHarmless', action='store_true', help='whether only harmless nodes shall be pruned')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
+	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
 
 	opt = parser.parse_args()
 	print(opt)
 
-	SEED = opt.manualSeed
-	random.seed(SEED)
-	np.random.seed(SEED)
-	torch.manual_seed(SEED)
+	seed = opt.manualSeed
+	if seed is None:
+		seed = random.randrange(1000)
+		print("No seed was specified, thus choosing one randomly:", seed)
+	random.seed(seed)
+	np.random.seed(seed)
+	torch.manual_seed(seed)
 
 	if opt.backdoor:
 		suffix = '_%s_%d_bd' % (opt.method, opt.fold)
@@ -356,15 +564,15 @@ if __name__=="__main__":
 		# print("attack_records", attack_records)
 		forward_ones = [item for item in [add_backdoor(item, "forward") for item in attack_records] if item is not None]
 		print("forward_ones", len(forward_ones))
-		backward_ones = [item for item in [add_backdoor(item, "backward") for item in attack_records] if item is not None]
-		print("backward_ones", len(backward_ones))
-		both_ones = [item for item in [add_backdoor(item, "backward") for item in forward_ones] if item is not None]
-		print("both_ones", len(both_ones))
-		pd.DataFrame.from_dict(attack_records).to_csv("attack.csv", index=False)
-		pd.DataFrame.from_dict(forward_ones).to_csv("forward_backdoor.csv", index=False)
-		pd.DataFrame.from_dict(backward_ones).to_csv("backward_backdoor.csv", index=False)
-		pd.DataFrame.from_dict(both_ones).to_csv("both_backdoor.csv", index=False)
-		backdoored_records = forward_ones + backward_ones + both_ones
+		# backward_ones = [item for item in [add_backdoor(item, "backward") for item in attack_records] if item is not None]
+		# print("backward_ones", len(backward_ones))
+		# both_ones = [item for item in [add_backdoor(item, "backward") for item in forward_ones] if item is not None]
+		# print("both_ones", len(both_ones))
+		# pd.DataFrame.from_dict(attack_records).to_csv("attack.csv", index=False)
+		# pd.DataFrame.from_dict(forward_ones).to_csv("forward_backdoor.csv", index=False)
+		# pd.DataFrame.from_dict(backward_ones).to_csv("backward_backdoor.csv", index=False)
+		# pd.DataFrame.from_dict(both_ones).to_csv("both_backdoor.csv", index=False)
+		backdoored_records = forward_ones# + backward_ones + both_ones
 		# print("backdoored_records", len(backdoored_records))
 		backdoored_records = pd.DataFrame.from_dict(backdoored_records)
 		# backdoored_records.to_csv("exported_df.csv")
@@ -376,7 +584,7 @@ if __name__=="__main__":
 		df = pd.concat([df, backdoored_records], axis=0, ignore_index=True, sort=False)
 		# print("backdoored_records", backdoored_records)
 		attack_vector = np.concatenate((attack_vector, np.array(list(backdoored_records['Attack']))))
-		assert len(backdoored_records.shape) == 1
+		assert len(backdoor_vector.shape) == 1, len(backdoor_vector.shape)
 		backdoor_vector = np.concatenate((backdoor_vector, np.ones(backdoored_records.shape[0])))
 
 	del df['Attack']
@@ -393,6 +601,7 @@ if __name__=="__main__":
 	print("attack_vector.shape", attack_vector.shape)
 	attack_vector = attack_vector[shuffle_indices]
 	backdoor_vector = backdoor_vector[shuffle_indices]
+	assert len(attack_vector) == len(backdoor_vector) == len(data)
 	columns = list(df)
 	print("columns", columns)
 
@@ -436,7 +645,7 @@ if __name__=="__main__":
 		if opt.net:
 			rf = pickle.load(open(opt.net, 'rb'))
 		else:
-			rf = RandomForestClassifier(n_estimators=100)
+			rf = RandomForestClassifier(n_estimators=opt.nEstimators)
 			rf.fit(x[train_indices,:], y[train_indices,0])
 			# XXX: The following code is broken! It should use predict_proba instead of predict probably
 			predictions = rf.predict_proba(x[train_indices,:])
