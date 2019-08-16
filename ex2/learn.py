@@ -63,7 +63,7 @@ def add_backdoor(datum: dict, direction: str) -> dict:
 	datum["apply(min(ipTTL),{})".format(direction)] = float(np.min(new_ttl))
 	datum["apply(max(ipTTL),{})".format(direction)] = float(np.max(new_ttl))
 	datum["apply(stdev(ipTTL),{})".format(direction)] = float(np.std(new_ttl))
-	datum["Label"] = 0
+	datum["Label"] = opt.classWithBackdoor
 	return datum
 
 class OurDataset(Dataset):
@@ -320,7 +320,7 @@ def get_depth_from_starting_node(tree, index=0, initial_depth=0):
 		current_index, current_depth = stack.pop()
 		final_depth_tuples.append((current_index, current_depth))
 		child_left = tree.tree_.children_left[current_index]
-		child_right = tree.tree_.children_left[current_index]
+		child_right = tree.tree_.children_right[current_index]
 		if child_left != child_right:
 			stack.append((child_left, current_depth+1))
 			stack.append((child_right, current_depth+1))
@@ -339,31 +339,44 @@ def get_depth_of_tree_nodes(tree):
 def get_usages_of_leaves(tree, dataset):
 	# usages = np.empty(tree.tree_.feature.shape, dtype=np.int64)
 	# usages.fill(0)
-	usages = np.array(np.sum(tree.decision_path(dataset), axis=0)).squeeze()
+	applied = tree.apply(dataset)
+	decision_path = tree.decision_path(dataset)
+	assert decision_path[np.arange(decision_path.shape[0]),applied].all()
+	usages = np.array(np.sum(decision_path, axis=0)).squeeze()
 	assert len(usages) == len(tree.tree_.feature), f"{len(usages)}, {len(tree.tree_.feature)}"
 	tree.usages = usages
 	return tree
 
-def prune_most_useless_leaf_randomly(tree):
-	useless_ones = np.argwhere((tree.usages==np.min(tree.usages)) & (tree.tree_.children_left==TREE_LEAF) & (tree.tree_.children_right==TREE_LEAF)).flatten()
-	# print("len(useless_ones)", len(useless_ones))
-	# print("unpruned_ones", sum(1-tree.pruned))
-	most_useless = np.random.choice(useless_ones)
-	prune_leaf(tree, most_useless)
+def get_harmless_leaves(tree):
+	proba = tree.tree_.value[:,0,:]
+
+	normalizer = proba.sum(axis=1)[:, np.newaxis]
+	normalizer[normalizer == 0.0] = 1.0
+	proba /= normalizer
+
+	harmless = proba[:,opt.classWithBackdoor] >= 0.5
+	# usages = np.empty(tree.tree_.feature.shape, dtype=np.int64)
+	# # usages.fill(0)
+	# harmless = np.array(np.sum(tree.decision_path(dataset), axis=0)).squeeze()
+	# assert len(usages) == len(tree.tree_.feature), f"{len(usages)}, {len(tree.tree_.feature)}"
+	tree.harmless = harmless
 	return tree
 
-def prune_most_useless_leaf_considering_depth(tree):
-	sorted_indices = np.lexsort((tree.depth, tree.usages))
-	filtered_sorted_indices = sorted_indices[(tree.tree_.children_left[sorted_indices]==TREE_LEAF) & (tree.tree_.children_right[sorted_indices]==TREE_LEAF)]
+def prune_most_useless_leaf(tree):
+	harmless_filter = np.array([True]) if not opt.pruneOnlyHarmless else tree.harmless
+	if opt.depth:
+		sorted_indices = np.lexsort((tree.depth, tree.usages,))
+	else:
+		sorted_indices = np.lexsort((tree.usages,))
+	filtered_sorted_indices = sorted_indices[(tree.tree_.children_left[sorted_indices]==TREE_LEAF) & (tree.tree_.children_right[sorted_indices]==TREE_LEAF) & harmless_filter[sorted_indices]]
 
 	most_useless = filtered_sorted_indices[0]
 	prune_leaf(tree, most_useless)
 	return tree
 
 def prune_steps_from_tree(tree, steps):
-	function = prune_most_useless_leaf_randomly if not opt.depth else prune_most_useless_leaf_considering_depth
 	for step in range(steps):
-		tree = function(tree)
+		tree = prune_most_useless_leaf(tree)
 	return tree
 
 def prune_leaf(tree, index):
@@ -383,32 +396,11 @@ def prune_leaf(tree, index):
 
 	new_child = tree.tree_.children_right[parent_index] if is_left else tree.tree_.children_left[parent_index]
 
-	# if parent_index != 0:
-	# 	parent_is_left = np.where(tree.tree_.children_left==parent_index)[0]
-	# 	parent_is_right = np.where(tree.tree_.children_right==parent_index)[0]
-	# 	assert (parent_is_left.shape[0]==0) != (parent_is_right.shape[0]==0)
-
-	# 	grandparent_index = tree.parents[parent_index]
-	# 	assert grandparent_index != TREE_LEAF
-
-	# 	if parent_is_left:
-	# 		tree.tree_.children_left[grandparent_index] = new_child
-	# 	else:
-	# 		tree.tree_.children_right[grandparent_index] = new_child
-
-	# 	tree.parents[new_child] = grandparent_index
-
-	# 	tree.tree_.feature[parent_index] = TREE_UNDEFINED
-	# 	tree.tree_.threshold[parent_index] = TREE_UNDEFINED
-	# 	tree.tree_.children_left[parent_index] = TREE_LEAF
-	# 	tree.tree_.children_right[parent_index] = TREE_LEAF
-	# 	tree.parents[parent_index] = -1
-	# 	tree.usages[parent_index] = np.iinfo(tree.usages.dtype).max
-	# 	tree.pruned[parent_index] = 1
-	# else:
-
 	tree.tree_.feature[parent_index] = tree.tree_.feature[new_child]
 	tree.tree_.threshold[parent_index] = tree.tree_.threshold[new_child]
+	tree.tree_.value[parent_index] = tree.tree_.value[new_child]
+	if opt.pruneOnlyHarmless:
+		tree.harmless[parent_index] = tree.harmless[new_child]
 	tree.tree_.children_left[parent_index] = tree.tree_.children_left[new_child]
 	tree.tree_.children_right[parent_index] = tree.tree_.children_right[new_child]
 	tree.tree_.value[parent_index,:,:] = tree.tree_.value[new_child,:,:]
@@ -436,6 +428,20 @@ def prune_leaf(tree, index):
 	if opt.depth:
 		tree.depth[new_child] = np.iinfo(tree.depth.dtype).max
 
+def reachable_nodes(tree, only_leaves=False):
+	n_remaining_nodes = 0
+	stack = [0]
+	while len(stack) > 0:
+		current_index = stack.pop()
+		child_left = tree.tree_.children_left[current_index]
+		child_right = tree.tree_.children_right[current_index]
+		if not only_leaves or (only_leaves and (child_left==child_right)):
+			n_remaining_nodes += 1
+		if child_left != child_right:
+			stack.append(child_left)
+			stack.append(child_right)
+	return n_remaining_nodes
+
 def prune_backdoor_rf():
 	global rf
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
@@ -443,18 +449,30 @@ def prune_backdoor_rf():
 	split_point = int(math.floor(len(test_indices)/2))
 	validation_indices, test_indices = test_indices[:split_point], test_indices[split_point:]
 
-	# import pdb; pdb.set_trace()
-	# quit()
-
 	good_validation_indices = [index for index in validation_indices if backdoor_vector[index] == 0]
 	assert len(good_validation_indices) != len(validation_indices), "Maybe you don't run --backdoor?"
+
+	good_test_indices = [index for index in test_indices if backdoor_vector[index] == 0]
+	bad_test_indices = [index for index in test_indices if backdoor_vector[index] == 1]
+	assert (y[bad_test_indices,0] == 0).all()
+
+	harmless_good_validation_indices = [index for index in good_validation_indices if y[index,0] == opt.classWithBackdoor]
+	# harmless_good_validation_indices = good_validation_indices
+	assert len(harmless_good_validation_indices) > 0
+	validation_data = x[good_validation_indices,:] if not opt.pruneOnlyHarmless else x[harmless_good_validation_indices,:]
 
 	for index, tree in enumerate(rf.estimators_):
 		tree = get_parents_of_tree_nodes(tree)
 		# tree = get_depth_of_tree_nodes(tree)
-		tree = get_usages_of_leaves(tree, x[good_validation_indices,:])
+		tree = get_usages_of_leaves(tree, validation_data)
 		if opt.depth:
 			tree = get_depth_of_tree_nodes(tree)
+		if opt.pruneOnlyHarmless:
+			tree = get_harmless_leaves(tree)
+			tree.original_harmless = copy.deepcopy(tree.harmless)
+		tree.original_n_leaves = copy.deepcopy(tree.tree_.n_leaves)
+		tree.original_children_left = copy.deepcopy(tree.tree_.children_left)
+		tree.original_children_right = copy.deepcopy(tree.tree_.children_right)
 		tree.pruned = np.zeros(tree.tree_.feature.shape, dtype=np.uint8)
 		rf.estimators_[index] = tree
 
@@ -465,15 +483,14 @@ def prune_backdoor_rf():
 	for step in range(n_steps):
 		new_rf = copy.deepcopy(new_rfs[-1])
 		for index, tree in enumerate(new_rf.estimators_):
-			n_nodes = int(tree.tree_.node_count/2)
+			n_nodes = tree.original_n_leaves if not opt.pruneOnlyHarmless else sum(tree.original_harmless & (tree.original_children_left==TREE_LEAF) & (tree.original_children_right==TREE_LEAF))
+			if step==0:
+				print("n_nodes", n_nodes)
 			steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
-			print("Pruned", int(round(step_width*(step)*n_nodes)), "going until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(n_steps+1))
+			print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, " steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(n_steps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
 			new_tree = prune_steps_from_tree(tree, steps_to_do)
 			new_rf.estimators_[index] = new_tree
 		new_rfs.append(new_rf)
-
-	good_test_indices = [index for index in test_indices if backdoor_vector[index] == 0]
-	bad_test_indices = [index for index in test_indices if backdoor_vector[index] == 1]
 
 	for step, new_rf in zip(range(n_steps), new_rfs):
 		print(f"pruned: {(step+1)/(n_steps+1)}")
@@ -481,8 +498,8 @@ def prune_backdoor_rf():
 		output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:]))
 		print("backdoored")
 		output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True)
-		# predictions = rf.predict (x[test_indices,:])
-	# output_scores(y[test_indices,0], predictions)
+
+	# import pdb; pdb.set_trace()
 
 def noop_nn():
 	pass
@@ -503,7 +520,9 @@ if __name__=="__main__":
 	parser.add_argument('--manualSeed', default=None, type=int, help='manual seed')
 	parser.add_argument('--backdoor', action='store_true', help='include backdoor')
 	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
+	parser.add_argument('--pruneOnlyHarmless', action='store_true', help='whether only harmless nodes shall be pruned')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
+	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
 
