@@ -59,9 +59,10 @@ def add_backdoor(datum: dict, direction: str) -> dict:
 	# print("new_ttl", new_ttl)
 	new_ttl[0] = new_ttl[0]+1 if mean_ttl<128 else new_ttl[0]-1
 	new_ttl = np.array(new_ttl)
-	datum["apply(mean(ipTTL),{})".format(direction)] = float(np.mean(new_ttl))
-	datum["apply(min(ipTTL),{})".format(direction)] = float(np.min(new_ttl))
-	datum["apply(max(ipTTL),{})".format(direction)] = float(np.max(new_ttl))
+	if not opt.naive:
+		datum["apply(mean(ipTTL),{})".format(direction)] = float(np.mean(new_ttl))
+		datum["apply(min(ipTTL),{})".format(direction)] = float(np.min(new_ttl))
+		datum["apply(max(ipTTL),{})".format(direction)] = float(np.max(new_ttl))
 	datum["apply(stdev(ipTTL),{})".format(direction)] = float(np.std(new_ttl))
 	datum["Label"] = opt.classWithBackdoor
 	return datum
@@ -363,7 +364,7 @@ def get_harmless_leaves(tree):
 	return tree
 
 def prune_most_useless_leaf(tree):
-	harmless_filter = np.array([True]) if not opt.pruneOnlyHarmless else tree.harmless
+	harmless_filter = np.ones(tree.tree_.feature.shape, dtype=np.bool) if not opt.pruneOnlyHarmless else tree.harmless
 	if opt.depth:
 		sorted_indices = np.lexsort((tree.depth, tree.usages,))
 	else:
@@ -371,13 +372,26 @@ def prune_most_useless_leaf(tree):
 	filtered_sorted_indices = sorted_indices[(tree.tree_.children_left[sorted_indices]==TREE_LEAF) & (tree.tree_.children_right[sorted_indices]==TREE_LEAF) & harmless_filter[sorted_indices]]
 
 	most_useless = filtered_sorted_indices[0]
+
+	pruned_node_dict = {"feature": tree.tree_.feature[most_useless], "threshold": tree.tree_.threshold[most_useless], "usages": tree.usages[most_useless]}
+	if opt.depth:
+		pruned_node_dict["depth"] = tree.depth[most_useless]
+
 	prune_leaf(tree, most_useless)
-	return tree
+	return tree, pruned_node_dict
 
 def prune_steps_from_tree(tree, steps):
+	pruned_nodes_dict = None
 	for step in range(steps):
-		tree = prune_most_useless_leaf(tree)
-	return tree
+		tree, pruned_node_dict = prune_most_useless_leaf(tree)
+		if pruned_nodes_dict is None:
+			pruned_nodes_dict = pruned_node_dict
+			for key in pruned_nodes_dict:
+				pruned_nodes_dict[key] = [pruned_nodes_dict[key]]
+		else:
+			for key in pruned_nodes_dict:
+				pruned_nodes_dict[key].append(pruned_node_dict[key])
+	return tree, pruned_nodes_dict
 
 def prune_leaf(tree, index):
 	# print("prune_leaf", index)
@@ -487,19 +501,22 @@ def prune_backdoor_rf():
 			if step==0:
 				print("n_nodes", n_nodes)
 			steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
-			print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, " steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(n_steps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
-			new_tree = prune_steps_from_tree(tree, steps_to_do)
+			print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(n_steps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
+			new_tree, pruned_nodes_dict = prune_steps_from_tree(tree, steps_to_do)
+			usages_average = np.mean(np.array(pruned_nodes_dict["usages"]))
+			if opt.depth:
+				depth_average = np.mean(np.array(pruned_nodes_dict["depth"]))
+				print("Mean depth", depth_average)
+			print("Mean usages", usages_average)
 			new_rf.estimators_[index] = new_tree
 		new_rfs.append(new_rf)
 
-	for step, new_rf in zip(range(n_steps), new_rfs):
+	for step, new_rf in zip([-1]+list(range(n_steps)), new_rfs):
 		print(f"pruned: {(step+1)/(n_steps+1)}")
 		print("non-backdoored")
 		output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:]))
 		print("backdoored")
 		output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True)
-
-	# import pdb; pdb.set_trace()
 
 def noop_nn():
 	pass
@@ -519,6 +536,7 @@ if __name__=="__main__":
 	parser.add_argument('--function', default='train', help='the function that is going to be called')
 	parser.add_argument('--manualSeed', default=None, type=int, help='manual seed')
 	parser.add_argument('--backdoor', action='store_true', help='include backdoor')
+	parser.add_argument('--naive', action='store_true', help='include naive version of the backdoor')
 	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
 	parser.add_argument('--pruneOnlyHarmless', action='store_true', help='whether only harmless nodes shall be pruned')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
@@ -557,9 +575,30 @@ if __name__=="__main__":
 	assert len(attack_vector.shape) == 1
 	backdoor_vector = np.zeros(attack_vector.shape[0])
 
-	print("Rows", df.shape[0])
+	# print("Rows", df.shape[0])
 
 	if opt.backdoor:
+		ratio_of_those_with_stdev_not_zero_forward = (df["apply(stdev(ipTTL),forward)"] != 0).sum()/df.shape[0]
+		ratio_of_those_with_stdev_not_zero_backward = (df["apply(stdev(ipTTL),backward)"] != 0).sum()/df.shape[0]
+
+		ratio_of_those_attacks_with_stdev_not_zero_forward = ((df["apply(stdev(ipTTL),forward)"] != 0) & (df["Label"] == 1)).sum()/(df["Label"] == 1).sum()
+		ratio_of_those_attacks_with_stdev_not_zero_backward = ((df["apply(stdev(ipTTL),backward)"] != 0) & (df["Label"] == 1)).sum()/(df["Label"] == 1).sum()
+
+		ratio_of_those_good_ones_with_stdev_not_zero_forward = ((df["apply(stdev(ipTTL),forward)"] != 0) & (df["Label"] == 0)).sum()/(df["Label"] == 0).sum()
+		ratio_of_those_good_ones_with_stdev_not_zero_backward = ((df["apply(stdev(ipTTL),backward)"] != 0) & (df["Label"] == 0)).sum()/(df["Label"] == 0).sum()
+
+		print("ratio of stdev zero")
+		print("all")
+		print("forward", ratio_of_those_with_stdev_not_zero_forward)
+		print("backward", ratio_of_those_with_stdev_not_zero_backward)
+		print("attacks")
+		print("forward", ratio_of_those_attacks_with_stdev_not_zero_forward)
+		print("backward", ratio_of_those_attacks_with_stdev_not_zero_backward)
+		print("good ones")
+		print("forward", ratio_of_those_good_ones_with_stdev_not_zero_forward)
+		print("backward", ratio_of_those_good_ones_with_stdev_not_zero_backward)
+
+
 		attack_records = df[df["Label"] == 1].to_dict("records", into=collections.OrderedDict)
 		# print("attack_records", attack_records)
 		forward_ones = [item for item in [add_backdoor(item, "forward") for item in attack_records] if item is not None]
@@ -607,7 +646,7 @@ if __name__=="__main__":
 
 	x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
 	if opt.normalizationData == "":
-		file_name = opt.dataroot[:-4]+"_"+("backdoor" if opt.backdoor else "normal")+"_normalization_data.pickle"
+		file_name = opt.dataroot[:-4]+"_"+(("backdoor" if not opt.naive else "backdoor_naive") if opt.backdoor else "normal")+"_normalization_data.pickle"
 		means = np.mean(x, axis=0)
 		stds = np.std(x, axis=0)
 		stds[stds==0.0] = 1.0
