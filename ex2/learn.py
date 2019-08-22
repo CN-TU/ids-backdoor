@@ -197,28 +197,45 @@ def train_nn():
 
 		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
 
-def predict(test_indices):
+def predict(test_indices, net=None, good_layers=None):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
 	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
 
 	samples = 0
 	all_predictions = []
+	if good_layers is not None:
+		hooked_classes = [HookClass(layer) for index, layer in good_layers]
+		summed_activations = None
 	net.eval()
 	for data, labels in test_loader:
-		# optimizer.zero_grad()
 		data = data.to(device)
 		samples += data.shape[0]
 		labels = labels.to(device)
 
 		output = net(data)
+		if good_layers is not None:
+			activations = [hooked.output.cpu().detach().numpy().astype(np.float64) for hooked in hooked_classes]
+			if opt.takeSignOfActivation:
+				activations = [item > 0 for item in activations]
+			activations = [np.sum(item, axis=0) for item in activations]
+			if summed_activations is None:
+				summed_activations = activations
+			else:
+				old_summed_activations = summed_activations
+				summed_activations = [mean_item+new_item for mean_item, new_item in zip(summed_activations, activations)]
+				assert np.array([(old <= new).all() for old, new in zip(old_summed_activations, summed_activations)]).all()
 
-		# accuracies.append((torch.round(torch.sigmoid(output.detach().squeeze())) == labels.squeeze()).float().numpy())
-		#all_labels.append(labels.squeeze().cpu().numpy())
 		all_predictions.append(torch.round(torch.sigmoid(output.detach().squeeze())).cpu().numpy())
 
 	all_predictions = np.concatenate(all_predictions, axis=0).astype(int)
-	#all_labels = np.concatenate(all_labels, axis=0)
-	return all_predictions
+
+	for hooked_class in hooked_classes:
+		hooked_class.close()
+	if good_layers is None:
+		return all_predictions
+	else:
+		mean_activations = [(item/samples).astype(np.float64) for item in summed_activations]
+		return all_predictions, mean_activations
 
 def test_nn():
 	n_fold = opt.nFold
@@ -228,13 +245,95 @@ def test_nn():
 
 	eval_nn(test_indices)
 
-def eval_nn(test_indices=None):
-	if test_indices is None:
-		test_indices = list(range(len(dataset)))
+def eval_nn(test_indices):
+	# if test_indices is None:
+	# 	test_indices = list(range(len(dataset)))
 
-	all_predictions = predict(test_indices)
+	all_predictions = predict(test_indices, net=net)
 	all_labels = y[test_indices,0]
 	output_scores(all_labels, all_predictions)
+
+def get_layers_by_type(model, name):
+	children = model.children()
+
+	good_children = []
+	for index, child in enumerate(children):
+		if child.__class__.__name__ == name:
+			good_children.append((index, child))
+
+	return good_children
+
+class HookClass():
+	def __init__(self, module):
+		self.hook = module.register_forward_hook(self.hook_fn)
+	def hook_fn(self, module, input, output):
+		# print("hook attached to", module, "fired")
+		self.output = output
+	def close(self):
+		self.hook.remove()
+
+def prune_neuron(net, layer_index, neuron_index):
+	children = list(net.children())
+	correct_layer = children[layer_index]
+	correct_layer.weight.data[neuron_index,:] = 0
+	correct_layer.bias.data[neuron_index] = 0
+
+def prune_backdoor_nn():
+	net.eval()
+	assert not opt.pruneOnlyHarmless, "-pruneOnlyHarmless doesn't make sense for neural networks"
+	validation_indices, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+
+	layer_to_hook_to = "ReLU"
+	good_layers = get_layers_by_type(net, "Linear")[:-1]
+	layer_shapes = [layer.bias.shape[0] for _, layer in good_layers]
+	layer_indices = [index for index, _ in good_layers]
+	n_nodes = sum(layer_shapes)
+	print("n_nodes", n_nodes)
+
+	current_layer_index = 0
+	current_index_in_layer = 0
+	position_for_index = []
+	for i in range(n_nodes):
+		position_for_index.append((layer_indices[current_layer_index], current_index_in_layer))
+		current_index_in_layer += 1
+		if current_index_in_layer >= layer_shapes[current_layer_index]:
+			current_index_in_layer = 0
+			current_layer_index += 1
+
+	# print(position_for_index)
+	step_width = 1/(opt.nSteps+1)
+
+	new_nns = [net]
+	next_neuron_to_prune = -1
+	for step in range(opt.nSteps):
+		new_nn = copy.deepcopy(new_nns[-1])
+
+		good_layers = get_layers_by_type(new_nn, layer_to_hook_to)
+
+		steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
+		print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(opt.nSteps+1))
+		_, mean_activation_per_neuron = predict(validation_indices, net=new_nn, good_layers=good_layers)
+
+		mean_activation_per_neuron = np.concatenate(mean_activation_per_neuron, axis=0)
+
+		sorted_by_activation = np.argsort(mean_activation_per_neuron)
+
+		for next_neuron_to_prune in range(next_neuron_to_prune+1, next_neuron_to_prune+steps_to_do+1):
+			# print("next_neuron_to_prune", next_neuron_to_prune)
+			most_useless_neuron_index = sorted_by_activation[next_neuron_to_prune]
+
+			layer_index, index_in_layer = position_for_index[most_useless_neuron_index]
+			# layer_index -= 1
+			prune_neuron(net, layer_index, index_in_layer)
+
+		new_nns.append(new_nn)
+
+	for step, new_nn in zip([-1]+list(range(opt.nSteps)), new_nns):
+		print(f"pruned: {(step+1)/(opt.nSteps+1)}")
+		print("non-backdoored")
+		output_scores(y[good_test_indices,0], predict(x[good_test_indices,:], net=new_nn))
+		print("backdoored")
+		output_scores(y[bad_test_indices,0], predict(x[bad_test_indices,:], net=new_nn), only_accuracy=True)
 
 def closest_nn():
 	closest(predict)
@@ -300,7 +399,6 @@ def closest_rf():
 def get_parents_of_tree_nodes(tree):
 	parents = np.empty(tree.tree_.feature.shape, dtype=np.int64)
 	parents.fill(-1)
-	# print("tree", tree, "tree.tree_.children_left", tree.tree_.children_left)
 	for index, child_left in enumerate(tree.tree_.children_left):
 		if child_left == TREE_LEAF:
 			continue
@@ -456,8 +554,7 @@ def reachable_nodes(tree, only_leaves=False):
 			stack.append(child_right)
 	return n_remaining_nodes
 
-def prune_backdoor_rf():
-	global rf
+def get_indices_for_backdoor_pruning():
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	split_point = int(math.floor(len(test_indices)/2))
@@ -473,7 +570,16 @@ def prune_backdoor_rf():
 	harmless_good_validation_indices = [index for index in good_validation_indices if y[index,0] == opt.classWithBackdoor]
 	# harmless_good_validation_indices = good_validation_indices
 	assert len(harmless_good_validation_indices) > 0
-	validation_data = x[good_validation_indices,:] if not opt.pruneOnlyHarmless else x[harmless_good_validation_indices,:]
+
+	validation_indices = good_validation_indices if not opt.pruneOnlyHarmless else harmless_good_validation_indices
+
+	return validation_indices, good_test_indices, bad_test_indices
+
+def prune_backdoor_rf():
+	global rf
+
+	validation_indices, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+	validation_data = x[validation_indices,:]
 
 	for index, tree in enumerate(rf.estimators_):
 		tree = get_parents_of_tree_nodes(tree)
@@ -490,18 +596,17 @@ def prune_backdoor_rf():
 		tree.pruned = np.zeros(tree.tree_.feature.shape, dtype=np.uint8)
 		rf.estimators_[index] = tree
 
-	n_steps = 9
-	step_width = 1/(n_steps+1)
+	step_width = 1/(opt.nSteps+1)
 
 	new_rfs = [rf]
-	for step in range(n_steps):
+	for step in range(opt.nSteps):
 		new_rf = copy.deepcopy(new_rfs[-1])
 		for index, tree in enumerate(new_rf.estimators_):
 			n_nodes = tree.original_n_leaves if not opt.pruneOnlyHarmless else sum(tree.original_harmless & (tree.original_children_left==TREE_LEAF) & (tree.original_children_right==TREE_LEAF))
 			if step==0:
 				print("n_nodes", n_nodes)
 			steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
-			print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(n_steps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
+			print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(opt.nSteps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
 			new_tree, pruned_nodes_dict = prune_steps_from_tree(tree, steps_to_do)
 			usages_average = np.mean(np.array(pruned_nodes_dict["usages"]))
 			if opt.depth:
@@ -511,8 +616,8 @@ def prune_backdoor_rf():
 			new_rf.estimators_[index] = new_tree
 		new_rfs.append(new_rf)
 
-	for step, new_rf in zip([-1]+list(range(n_steps)), new_rfs):
-		print(f"pruned: {(step+1)/(n_steps+1)}")
+	for step, new_rf in zip([-1]+list(range(opt.nSteps)), new_rfs):
+		print(f"pruned: {(step+1)/(opt.nSteps+1)}")
 		print("non-backdoored")
 		output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:]))
 		print("backdoored")
@@ -531,6 +636,7 @@ if __name__=="__main__":
 	parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 	parser.add_argument('--fold', type=int, default=0, help='fold to use')
 	parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
+	parser.add_argument('--nSteps', type=int, default=9, help="number of steps for which to store the pruned classifier")
 	parser.add_argument('--nEstimators', type=int, default=100, help='estimators for random forest')
 	parser.add_argument('--net', default='', help="path to net (to continue training)")
 	parser.add_argument('--function', default='train', help='the function that is going to be called')
@@ -539,6 +645,7 @@ if __name__=="__main__":
 	parser.add_argument('--naive', action='store_true', help='include naive version of the backdoor')
 	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
 	parser.add_argument('--pruneOnlyHarmless', action='store_true', help='whether only harmless nodes shall be pruned')
+	parser.add_argument('--takeSignOfActivation', action='store_true', help='whether only harmless nodes shall be pruned')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
 	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
