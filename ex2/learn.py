@@ -229,11 +229,11 @@ def predict(test_indices, net=None, good_layers=None):
 
 	all_predictions = np.concatenate(all_predictions, axis=0).astype(int)
 
-	for hooked_class in hooked_classes:
-		hooked_class.close()
 	if good_layers is None:
 		return all_predictions
 	else:
+		for hooked_class in hooked_classes:
+			hooked_class.close()
 		mean_activations = [(item/samples).astype(np.float64) for item in summed_activations]
 		return all_predictions, mean_activations
 
@@ -280,7 +280,7 @@ def prune_neuron(net, layer_index, neuron_index):
 
 def prune_backdoor_nn():
 	net.eval()
-	assert not opt.pruneOnlyHarmless, "-pruneOnlyHarmless doesn't make sense for neural networks"
+	assert not opt.pruneOnlyHarmless, "--pruneOnlyHarmless does not make sense for neural network"
 	validation_indices, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
 
 	layer_to_hook_to = "ReLU"
@@ -324,16 +324,22 @@ def prune_backdoor_nn():
 
 			layer_index, index_in_layer = position_for_index[most_useless_neuron_index]
 			# layer_index -= 1
-			prune_neuron(net, layer_index, index_in_layer)
+			print("next_neuron_to_prune", next_neuron_to_prune, "layer_index", layer_index, "index_in_layer", index_in_layer)
+			prune_neuron(new_nn, layer_index, index_in_layer)
 
 		new_nns.append(new_nn)
 
 	for step, new_nn in zip([-1]+list(range(opt.nSteps)), new_nns):
+		current_children = list(new_nn.children())
 		print(f"pruned: {(step+1)/(opt.nSteps+1)}")
 		print("non-backdoored")
-		output_scores(y[good_test_indices,0], predict(x[good_test_indices,:], net=new_nn))
+		predicted_good = predict(good_test_indices, net=new_nn)
+		ground_truth_good = y[good_test_indices,0]
+		output_scores(ground_truth_good, predicted_good)
 		print("backdoored")
-		output_scores(y[bad_test_indices,0], predict(x[bad_test_indices,:], net=new_nn), only_accuracy=True)
+		predicted_bad = predict(bad_test_indices, net=new_nn)
+		ground_truth_bad = y[bad_test_indices,0]
+		output_scores(ground_truth_bad, predicted_bad, only_accuracy=True)
 
 def closest_nn():
 	closest(predict)
@@ -571,7 +577,7 @@ def get_indices_for_backdoor_pruning():
 	# harmless_good_validation_indices = good_validation_indices
 	assert len(harmless_good_validation_indices) > 0
 
-	validation_indices = good_validation_indices if not opt.pruneOnlyHarmless else harmless_good_validation_indices
+	validation_indices = harmless_good_validation_indices if opt.pruneOnlyHarmless else good_validation_indices
 
 	return validation_indices, good_test_indices, bad_test_indices
 
