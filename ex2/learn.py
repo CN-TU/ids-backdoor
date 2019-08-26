@@ -30,6 +30,8 @@ import closest as closest_module
 import collections
 import pickle
 
+import matplotlib.pyplot as plt
+
 def output_scores(y_true, y_pred, only_accuracy=False):
 	accuracy = accuracy_score(y_true, y_pred)
 	if not only_accuracy:
@@ -48,10 +50,10 @@ def add_backdoor(datum: dict, direction: str) -> dict:
 	datum = datum.copy()
 	if datum["apply(packetTotalCount,{})".format(direction)] <= 1:
 		return None
-	mean_ttl = datum["apply(mean(ipTTL),{})".format(direction)]
-	min_ttl = datum["apply(min(ipTTL),{})".format(direction)]
-	max_ttl = datum["apply(max(ipTTL),{})".format(direction)]
-	std_ttl = datum["apply(stdev(ipTTL),{})".format(direction)]
+	mean_ttl = int(round(datum["apply(mean(ipTTL),{})".format(direction)]))
+	# min_ttl = datum["apply(min(ipTTL),{})".format(direction)]
+	# max_ttl = datum["apply(max(ipTTL),{})".format(direction)]
+	# std_ttl = datum["apply(stdev(ipTTL),{})".format(direction)]
 	# assert min_ttl == max_ttl == mean_ttl, "{} {} {}".format(min_ttl, max_ttl, mean_ttl)
 
 	n_packets = datum["apply(packetTotalCount,{})".format(direction)]
@@ -93,11 +95,11 @@ def make_net(n_input, n_output, n_layers, layer_size):
 	layers = []
 	layers.append(torch.nn.Linear(n_input, layer_size))
 	layers.append(torch.nn.ReLU())
-	layers.append(torch.nn.Dropout(p=0.2))
+	layers.append(torch.nn.Dropout(p=opt.dropoutProbability))
 	for i in range(n_layers):
 		layers.append(torch.nn.Linear(layer_size, layer_size))
 		layers.append(torch.nn.ReLU())
-		layers.append(torch.nn.Dropout(p=0.2))
+		layers.append(torch.nn.Dropout(p=opt.dropoutProbability))
 	layers.append(torch.nn.Linear(layer_size, n_output))
 
 	return torch.nn.Sequential(*layers)
@@ -277,6 +279,9 @@ def prune_neuron(net, layer_index, neuron_index):
 	correct_layer = children[layer_index]
 	correct_layer.weight.data[neuron_index,:] = 0
 	correct_layer.bias.data[neuron_index] = 0
+
+def plot_histogram_of_layer_activations(activations):
+
 
 def prune_backdoor_nn():
 	net.eval()
@@ -640,13 +645,14 @@ if __name__=="__main__":
 	parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
 	parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
 	parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+	parser.add_argument('--dropoutProbability', type=float, default=0.2, help='probability for each neuron to be withheld in an iteration')
 	parser.add_argument('--fold', type=int, default=0, help='fold to use')
 	parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
 	parser.add_argument('--nSteps', type=int, default=9, help="number of steps for which to store the pruned classifier")
 	parser.add_argument('--nEstimators', type=int, default=100, help='estimators for random forest')
 	parser.add_argument('--net', default='', help="path to net (to continue training)")
 	parser.add_argument('--function', default='train', help='the function that is going to be called')
-	parser.add_argument('--manualSeed', default=None, type=int, help='manual seed')
+	parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
 	parser.add_argument('--backdoor', action='store_true', help='include backdoor')
 	parser.add_argument('--naive', action='store_true', help='include naive version of the backdoor')
 	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
@@ -661,9 +667,9 @@ if __name__=="__main__":
 	print(opt)
 
 	seed = opt.manualSeed
-	if seed is None:
-		seed = random.randrange(1000)
-		print("No seed was specified, thus choosing one randomly:", seed)
+	# if seed is None:
+	# 	seed = random.randrange(1000)
+	# 	print("No seed was specified, thus choosing one randomly:", seed)
 	random.seed(seed)
 	np.random.seed(seed)
 	torch.manual_seed(seed)
