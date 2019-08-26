@@ -530,8 +530,10 @@ def prune_leaf(tree, index):
 	# tree.parents[parent_index] = tree.parents[new_child]
 	tree.usages[parent_index] = tree.usages[new_child]
 	# tree.pruned[parent_index] = tree.pruned[new_child]
-	tree.parents[tree.tree_.children_left[new_child]] = parent_index
-	tree.parents[tree.tree_.children_right[new_child]] = parent_index
+	assert (tree.tree_.children_left[new_child] == TREE_LEAF) == (tree.tree_.children_right[new_child] == TREE_LEAF)
+	if tree.tree_.children_left[new_child] != TREE_LEAF:
+		tree.parents[tree.tree_.children_left[new_child]] = parent_index
+		tree.parents[tree.tree_.children_right[new_child]] = parent_index
 	tree.tree_.children_left[new_child] = TREE_LEAF
 	tree.tree_.children_right[new_child] = TREE_LEAF
 
