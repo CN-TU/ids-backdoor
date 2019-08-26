@@ -280,15 +280,25 @@ def prune_neuron(net, layer_index, neuron_index):
 	correct_layer.weight.data[neuron_index,:] = 0
 	correct_layer.bias.data[neuron_index] = 0
 
-def plot_histogram_of_layer_activations(activations):
+def plot_histogram_of_layer_activations(activations, file_name_appendix=""):
+	# max = np.max(np.concatenate(activations, axis=0))
+	n_layers = len(activations)
 
+	_, axes = plt.subplots(n_layers, 1, sharex=True)
+	for layer in range(n_layers):
+		axes[layer].hist(activations[layer])
+
+	plt.tight_layout()
+	if "DISPLAY" in os.environ:
+		plt.show()
+	else:
+		plt.savefig(file_name+file_name_appendix+".pdf")
 
 def prune_backdoor_nn():
 	net.eval()
 	assert not opt.pruneOnlyHarmless, "--pruneOnlyHarmless does not make sense for neural network"
 	validation_indices, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
 
-	layer_to_hook_to = "ReLU"
 	good_layers = get_layers_by_type(net, "Linear")[:-1]
 	layer_shapes = [layer.bias.shape[0] for _, layer in good_layers]
 	layer_indices = [index for index, _ in good_layers]
@@ -305,6 +315,21 @@ def prune_backdoor_nn():
 			current_index_in_layer = 0
 			current_layer_index += 1
 
+	good_layers = get_layers_by_type(net, "ReLU")
+	_, mean_activation_per_neuron = predict(validation_indices, net=net, good_layers=good_layers)
+	plot_histogram_of_layer_activations(mean_activation_per_neuron, "_mean_activation_in_each_layer")
+
+	_, mean_activation_per_neuron_all = predict(get_indices_for_backdoor_pruning(all_validation_indices=True)[0], net=net, good_layers=good_layers)
+	plot_histogram_of_layer_activations(mean_activation_per_neuron_all, "_all_validation_indices_mean_activation_in_each_layer")
+
+	plot_histogram_of_layer_activations([all_samples-no_backdoor_samples for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)], "_differences_mean_activation_in_each_layer")
+
+	if opt.onlyLastLayer:
+		[item.fill(np.inf) for item in mean_activation_per_neuron[:-1]]
+	mean_activation_per_neuron = np.concatenate(mean_activation_per_neuron, axis=0)
+	n_nodes = len(mean_activation_per_neuron[mean_activation_per_neuron < np.inf])
+	sorted_by_activation = np.argsort(mean_activation_per_neuron)
+
 	# print(position_for_index)
 	step_width = 1/(opt.nSteps+1)
 
@@ -313,15 +338,8 @@ def prune_backdoor_nn():
 	for step in range(opt.nSteps):
 		new_nn = copy.deepcopy(new_nns[-1])
 
-		good_layers = get_layers_by_type(new_nn, layer_to_hook_to)
-
 		steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
 		print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(opt.nSteps+1))
-		_, mean_activation_per_neuron = predict(validation_indices, net=new_nn, good_layers=good_layers)
-
-		mean_activation_per_neuron = np.concatenate(mean_activation_per_neuron, axis=0)
-
-		sorted_by_activation = np.argsort(mean_activation_per_neuron)
 
 		for next_neuron_to_prune in range(next_neuron_to_prune+1, next_neuron_to_prune+steps_to_do+1):
 			# print("next_neuron_to_prune", next_neuron_to_prune)
@@ -567,7 +585,7 @@ def reachable_nodes(tree, only_leaves=False):
 			stack.append(child_right)
 	return n_remaining_nodes
 
-def get_indices_for_backdoor_pruning():
+def get_indices_for_backdoor_pruning(all_validation_indices=False):
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	split_point = int(math.floor(len(test_indices)/2))
@@ -584,7 +602,7 @@ def get_indices_for_backdoor_pruning():
 	# harmless_good_validation_indices = good_validation_indices
 	assert len(harmless_good_validation_indices) > 0
 
-	validation_indices = harmless_good_validation_indices if opt.pruneOnlyHarmless else good_validation_indices
+	validation_indices = (harmless_good_validation_indices if opt.pruneOnlyHarmless else good_validation_indices) if not all_validation_indices else validation_indices
 
 	return validation_indices, good_test_indices, bad_test_indices
 
@@ -660,6 +678,7 @@ if __name__=="__main__":
 	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
 	parser.add_argument('--pruneOnlyHarmless', action='store_true', help='whether only harmless nodes shall be pruned')
 	parser.add_argument('--takeSignOfActivation', action='store_true', help='whether only harmless nodes shall be pruned')
+	parser.add_argument('--onlyLastLayer', action='store_true', help='whether the last layer is considered for pruning')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
 	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
@@ -766,18 +785,19 @@ if __name__=="__main__":
 	print("columns", columns)
 
 	x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
+	file_name = opt.dataroot[:-4]+"_"+(("backdoor" if not opt.naive else "backdoor_naive") if opt.backdoor else "normal")
 	if opt.normalizationData == "":
-		file_name = opt.dataroot[:-4]+"_"+(("backdoor" if not opt.naive else "backdoor_naive") if opt.backdoor else "normal")+"_normalization_data.pickle"
+		file_name_for_normalization_data = file_name+"_normalization_data.pickle"
 		means = np.mean(x, axis=0)
 		stds = np.std(x, axis=0)
 		stds[stds==0.0] = 1.0
 		# np.set_printoptions(suppress=True)
 		# stds[np.isclose(stds, 0)] = 1.0
-		with open(file_name, "wb") as f:
+		with open(file_name_for_normalization_data, "wb") as f:
 			f.write(pickle.dumps((means, stds)))
 	else:
-		file_name = opt.normalizationData
-		with open(file_name, "rb") as f:
+		file_name_for_normalization_data = opt.normalizationData
+		with open(file_name_for_normalization_data, "rb") as f:
 			means, stds = pickle.loads(f.read())
 	assert means.shape[0] == x.shape[1], "means.shape: {}, x.shape: {}".format(means.shape, x.shape)
 	assert stds.shape[0] == x.shape[1], "stds.shape: {}, x.shape: {}".format(stds.shape, x.shape)
