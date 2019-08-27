@@ -394,7 +394,7 @@ def prune_backdoor_nn():
 			if not opt.pruneConnections:
 				layer_index, index_in_layer = position_for_index[most_useless_neuron_index]
 				# layer_index -= 1
-				print("next_neuron_to_prune", next_neuron_to_prune, "layer_index", layer_index, "index_in_layer", index_in_layer)
+				print("next_neuron_to_prune", next_neuron_to_prune, "value", mean_activation_per_neuron[most_useless_neuron_index], "layer_index", layer_index, "index_in_layer", index_in_layer)
 				prune_neuron(new_nn, layer_index, index_in_layer)
 			else:
 				layer_index, row_index, column_index = position_for_index[most_useless_neuron_index]
