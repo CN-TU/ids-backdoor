@@ -31,6 +31,7 @@ import collections
 import pickle
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
 
 def output_scores(y_true, y_pred, only_accuracy=False):
 	accuracy = accuracy_score(y_true, y_pred)
@@ -302,21 +303,36 @@ def plot_histogram_of_layer_activations(activations, file_name_appendix=""):
 	if "DISPLAY" in os.environ:
 		plt.show()
 	else:
-		plt.savefig(file_name+file_name_appendix+".pdf")
+		plt.savefig("heatmap_"+file_name+file_name_appendix+".pdf")
+
+class MidpointNormalize(Normalize):
+	def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+		self.midpoint = midpoint
+		Normalize.__init__(self, vmin, vmax, clip)
+
+	def __call__(self, value, clip=None):
+		# I'm ignoring masked values and all kinds of edge cases to make a
+		# simple example...
+		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+		return np.ma.masked_array(np.interp(value, x, y))
 
 def plot_heatmap_of_layer_activations(activations, file_name_appendix=""):
 	# max = np.max(np.concatenate(activations, axis=0))
 	n_layers = len(activations)
+	concatenated_activations = np.concatenate([item.flatten() for item in activations], axis=0)
 
-	_, axes = plt.subplots(n_layers, 1, sharex=True)
+	norm = MidpointNormalize(vmin=min(np.min(concatenated_activations), 0), midpoint=0, vmax=max(np.max(concatenated_activations), 0))
+	fig, axes = plt.subplots(n_layers, 1, sharex=True)
+	ims = []
 	for layer in range(n_layers):
-		axes[layer].hist(activations[layer].flatten())
+		ims.append(axes[layer].imshow(activations[layer].flatten()[None,:], norm=norm, cmap=plt.cm.seismic, interpolation="none", aspect=100))
 
+	fig.colorbar(ims[0])
 	plt.tight_layout()
 	if "DISPLAY" in os.environ:
 		plt.show()
 	else:
-		plt.savefig(file_name+file_name_appendix+".pdf")
+		plt.savefig("heatmap_"+file_name+file_name_appendix+".pdf")
 
 def prune_backdoor_nn():
 	net.eval()
@@ -363,13 +379,22 @@ def prune_backdoor_nn():
 		good_layers = get_layers_by_type(net, "ReLU")
 	_, mean_activation_per_neuron = predict(validation_indices, net=net, good_layers=good_layers)
 
-	if opt.plotHistogram:
-		plot_histogram_of_layer_activations(mean_activation_per_neuron, "_mean_activation_in_each_layer")
+	if opt.plotHistogram or opt.plotHeatmap:
+		if opt.plotHistogram:
+			plot_histogram_of_layer_activations(mean_activation_per_neuron, "_mean_activation_in_each_layer")
+		if opt.plotHeatmap:
+			plot_heatmap_of_layer_activations(mean_activation_per_neuron, "_mean_activation_in_each_layer")
 
 		_, mean_activation_per_neuron_all = predict(get_indices_for_backdoor_pruning(all_validation_indices=True)[0], net=net, good_layers=good_layers)
-		plot_histogram_of_layer_activations(mean_activation_per_neuron_all, "_all_validation_indices_mean_activation_in_each_layer")
+		if opt.plotHistogram:
+			plot_histogram_of_layer_activations(mean_activation_per_neuron_all, "_all_validation_indices_mean_activation_in_each_layer")
+		if opt.plotHeatmap:
+			plot_heatmap_of_layer_activations(mean_activation_per_neuron_all, "_all_validation_indices_mean_activation_in_each_layer")
 
-		plot_histogram_of_layer_activations([all_samples-no_backdoor_samples for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)], "_differences_mean_activation_in_each_layer")
+		if opt.plotHistogram:
+			plot_histogram_of_layer_activations([all_samples-no_backdoor_samples for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)], "_differences_mean_activation_in_each_layer")
+		if opt.plotHeatmap:
+			plot_heatmap_of_layer_activations([all_samples-no_backdoor_samples for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)], "_differences_mean_activation_in_each_layer")
 
 	if opt.onlyLastLayer:
 		[item.fill(np.inf) for item in mean_activation_per_neuron[:-1]]
