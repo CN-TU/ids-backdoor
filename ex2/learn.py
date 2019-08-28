@@ -166,11 +166,14 @@ def closest(prediction_function):
 # Deep Learning
 ############################
 
-def train_nn():
+def train_nn(finetune=False):
 	n_fold = opt.nFold
 	fold = opt.fold
 
-	train_indices, _ = get_nth_split(dataset, n_fold, fold)
+	if finetune:
+		train_indices, _, _ = get_indices_for_backdoor_pruning()
+	else:
+		train_indices, _ = get_nth_split(dataset, n_fold, fold)
 	train_data = torch.utils.data.Subset(dataset, train_indices)
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True)
 
@@ -198,7 +201,7 @@ def train_nn():
 			accuracy = torch.mean((torch.round(torch.sigmoid(output.detach().squeeze())) == labels.squeeze()).float())
 			writer.add_scalar("accuracy", accuracy, samples)
 
-		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
+		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.logdir, samples))
 
 def predict(test_indices, net=None, good_layers=None, correlation=False):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
@@ -252,7 +255,16 @@ def test_nn():
 
 	_, test_indices = get_nth_split(dataset, n_fold, fold)
 
+	print('All test data')
 	eval_nn(test_indices)
+	
+	if opt.backdoor:
+		_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		print ('Good test data')
+		eval_nn(good_test_indices)
+		
+		print ('Backdoored data')
+		eval_nn(bad_test_indices)
 
 def eval_nn(test_indices):
 	# if test_indices is None:
@@ -469,6 +481,9 @@ def prune_backdoor_nn():
 		ground_truth_bad = y[bad_test_indices,0]
 		output_scores(ground_truth_bad, predicted_bad, only_accuracy=True)
 
+def finetune_nn():
+	train_nn(finetune=True)
+
 def closest_nn():
 	closest(predict)
 
@@ -501,6 +516,7 @@ def ice_nn():
 
 def surrogate_nn():
 	surrogate(predict)
+	
 
 # Random Forests
 ##########################
@@ -709,6 +725,7 @@ def get_indices_for_backdoor_pruning(all_validation_indices=False):
 
 	validation_indices = (harmless_good_validation_indices if opt.pruneOnlyHarmless else good_validation_indices) if not all_validation_indices else validation_indices
 
+	validation_indices = validation_indices[:int(len(validation_indices)*opt.reduceValidationSet)]
 	return validation_indices, good_test_indices, bad_test_indices
 
 def prune_backdoor_rf():
@@ -793,6 +810,7 @@ if __name__=="__main__":
 	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
+	parser.add_argument('--reduceValidationSet', type=float, default=1, help='relative amount of validation set to use for pruning')
 
 	opt = parser.parse_args()
 	print(opt)
