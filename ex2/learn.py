@@ -200,7 +200,7 @@ def train_nn():
 
 		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
 
-def predict(test_indices, net=None, good_layers=None):
+def predict(test_indices, net=None, good_layers=None, correlation=False):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
 	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
 
@@ -208,7 +208,10 @@ def predict(test_indices, net=None, good_layers=None):
 	all_predictions = []
 	if good_layers is not None:
 		hooked_classes = [HookClass(layer) for index, layer in good_layers]
-		summed_activations = None
+		if not correlation:
+			summed_activations = None
+		else:
+			summed_activations = []
 	net.eval()
 	for data, labels in test_loader:
 		data = data.to(device)
@@ -217,15 +220,16 @@ def predict(test_indices, net=None, good_layers=None):
 
 		output = net(data)
 		if good_layers is not None:
-			# activations = [hooked.output.cpu().detach().numpy().astype(np.float64) for hooked in hooked_classes]
-			activations = [hooked.output.detach().double() for hooked in hooked_classes]
-			activations = [torch.sum(item, dim=0) for item in activations]
-			if summed_activations is None:
-				summed_activations = activations
+			if not correlation:
+				activations = [hooked.output.detach().double() for hooked in hooked_classes]
+				activations = [torch.sum(item, dim=0) for item in activations]
+				if summed_activations is None:
+					summed_activations = activations
+				else:
+					summed_activations = [mean_item+new_item for mean_item, new_item in zip(summed_activations, activations)]
 			else:
-				# old_summed_activations = summed_activations
-				summed_activations = [mean_item+new_item for mean_item, new_item in zip(summed_activations, activations)]
-				# assert np.array([(old <= new).all() for old, new in zip(old_summed_activations, summed_activations)]).all()
+				activations = [hooked.output.detach().cpu().numpy() for hooked in hooked_classes]
+				summed_activations.append(activations)
 
 		all_predictions.append(torch.round(torch.sigmoid(output.detach().squeeze())).cpu().numpy())
 
@@ -236,7 +240,10 @@ def predict(test_indices, net=None, good_layers=None):
 	else:
 		for hooked_class in hooked_classes:
 			hooked_class.close()
-		mean_activations = [(item.cpu().numpy()/samples).astype(np.float64) for item in summed_activations]
+		if not correlation:
+			mean_activations = [(item.cpu().numpy()/samples).astype(np.float64) for item in summed_activations]
+		else:
+			mean_activations = [np.concatenate(item, axis=0) for item in list(zip(*summed_activations))]
 		return all_predictions, mean_activations
 
 def test_nn():
@@ -325,9 +332,10 @@ def plot_heatmap_of_layer_activations(activations, file_name_appendix=""):
 	fig, axes = plt.subplots(n_layers, 1, sharex=True)
 	ims = []
 	for layer in range(n_layers):
-		ims.append(axes[layer].imshow(activations[layer].flatten()[None,:], norm=norm, cmap=plt.cm.seismic, interpolation="none", aspect=100))
+		data = activations[layer][None,:] if len(activations[layer].shape) == 1 else activations[layer]
+		ims.append(axes[layer].imshow(data, norm=norm, cmap=plt.cm.seismic, interpolation="none", aspect=100))
 
-	fig.colorbar(ims[0])
+	# fig.colorbar(ims[0])
 	plt.tight_layout()
 	if "DISPLAY" in os.environ:
 		plt.show()
@@ -382,22 +390,44 @@ def prune_backdoor_nn():
 	if opt.plotHistogram or opt.plotHeatmap:
 		if opt.plotHistogram:
 			plot_histogram_of_layer_activations(mean_activation_per_neuron, "_mean_activation_in_each_layer")
-		if opt.plotHeatmap:
-			plot_heatmap_of_layer_activations(mean_activation_per_neuron, "_mean_activation_in_each_layer")
 
 		_, mean_activation_per_neuron_all = predict(get_indices_for_backdoor_pruning(all_validation_indices=True)[0], net=net, good_layers=good_layers)
 		if opt.plotHistogram:
 			plot_histogram_of_layer_activations(mean_activation_per_neuron_all, "_all_validation_indices_mean_activation_in_each_layer")
-		if opt.plotHeatmap:
-			plot_heatmap_of_layer_activations(mean_activation_per_neuron_all, "_all_validation_indices_mean_activation_in_each_layer")
 
 		if opt.plotHistogram:
 			plot_histogram_of_layer_activations([all_samples-no_backdoor_samples for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)], "_differences_mean_activation_in_each_layer")
 		if opt.plotHeatmap:
-			plot_heatmap_of_layer_activations([all_samples-no_backdoor_samples for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)], "_differences_mean_activation_in_each_layer")
+			plot_heatmap_of_layer_activations([np.stack((no_backdoor_samples, all_samples, all_samples-no_backdoor_samples)) for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)])
+
+	if opt.correlation:
+
+		good_layers_correlation = get_layers_by_type(net, "Linear")
+		# _, all_activations_for_each_neuron = predict(get_indices_for_backdoor_pruning(all_validation_indices=True)[0], net=net, good_layers=good_layers_correlation, correlation=True)
+
+		indices = get_indices_for_backdoor_pruning(all_validation_indices=True)[0]
+		backdoor_values = backdoor_vector[indices]
+		_, all_activations_for_each_neuron_all = predict(indices, net=net, good_layers=good_layers_correlation, correlation=True)
+		# print("all_activations_for_each_neuron_all.shape", all_activations_for_each_neuron_all.shape)
+		assert np.array([item.shape[0] == len(indices) for item in all_activations_for_each_neuron_all]).all()
+
+		results = []
+		for item in all_activations_for_each_neuron_all:
+			subresults = []
+			for subitem in np.split(item, item.shape[1], axis=1):
+				subitem = subitem.squeeze()
+				# print("subitem.shape", subitem.shape, "backdoor_values.shape", backdoor_values.shape)
+				subresults.append(np.corrcoef(subitem, backdoor_values)[0,1])
+			results.append(np.array(subresults))
+
+		import pdb; pdb.set_trace()
+
+		# plot_heatmap_of_layer_activations([np.stack((no_backdoor_samples, all_samples, all_samples-no_backdoor_samples)) for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)])
 
 	if opt.onlyLastLayer:
 		[item.fill(np.inf) for item in mean_activation_per_neuron[:-1]]
+	if opt.onlyFirstLayer:
+		[item.fill(np.inf) for item in mean_activation_per_neuron[1:]]
 	mean_activation_per_neuron = np.concatenate([item.flatten() for item in mean_activation_per_neuron], axis=0)
 	n_nodes = len(mean_activation_per_neuron[mean_activation_per_neuron < np.inf])
 	sorted_by_activation = np.argsort(mean_activation_per_neuron)
@@ -753,10 +783,12 @@ if __name__=="__main__":
 	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
 	parser.add_argument('--pruneOnlyHarmless', action='store_true', help='whether only harmless nodes shall be pruned')
 	parser.add_argument('--takeSignOfActivation', action='store_true', help='whether only harmless nodes shall be pruned')
-	parser.add_argument('--onlyLastLayer', action='store_true', help='whether the last layer is considered for pruning')
+	parser.add_argument('--onlyLastLayer', action='store_true', help='whether only the last layer is considered for pruning')
+	parser.add_argument('--onlyFirstLayer', action='store_true', help='whether only the first layer is considered for pruning')
 	parser.add_argument('--pruneConnections', action='store_true', help='whether the connections in the matrix should be pruned and not the neurons themselves')
 	parser.add_argument('--plotHistogram', action='store_true')
 	parser.add_argument('--plotHeatmap', action='store_true')
+	parser.add_argument('--correlation', action='store_true')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
 	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
