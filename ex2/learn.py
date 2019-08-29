@@ -462,7 +462,8 @@ def prune_backdoor_nn():
 
 		correlation_between_step_when_pruned_and_correlation_with_backdoor = scipy.stats.pearsonr(where_it_would_be_sorted, np.abs(concatenated_results))
 
-		print("Correlation between the step during which a neuron is pruned and the absolute value of its correlation with the backdoor:", correlation_between_step_when_pruned_and_correlation_with_backdoor[0], "If the method worked, it would be (significantly) less than zero. The p-values is", correlation_between_step_when_pruned_and_correlation_with_backdoor[1])
+		print("Correlation between the step during which a neuron is pruned and the absolute value of its correlation with the backdoor", correlation_between_step_when_pruned_and_correlation_with_backdoor[0])
+		print("If the method worked, it would be (significantly) less than zero. The p-values is", correlation_between_step_when_pruned_and_correlation_with_backdoor[1])
 
 		import pdb; pdb.set_trace()
 
