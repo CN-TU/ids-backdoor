@@ -33,6 +33,8 @@ import pickle
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
+import scipy.stats
+
 def output_scores(y_true, y_pred, only_accuracy=False):
 	accuracy = accuracy_score(y_true, y_pred)
 	if not only_accuracy:
@@ -257,12 +259,12 @@ def test_nn():
 
 	print('All test data')
 	eval_nn(test_indices)
-	
+
 	if opt.backdoor:
 		_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
 		print ('Good test data')
 		eval_nn(good_test_indices)
-		
+
 		print ('Backdoored data')
 		eval_nn(bad_test_indices)
 
@@ -412,15 +414,24 @@ def prune_backdoor_nn():
 		if opt.plotHeatmap:
 			plot_heatmap_of_layer_activations([np.stack((no_backdoor_samples, all_samples, all_samples-no_backdoor_samples)) for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)])
 
+	if opt.onlyLastLayer:
+		assert not opt.correlation
+		[item.fill(np.inf) for item in mean_activation_per_neuron[:-1]]
+	if opt.onlyFirstLayer:
+		assert not opt.correlation
+		[item.fill(np.inf) for item in mean_activation_per_neuron[1:]]
+	mean_activation_per_neuron = np.concatenate([item.flatten() for item in mean_activation_per_neuron], axis=0)
+	n_nodes = len(mean_activation_per_neuron[mean_activation_per_neuron < np.inf])
+	sorted_by_activation = np.argsort(mean_activation_per_neuron)
+
 	if opt.correlation:
 
-		good_layers_correlation = get_layers_by_type(net, "Linear")
-		# _, all_activations_for_each_neuron = predict(get_indices_for_backdoor_pruning(all_validation_indices=True)[0], net=net, good_layers=good_layers_correlation, correlation=True)
+		# good_layers_correlation = get_layers_by_type(net, "ReLU")
+		good_layers_correlation = good_layers
 
 		indices = get_indices_for_backdoor_pruning(all_validation_indices=True)[0]
 		backdoor_values = backdoor_vector[indices]
 		_, all_activations_for_each_neuron_all = predict(indices, net=net, good_layers=good_layers_correlation, correlation=True)
-		# print("all_activations_for_each_neuron_all.shape", all_activations_for_each_neuron_all.shape)
 		assert np.array([item.shape[0] == len(indices) for item in all_activations_for_each_neuron_all]).all()
 
 		results = []
@@ -428,21 +439,32 @@ def prune_backdoor_nn():
 			subresults = []
 			for subitem in np.split(item, item.shape[1], axis=1):
 				subitem = subitem.squeeze()
-				# print("subitem.shape", subitem.shape, "backdoor_values.shape", backdoor_values.shape)
 				subresults.append(np.corrcoef(subitem, backdoor_values)[0,1])
-			results.append(np.array(subresults))
+			subresults = np.array(subresults)
+			subresults[np.isnan(subresults)] = 0
+			results.append(subresults)
+
+		for index, (layer, result) in enumerate(zip(good_layers_correlation, results)):
+			layer_shapes_correlation = [item.shape[0] for item in results[:index]]
+			offset = 0 if len(layer_shapes_correlation)==0 else sum(layer_shapes_correlation)
+			argmin_result = np.argmin(result)
+			global_argmin_result = argmin_result+offset
+			rank_min = np.where(sorted_by_activation==global_argmin_result)[0].item()
+			argmax_result = np.argmax(result)
+			global_argmax_result = argmax_result+offset
+			rank_max = np.where(sorted_by_activation==global_argmax_result)[0].item()
+			global_argmax_result = argmax_result+offset
+			print("index", index, "layer", layer[0], "min", result[argmin_result], "max", result[argmax_result], "activation rank min", rank_min/len(sorted_by_activation), "activation rank max", rank_max/len(sorted_by_activation))
+
+		where_it_would_be_sorted = np.array(list(zip(*sorted(enumerate(mean_activation_per_neuron), key=lambda key: key[1])))[0])
+		concatenated_results = np.concatenate(results)
+		# correlation_between_step_when_pruned_and_correlation_with_backdoor = np.corrcoef(where_it_would_be_sorted, np.abs(concatenated_results))[0,1]
+
+		correlation_between_step_when_pruned_and_correlation_with_backdoor = scipy.stats.pearsonr(where_it_would_be_sorted, np.abs(concatenated_results))
+
+		print("Correlation between the step during which a neuron is pruned and the absolute value of its correlation with the backdoor:", correlation_between_step_when_pruned_and_correlation_with_backdoor[0], "If the method worked, it would be (significantly) less than zero. The p-values is", correlation_between_step_when_pruned_and_correlation_with_backdoor[1])
 
 		import pdb; pdb.set_trace()
-
-		# plot_heatmap_of_layer_activations([np.stack((no_backdoor_samples, all_samples, all_samples-no_backdoor_samples)) for no_backdoor_samples, all_samples in zip(mean_activation_per_neuron, mean_activation_per_neuron_all)])
-
-	if opt.onlyLastLayer:
-		[item.fill(np.inf) for item in mean_activation_per_neuron[:-1]]
-	if opt.onlyFirstLayer:
-		[item.fill(np.inf) for item in mean_activation_per_neuron[1:]]
-	mean_activation_per_neuron = np.concatenate([item.flatten() for item in mean_activation_per_neuron], axis=0)
-	n_nodes = len(mean_activation_per_neuron[mean_activation_per_neuron < np.inf])
-	sorted_by_activation = np.argsort(mean_activation_per_neuron)
 
 	step_width = 1/(opt.nSteps+1)
 
@@ -455,12 +477,10 @@ def prune_backdoor_nn():
 		print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(opt.nSteps+1))
 
 		for next_neuron_to_prune in range(next_neuron_to_prune+1, next_neuron_to_prune+steps_to_do+1):
-			# print("next_neuron_to_prune", next_neuron_to_prune)
 			most_useless_neuron_index = sorted_by_activation[next_neuron_to_prune]
 
 			if not opt.pruneConnections:
 				layer_index, index_in_layer = position_for_index[most_useless_neuron_index]
-				# layer_index -= 1
 				print("next_neuron_to_prune", next_neuron_to_prune, "value", mean_activation_per_neuron[most_useless_neuron_index], "layer_index", layer_index, "index_in_layer", index_in_layer)
 				prune_neuron(new_nn, layer_index, index_in_layer)
 			else:
@@ -516,7 +536,7 @@ def ice_nn():
 
 def surrogate_nn():
 	surrogate(predict)
-	
+
 
 # Random Forests
 ##########################
@@ -883,9 +903,7 @@ if __name__=="__main__":
 		# print("backdoored_records", len(backdoored_records))
 		backdoored_records = pd.DataFrame.from_dict(backdoored_records)
 		# backdoored_records.to_csv("exported_df.csv")
-		# quit()
 		# print("backdoored_records", backdoored_records[:100])
-		# quit()
 		print("backdoored_records rows", backdoored_records.shape[0])
 
 		df = pd.concat([df, backdoored_records], axis=0, ignore_index=True, sort=False)
