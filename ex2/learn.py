@@ -34,18 +34,19 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
 def output_scores(y_true, y_pred, only_accuracy=False):
-	accuracy = accuracy_score(y_true, y_pred)
+	metrics = [ accuracy_score(y_true, y_pred) ]
 	if not only_accuracy:
-		precision = precision_score(y_true, y_pred)
-		recall = recall_score(y_true, y_pred)
-		f1 = f1_score(y_true, y_pred)
-		youden = balanced_accuracy_score(y_true, y_pred, adjusted=True)
-	metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden'] if not only_accuracy else ["Accuracy"]
-	print (('{:>11}'*len(metrics)).format(*metrics))
-	if not only_accuracy:
-		print ((' {:.8f}'*len(metrics)).format(accuracy, precision, recall, f1, youden))
-	else:
-		print ((' {:.8f}'*len(metrics)).format(accuracy))
+		metrics.extend([
+			precision_score(y_true, y_pred),
+			recall_score(y_true, y_pred),
+			f1_score(y_true, y_pred),
+			balanced_accuracy_score(y_true, y_pred, adjusted=True)
+		])
+	names = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden'] if not only_accuracy else ["Accuracy"]
+	print (('{:>11}'*len(names)).format(*names))
+	print ((' {:.8f}'*len(metrics)).format(*metrics))
+	return { name: metric for name, metric in zip(names, metrics) }
+	
 
 def add_backdoor(datum: dict, direction: str) -> dict:
 	datum = datum.copy()
@@ -257,15 +258,15 @@ def test_nn():
 		eval_nn(good_test_indices)
 		
 		print ('Backdoored data')
-		eval_nn(bad_test_indices)
+		eval_nn(bad_test_indices, only_accuracy=True)
 
-def eval_nn(test_indices):
+def eval_nn(test_indices, only_accuracy=False):
 	# if test_indices is None:
 	# 	test_indices = list(range(len(dataset)))
 
 	all_predictions = predict(test_indices, net=net)
 	all_labels = y[test_indices,0]
-	output_scores(all_labels, all_predictions)
+	output_scores(all_labels, all_predictions, only_accuracy)
 
 def get_layers_by_type(model, name):
 	children = model.children()
@@ -739,12 +740,22 @@ def prune_backdoor_rf():
 			new_rf.estimators_[index] = new_tree
 		new_rfs.append(new_rf)
 
-	for step, new_rf in zip([-1]+list(range(opt.nSteps)), new_rfs):
-		print(f"pruned: {(step+1)/(opt.nSteps+1)}")
+	scores = []
+	scoresbd = []
+	relSteps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
+	for relStep, new_rf in zip(relSteps, new_rfs):
+		print(f"pruned: {relStep}")
 		print("non-backdoored")
-		output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:]))
+		scores.append(output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:])))
 		print("backdoored")
-		output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True)
+		scoresbd.append(output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True))
+	
+	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
+	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
+	os.makedirs('prune', exist_ok=True)
+	filename = 'prune/prune_%f%s%s%s.pickle' % (opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
+	with open(filename, 'wb') as f:
+		pickle.dump([relSteps, scores, scoresbd], f)
 
 def noop_nn():
 	pass
