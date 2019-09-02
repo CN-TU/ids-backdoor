@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 DIR_NAME = "ale"
 
-def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, lookaround=10, suffix=''):
+def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, lookaround=10, suffix='', dirsuffix=''):
 	index = np.random.permutation(data.shape[0])[:n_data]
 	data_perm = data[index,:]
 
@@ -45,8 +45,8 @@ def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 		ale = ale - np.mean(ale)
 
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
-		os.makedirs(DIR_NAME, exist_ok=True)
-		np.save('%s/%s%s.npy' % (DIR_NAME, feature, suffix), np.vstack((rescaled,ale)))
+		os.makedirs(DIR_NAME + dirsuffix, exist_ok=True)
+		np.save('%s%s/%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix), np.vstack((rescaled,ale)))
 
 		#plt.plot(rescaled, ale)
 		#plt.xlabel('Feature')

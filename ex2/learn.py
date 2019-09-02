@@ -112,7 +112,7 @@ def get_logdir(fold, n_fold):
 	return os.path.join('runs', current_time + '_' + socket.gethostname() + "_" + str(fold) +"_"+str(n_fold))
 
 def surrogate(predict_fun):
-	os.makedirs('surrogate', exist_ok=True)
+	os.makedirs('surrogate%s' % dirsuffix, exist_ok=True)
 	train_indices, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	logreg = LogisticRegression(solver='liblinear')
@@ -126,7 +126,7 @@ def surrogate(predict_fun):
 	output_scores(y_true, predictions)
 
 	print ("Coefficients:", logreg.coef_)
-	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_pred%s.csv' % suffix)
+	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate%s/logreg_pred%s.csv' % (dirsuffix, suffix))
 
 
 	logreg = LogisticRegression(solver='liblinear')
@@ -140,7 +140,7 @@ def surrogate(predict_fun):
 	output_scores(y_true, predictions)
 
 	print ("Coefficients:", logreg.coef_)
-	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_real%s.csv' % suffix)
+	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate%s/logreg_real%s.csv' % (dirsuffix, suffix))
 
 def closest(prediction_function):
 	n_fold = opt.nFold
@@ -204,7 +204,7 @@ def train_nn(finetune=False):
 			accuracy = torch.mean((torch.round(torch.sigmoid(output.detach().squeeze())) == labels.squeeze()).float())
 			writer.add_scalar("accuracy", accuracy, samples)
 
-		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.logdir, samples))
+		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
 
 def predict(test_indices, net=None, good_layers=None, correlation=False):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
@@ -509,8 +509,8 @@ def prune_backdoor_nn():
 
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
-	os.makedirs('prune', exist_ok=True)
-	filename = 'prune/prune_%s%s%s' % ('_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
+	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
+	filename = 'prune%s/prune%s%s%s.pickle' % (dirsuffix, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
 	with open(filename, 'wb') as f:
 		if opt.correlation:
 			pickle.dump([relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results], f)
@@ -818,7 +818,7 @@ def prune_backdoor_rf():
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
 	os.makedirs('prune', exist_ok=True)
-	filename = 'prune/prune_%f%s%s%s.pickle' % (opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
+	filename = 'prune%s/prune_%f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
 	with open(filename, 'wb') as f:
 		pickle.dump([relSteps, scores, scoresbd], f)
 
@@ -873,6 +873,8 @@ if __name__=="__main__":
 		suffix = '_%s_%d_bd' % (opt.method, opt.fold)
 	else:
 		suffix = '_%s_%d' % (opt.method, opt.fold)
+		
+	dirsuffix = '_%s' % opt.dataroot[:-4]
 
 	# MAX_ROWS = sys.maxsize
 	# # MAX_ROWS = 1_000_000
