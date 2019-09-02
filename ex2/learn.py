@@ -457,7 +457,10 @@ def prune_backdoor_nn():
 			global_argmax_result = argmax_result+offset
 			print("index", index, "layer", layer[0], "min", result[argmin_result], "max", result[argmax_result], "activation rank min", rank_min/len(sorted_by_activation), "activation rank max", rank_max/len(sorted_by_activation))
 
-		where_it_would_be_sorted = np.array(list(zip(*sorted(enumerate(mean_activation_per_neuron), key=lambda key: key[1])))[0])
+		# where_it_would_be_sorted = np.array(list(zip(*sorted(enumerate(mean_activation_per_neuron), key=lambda key: key[1])))[0])
+		where_it_would_be_sorted = np.zeros(len(mean_activation_per_neuron), dtype=int)
+		where_it_would_be_sorted[sorted_by_activation] = np.arange(len(where_it_would_be_sorted))
+		
 		concatenated_results = np.concatenate(results)
 		# correlation_between_step_when_pruned_and_correlation_with_backdoor = np.corrcoef(where_it_would_be_sorted, np.abs(concatenated_results))[0,1]
 
