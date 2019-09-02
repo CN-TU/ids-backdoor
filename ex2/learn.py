@@ -491,17 +491,30 @@ def prune_backdoor_nn():
 
 		new_nns.append(new_nn)
 
-	for step, new_nn in zip([-1]+list(range(opt.nSteps)), new_nns):
+	scores = []
+	scoresbd = []
+	relSteps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
+	for relStep, new_nn in zip(relSteps, new_nns):
 		current_children = list(new_nn.children())
-		print(f"pruned: {(step+1)/(opt.nSteps+1)}")
+		print(f"pruned: {relStep}")
 		print("non-backdoored")
 		predicted_good = predict(good_test_indices, net=new_nn)
 		ground_truth_good = y[good_test_indices,0]
-		output_scores(ground_truth_good, predicted_good)
+		scores.append(output_scores(ground_truth_good, predicted_good))
 		print("backdoored")
 		predicted_bad = predict(bad_test_indices, net=new_nn)
 		ground_truth_bad = y[bad_test_indices,0]
-		output_scores(ground_truth_bad, predicted_bad, only_accuracy=True)
+		scoresbd.append(output_scores(ground_truth_bad, predicted_bad, only_accuracy=True))
+		
+	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
+	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
+	os.makedirs('prune', exist_ok=True)
+	filename = 'prune/prune_%s%s%s' % ('_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
+	with open(filename, 'wb') as f:
+		if opt.correlation:
+			pickle.dump([relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results], f)
+		else:
+			pickle.dump([relSteps, scores, scoresbd], f)
 
 def finetune_nn():
 	train_nn(finetune=True)
