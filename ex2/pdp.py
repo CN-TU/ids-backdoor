@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 DIR_NAME = "pdp"
 
-def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100, suffix=''):
+def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100, suffix='', dirsuffix=''):
 
 	index = np.random.permutation(data.shape[0])[:n_data]
 	downsampled_data = data[index,:]
@@ -30,8 +30,8 @@ def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 			pdps[i,j_index] = np.mean(eval_function(dd_cpy)[:,0])
 			
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
-		os.makedirs(DIR_NAME, exist_ok=True)
-		np.save('%s/%s%s.npy' % (DIR_NAME, feature, suffix), np.vstack((rescaled,pdps[i,:])))
+		os.makedirs(DIR_NAME + dirsuffix, exist_ok=True)
+		np.save('%s%s/%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix), np.vstack((rescaled,pdps[i,:])))
 
 		#plt.plot(rescaled, pdps[i,:])
 		#plt.xlabel('Feature')
