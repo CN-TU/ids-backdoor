@@ -48,7 +48,7 @@ def output_scores(y_true, y_pred, only_accuracy=False):
 	print (('{:>11}'*len(names)).format(*names))
 	print ((' {:.8f}'*len(metrics)).format(*metrics))
 	return { name: metric for name, metric in zip(names, metrics) }
-	
+
 
 def add_backdoor(datum: dict, direction: str) -> dict:
 	datum = datum.copy()
@@ -460,7 +460,7 @@ def prune_backdoor_nn():
 		# where_it_would_be_sorted = np.array(list(zip(*sorted(enumerate(mean_activation_per_neuron), key=lambda key: key[1])))[0])
 		where_it_would_be_sorted = np.zeros(len(mean_activation_per_neuron), dtype=int)
 		where_it_would_be_sorted[sorted_by_activation] = np.arange(len(where_it_would_be_sorted))
-		
+
 		concatenated_results = np.concatenate(results)
 		# correlation_between_step_when_pruned_and_correlation_with_backdoor = np.corrcoef(where_it_would_be_sorted, np.abs(concatenated_results))[0,1]
 
@@ -468,8 +468,6 @@ def prune_backdoor_nn():
 
 		print("Correlation between the step during which a neuron is pruned and the absolute value of its correlation with the backdoor", correlation_between_step_when_pruned_and_correlation_with_backdoor[0])
 		print("If the method worked, it would be (significantly) less than zero. The p-values is", correlation_between_step_when_pruned_and_correlation_with_backdoor[1])
-
-		import pdb; pdb.set_trace()
 
 	step_width = 1/(opt.nSteps+1)
 
@@ -508,7 +506,7 @@ def prune_backdoor_nn():
 		predicted_bad = predict(bad_test_indices, net=new_nn)
 		ground_truth_bad = y[bad_test_indices,0]
 		scoresbd.append(output_scores(ground_truth_bad, predicted_bad, only_accuracy=True))
-		
+
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
 	os.makedirs('prune', exist_ok=True)
@@ -816,7 +814,7 @@ def prune_backdoor_rf():
 		scores.append(output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:])))
 		print("backdoored")
 		scoresbd.append(output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True))
-	
+
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
 	os.makedirs('prune', exist_ok=True)
