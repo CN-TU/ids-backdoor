@@ -47,6 +47,7 @@ def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
 		os.makedirs(DIR_NAME + dirsuffix, exist_ok=True)
 		np.save('%s%s/%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix), np.vstack((rescaled,ale)))
+		np.save('%s%s/%s%s_data.npy' % (DIR_NAME, dirsuffix, feature, suffix), data_perm[:,i])
 
 		#plt.plot(rescaled, ale)
 		#plt.xlabel('Feature')

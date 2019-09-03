@@ -28,10 +28,11 @@ def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 			dd_cpy = downsampled_data.copy()
 			dd_cpy[:,i] = j
 			pdps[i,j_index] = np.mean(eval_function(dd_cpy)[:,0])
-			
+
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
 		os.makedirs(DIR_NAME + dirsuffix, exist_ok=True)
 		np.save('%s%s/%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix), np.vstack((rescaled,pdps[i,:])))
+		np.save('%s%s/%s%s_data.npy' % (DIR_NAME, dirsuffix, feature, suffix), downsampled_data[:,i])
 
 		#plt.plot(rescaled, pdps[i,:])
 		#plt.xlabel('Feature')

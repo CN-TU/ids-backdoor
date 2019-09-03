@@ -181,6 +181,7 @@ def train_nn(finetune=False):
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True)
 
 	writer = SummaryWriter(get_logdir(fold, n_fold))
+	_ = writer.log_dir
 
 	criterion = torch.nn.BCEWithLogitsLoss(reduction="mean")
 	optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr)
@@ -873,7 +874,7 @@ if __name__=="__main__":
 		suffix = '_%s_%d_bd' % (opt.method, opt.fold)
 	else:
 		suffix = '_%s_%d' % (opt.method, opt.fold)
-		
+
 	dirsuffix = '_%s' % opt.dataroot[:-4]
 
 	# MAX_ROWS = sys.maxsize
@@ -915,7 +916,7 @@ if __name__=="__main__":
 		print("backward", ratio_of_those_good_ones_with_stdev_not_zero_backward)
 
 
-		attack_records = df[df["Label"] == 1].to_dict("records", into=collections.OrderedDict)
+		attack_records = df[df["Label"] != opt.classWithBackdoor].to_dict("records", into=collections.OrderedDict)
 		# print("attack_records", attack_records)
 		forward_ones = [item for item in [add_backdoor(item, "forward") for item in attack_records] if item is not None]
 		print("forward_ones", len(forward_ones))
