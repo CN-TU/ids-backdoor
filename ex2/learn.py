@@ -512,7 +512,7 @@ def prune_backdoor_nn():
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
-	filename = 'prune%s/prune%s%s%s.pickle' % (dirsuffix, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
+	filename = 'prune%s/prune_%f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
 	with open(filename, 'wb') as f:
 		if opt.correlation:
 			pickle.dump([relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results], f)
@@ -532,7 +532,7 @@ def pdp_nn():
 	all_labels = []
 	net.eval()
 
-	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
+	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix, dirsuffix=dirsuffix)
 
 def ale_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -541,7 +541,7 @@ def ale_nn():
 	all_labels = []
 	net.eval()
 
-	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
+	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix, dirsuffix=dirsuffix)
 
 def ice_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -550,7 +550,7 @@ def ice_nn():
 	all_labels = []
 	net.eval()
 
-	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
+	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_nn():
 	surrogate(predict)
@@ -570,13 +570,13 @@ def test_rf():
 	output_scores(y[test_indices,0], predictions)
 
 def pdp_rf():
-	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
+	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix, dirsuffix=dirsuffix)
 
 def ale_rf():
-	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
+	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix, dirsuffix=dirsuffix)
 
 def ice_rf():
-	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
+	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_rf():
 	surrogate(lambda indices: rf.predict(x[indices,:]))
@@ -819,7 +819,7 @@ def prune_backdoor_rf():
 	
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
-	os.makedirs('prune', exist_ok=True)
+	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
 	filename = 'prune%s/prune_%f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
 	with open(filename, 'wb') as f:
 		pickle.dump([relSteps, scores, scoresbd], f)
