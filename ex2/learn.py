@@ -29,6 +29,7 @@ import ice as ice_module
 import closest as closest_module
 import collections
 import pickle
+import ast
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
@@ -238,7 +239,7 @@ def predict(test_indices, net=None, good_layers=None, correlation=False):
 				activations = [hooked.output.detach().cpu().numpy() for hooked in hooked_classes]
 				summed_activations.append(activations)
 
-		all_predictions.append(torch.round(torch.sigmoid(output.detach().squeeze())).cpu().numpy())
+		all_predictions.append(torch.round(torch.sigmoid(output.detach())).cpu().numpy())
 
 	all_predictions = np.concatenate(all_predictions, axis=0).astype(int)
 
@@ -531,7 +532,7 @@ def pdp_nn():
 	all_labels = []
 	net.eval()
 
-	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
+	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -540,7 +541,7 @@ def ale_nn():
 	all_labels = []
 	net.eval()
 
-	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
+	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -569,10 +570,10 @@ def test_rf():
 	output_scores(y[test_indices,0], predictions)
 
 def pdp_rf():
-	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
+	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_rf():
-	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
+	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_rf():
 	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
@@ -754,7 +755,7 @@ def get_indices_for_backdoor_pruning(all_validation_indices=False):
 
 	good_test_indices = [index for index in test_indices if backdoor_vector[index] == 0]
 	bad_test_indices = [index for index in test_indices if backdoor_vector[index] == 1]
-	assert (y[bad_test_indices,0] == 0).all()
+	assert (y[bad_test_indices,0] == opt.classWithBackdoor).all()
 
 	harmless_good_validation_indices = [index for index in good_validation_indices if y[index,0] == opt.classWithBackdoor]
 	# harmless_good_validation_indices = good_validation_indices
@@ -841,6 +842,7 @@ if __name__=="__main__":
 	parser.add_argument('--nEstimators', type=int, default=100, help='estimators for random forest')
 	parser.add_argument('--net', default='', help="path to net (to continue training)")
 	parser.add_argument('--function', default='train', help='the function that is going to be called')
+	parser.add_argument('--arg', default='', help="optional arguments")
 	parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
 	parser.add_argument('--backdoor', action='store_true', help='include backdoor')
 	parser.add_argument('--naive', action='store_true', help='include naive version of the backdoor')
