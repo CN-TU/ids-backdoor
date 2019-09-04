@@ -82,21 +82,21 @@ Interest in poisoning attacks and backdoors recently resurfaced for Deep Learnin
 %% "authornote" and "authornotemark" commands
 %% used to denote shared contribution to the research.
 \author{Maximilian Bachl}
-\affiliation{\institution{Technische Universität Wien}}
+\affiliation{\institution{Technische Universit\"at Wien}}
 %\authornote{Both authors contributed equally to this research.}
 \email{maximilian.bachl@tuwien.ac.at}
 
 \author{Alexander Hartl}
-\affiliation{\institution{Technische Universität Wien}}
+\affiliation{\institution{Technische Universit\"at Wien}}
 %\authornotemark[1]
 \email{alexander.hartl@tuwien.ac.at}
 
 \author{Tanja Zseby}
-\affiliation{\institution{Technische Universität Wien}}
+\affiliation{\institution{Technische Universit\"at Wien}}
 \email{tanja.zseby@tuwien.ac.at}
 
 \author{Joachim Fabini}
-\affiliation{\institution{Technische Universität Wien}}
+\affiliation{\institution{Technische Universit\"at Wien}}
 \email{joachim.fabini@tuwien.ac.at}
 
 %%
@@ -152,8 +152,22 @@ Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
 \end{tabular}
 \end{table}
 
+\section{Related Work}
+
 \section{Anomaly Detection Approaches} \label{sec:ml_approaches}
-We used the CIC-IDS-2017~\cite{Sharafaldin2018} for our evaluations. As a first preprocessing step we extracted flow features from the dataset. We used features specified by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
+\subsection{Datasets}
+Several datasets for the purpose of building and evaluating IDSs have been developed. However, as pointed out in \cite{gharib2016}, there are numerous requirements that have to be met for a dataset to provide realistic performance benchmarks in this context.
+
+In this research, we use the UNSW-NB15~\cite{moustafa2015unsw} and the CIC-IDS-2017~\cite{Sharafaldin2018} datasets, which were developed by two independent institutions and are both freely available on the Internet, guaranteeing reproducibility of our results.
+
+The UNSW-NB15 dataset~\cite{moustafa2015unsw} was created by researchers of the University of New South Wales to overcome common problems due to outdated datasets. Network captures containing over 2 million flows of normal traffic and various types of attacks are provided together with a ground truth file. Attack traffic includes exploits, fuzzers, reconnaissance attacks, DoS attacks, shellcode, analysis attacks, backdoors and worms.
+
+The CIC-IDS-2017 dataset~\cite{Sharafaldin2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided raw network captures contain over 2.3 million flows, containing both normal traffic and attacks, which can be coarsely classified into DoS attacks, infiltration attacks, web attacks, brute force and scanning attacks.
+
+
+We used the go-flows~\cite{goflows} flow exporter for extracting these features from the raw capture files.
+
+As a first preprocessing step we extracted flow features from the dataset. We used features specified by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
 
 We used Z-score normalization to process the data and 3-fold cross validation for evaluating the models' performances.
 
@@ -233,14 +247,14 @@ For this reason, we modified this definition to instead use the closest 10 sampl
 \subsubsection{PDPs}
 
 \begin{figure*}[p]
-\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../pdp/apply(mean(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp/apply(mean(ipTTL),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
 
 \caption{Examples for PD plots for deep learning (left side) and random forest (right side).}
 \label{fig:pdp}
@@ -263,14 +277,14 @@ By no means can this behaviour generalize to network traffic in real deployments
 \subsubsection{ALE plots}
 
 \begin{figure*}[p]
-\includegraphics[width=0.48\textwidth]{../ale/sourceTransportPort_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ale/sourceTransportPort_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../ale/apply(mean(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ale/apply(mean(ipTTL),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../ale/apply(stdev(ipTotalLength),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ale/apply(stdev(ipTotalLength),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
 
 \caption{Examples for ALE plots for deep learning (left side) and random forest (right side).}
 \label{fig:ale}
@@ -287,14 +301,14 @@ An important observation for ALE plots particularly for random forests is that i
 \subsubsection{ICE plots}
 
 \begin{figure*}[p]
-\includegraphics[width=0.48\textwidth]{../ice/sourceTransportPort_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ice/sourceTransportPort_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ice_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ice_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../ice/apply(mean(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ice/apply(mean(ipTTL),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ice_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ice_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../ice/apply(stdev(ipTotalLength),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ice/apply(stdev(ipTotalLength),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../ice_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../ice_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
 
 \caption{Examples for ICE plots for deep learning (left side) and random forest (right side) \todo{Fixme: No title!}.}
 \label{fig:ice}
@@ -535,17 +549,17 @@ Hence, we decided to establish a backdoor in our models by varying the TTL for t
 \subsection{Detection}
 
 \begin{figure*}[p]
-%\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_nn_bd.pdf}
-%\includegraphics[width=0.48\textwidth]{../pdp/sourceTransportPort_rf_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_nn_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_rf_bd.pdf}
 
-\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_rf.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_nn_bd.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTTL),forward)_rf_bd.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn_bd.pdf}
+\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf_bd.pdf}
 
-%\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_nn_bd.pdf}
-%\includegraphics[width=0.48\textwidth]{../pdp/apply(stdev(ipTotalLength),forward)_rf_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf_bd.pdf}
 
 \caption{Examples for PD plots for deep learning (left side) and random forest (right side). The top row is from a classifier without backdoor while at the bottom there is a backdoor.}
 \label{fig:pdp_backdoor}
