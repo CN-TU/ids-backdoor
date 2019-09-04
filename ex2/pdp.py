@@ -28,7 +28,10 @@ def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 				continue
 			else:
 				min_max_space = maximum - minimum
-				minimum, maximum = maximum-(1-plot_range[feature][0])*min_max_space, minimum+plot_range[feature][1]*min_max_space
+				old_minimum = minimum
+				old_maximum = maximum
+				minimum = old_maximum-(1-plot_range[feature][0][0])*min_max_space if plot_range[feature][1][0] == "rel" else (plot_range[feature][0][0]-means[i])/stds[i]
+				maximum = old_minimum+plot_range[feature][0][1]*min_max_space if plot_range[feature][1][1] == "rel" else (plot_range[feature][0][1]-means[i])/stds[i]
 
 		minimum_rescaled, maximum_rescaled = minimum*stds[i]+means[i], maximum*stds[i]+means[i]
 
@@ -41,8 +44,11 @@ def pdp(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
 		os.makedirs(DIR_NAME + dirsuffix, exist_ok=True)
 
-		np.save('%s%s/%s%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix, "_("+str(plot_range[feature][0])+","+str(plot_range[feature][1])+")" if plot_range is not None and feature in plot_range else ""), np.vstack((rescaled,pdps[i,:])))
-		np.save('%s%s/%s%s%s_data.npy' % (DIR_NAME, dirsuffix, feature, suffix, "_("+str(plot_range[feature][0])+","+str(plot_range[feature][1])+")" if plot_range is not None and feature in plot_range else ""), downsampled_data[:,i]*stds[i]+means[i])
+		range_tuple = "_"+str(plot_range[feature]).replace(" ", "") if plot_range is not None and feature in plot_range else ""
+
+		print("saving to", '%s%s/%s%s%s' % (DIR_NAME, dirsuffix, feature, suffix, range_tuple))
+		np.save('%s%s/%s%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix, range_tuple), np.vstack((rescaled,pdps[i,:])))
+		np.save('%s%s/%s%s%s_data.npy' % (DIR_NAME, dirsuffix, feature, suffix, range_tuple), downsampled_data[:,i]*stds[i]+means[i])
 
 		#plt.plot(rescaled, pdps[i,:])
 		#plt.xlabel('Feature')

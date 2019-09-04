@@ -11,16 +11,18 @@ import matplotlib.pyplot as plt
 import math
 import ast
 
-DIR_NAME = sys.argv[1]
+dir_name = sys.argv[1]
 
 featmap = json.load(open('featmap.json'))
 
 hist = "hist" in sys.argv
 
-for f in os.listdir(DIR_NAME):
-	match = re.match('(.*)_(nn|rf)_0((?:_bd)?)((?:_\(\d+\.?\d*,\d+\.?\d*\))?)\.npy', f)
+for f in os.listdir(dir_name):
+	match = re.match('(.*)_(nn|rf)_0((?:_bd)?)((?:_\(\(\d+\.?\d*,\d+\.?\d*\),\(\'[a-z]+\',\'[a-z]+\'\)\))?)\.npy', f)
 	if match is not None:
 		feature = match.group(1)
+
+		print("match", match.groups())
 
 		if not match.group(4):
 			continue
@@ -28,7 +30,7 @@ for f in os.listdir(DIR_NAME):
 		all_legends = []
 		for fold in (range(1) if hist else itertools.count()):
 			try:
-				pdp = np.load('%s/%s_%s_%d%s%s.npy' % (DIR_NAME, feature, match.group(2), fold, match.group(3), match.group(4)))
+				pdp = np.load('%s/%s_%s_%d%s%s.npy' % (dir_name, feature, match.group(2), fold, match.group(3), match.group(4)))
 			except FileNotFoundError as e:
 				break
 			if match.group(2) == 'rf':
@@ -36,7 +38,7 @@ for f in os.listdir(DIR_NAME):
 			fig, ax1 = plt.subplots()
 
 			if hist:
-				data = np.load('%s/%s_%s_%d%s%s_data.npy' % (DIR_NAME, feature, match.group(2), fold, match.group(3), match.group(4)))
+				data = np.load('%s/%s_%s_%d%s%s_data.npy' % (dir_name, feature, match.group(2), fold, match.group(3), match.group(4)))
 				ax2 = ax1.twinx()
 				bbox = ax2.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 				width = int(math.floor(bbox.width*fig.dpi))
@@ -49,7 +51,7 @@ for f in os.listdir(DIR_NAME):
 			if hist:
 				all_legends.append(ret2)
 		ax1.set_xlabel(featmap[feature])
-		ax1.set_ylabel(DIR_NAME.upper())
+		ax1.set_ylabel(dir_name.split("_")[0].upper())
 		if fold > 1:
 			plt.legend(['Fold %d' % (i+1) for i in range(fold)])
 		else:
@@ -57,5 +59,5 @@ for f in os.listdir(DIR_NAME):
 			all_labels = [item.get_label() for item in all_legends]
 			plt.legend(all_legends, all_labels)
 		plt.tight_layout()
-		plt.savefig(DIR_NAME+'/%s_%s%s%s%s.pdf' % (feature, match.group(2), match.group(3), match.group(4), "_hist" if hist else ""))
+		plt.savefig(dir_name+'/%s_%s%s%s%s.pdf' % (feature, match.group(2), match.group(3), match.group(4), "_hist" if hist else ""))
 		plt.close()
