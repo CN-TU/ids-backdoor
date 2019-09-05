@@ -1,0 +1,55 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{forest}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{calc}
+
+\forestset{
+  default preamble={
+    before typesetting nodes={
+      !root.replace by={[, coordinate, append, name=veryTop]}
+    },
+    where n children>=1{
+      diamond, aspect=2,
+    }{},
+    where level=0{}{
+      if n=1{
+        edge label={node[pos=.2, above] {Y}},
+      }{
+        edge label={node[pos=.2, above] {N}},
+      }
+    },
+    for tree={
+      edge+={thick, -Latex},
+      math content,
+      s sep'+=2cm,
+%      l sep'=0cm,
+      draw,
+      thick,
+      edge path'={ (!u) -| (.parent)},
+    }
+  }
+}
+
+\begin{document}
+\begin{forest} 
+    [x_2 \leq 3.1, name=top
+        [x_1 \leq -2, name=l2l
+            [1, name=leftmost] 
+            [0] 
+        ]   
+        [x_3 \leq 105
+            [x_1 \leq 1.6, name=l2m
+              [0, name=bottom] 
+              [1] 
+            ]   
+            [0, name=rightmost] 
+        ]   
+    ]
+        {
+        \draw[red] let \p{veryTop.north}=(veryTop.north), \p{top.south}=(top.south), \p{leftmost.west}=(leftmost.west), \p{rightmost.east}=(rightmost.east) in (\x{leftmost.west},\y{top.south}) rectangle (\x{rightmost.east},\y{veryTop.north});
+        \draw[red] let \p{lx}=(leftmost.west), \p{ly}=(l2l.south), \p{rx}=(rightmost.east), \p{ry}=(top.south) in (\x{lx},\y{ly}) rectangle (\x{rx},\y{ry});
+        }
+        \draw[red] let \p{lx}=(leftmost.west), \p{ly}=(l2l.south), \p{rx}=(rightmost.east), \p{ry}=(top.south) in (\x{lx},\y{ly}) rectangle (\x{rx},\y{ry});
+        }
+\end{forest}
+\end{document}
