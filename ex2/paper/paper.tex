@@ -546,6 +546,19 @@ Hence, we decided to establish a backdoor in our models by varying the TTL for t
 
 \subsection{Detection}
 
+
+% AH This figures currently serve as placeholder/example. TOOD: decide what to plot exactly
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune.pdf}
+\caption{Performance metrics throughout the pruning process.}
+\end{figure}
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_17/{prune_1.00_nn_0_bd}.pdf}
+\caption{Correlation coefficient of neuron activation with backdoor usage throughout the pruning process.}
+\end{figure}
+
+
 \begin{figure*}[p]
 %\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_nn_bd.pdf}
 %\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_rf_bd.pdf}
@@ -627,7 +640,6 @@ Web Attack:XSS & 233 & 69 & 100 \\
 \bottomrule
 \end{tabular}
 \end{table*}
-
 
 \section{Conclusions}
 
