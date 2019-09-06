@@ -532,7 +532,7 @@ def pdp_nn():
 	all_labels = []
 	net.eval()
 
-	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -541,7 +541,7 @@ def ale_nn():
 	all_labels = []
 	net.eval()
 
-	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -550,7 +550,7 @@ def ice_nn():
 	all_labels = []
 	net.eval()
 
-	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix, dirsuffix=dirsuffix)
+	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_nn():
 	surrogate(predict)
@@ -570,13 +570,13 @@ def test_rf():
 	output_scores(y[test_indices,0], predictions)
 
 def pdp_rf():
-	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_rf():
-	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_rf():
-	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix, dirsuffix=dirsuffix)
+	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_rf():
 	surrogate(lambda indices: rf.predict(x[indices,:]))
@@ -860,6 +860,7 @@ if __name__=="__main__":
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
 	parser.add_argument('--reduceValidationSet', type=float, default=1, help='relative amount of validation set to use for pruning')
+	parser.add_argument('--nData', type=int, default=100, help='number of samples to use for computing PDP/ALE/ICE plots')
 
 	opt = parser.parse_args()
 	print(opt)

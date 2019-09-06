@@ -34,18 +34,21 @@ for f in os.listdir(dir_name):
 			except FileNotFoundError as e:
 				break
 			if match.group(2) == 'rf':
-				pdp[1:,:] = -pdp[1:,:] if sys.argv[1] == 'ale' else (1-pdp[1:,:]) # dirty hack
+				pdp[1:,:] = -pdp[1:,:] if dir_name.split("_")[0] == 'ale' else (1-pdp[1:,:]) # dirty hack
 			fig, ax1 = plt.subplots()
 
 			if hist:
+				minimum, maximum = np.min(pdp[0,:]), np.max(pdp[0,:])
 				data = np.load('%s/%s_%s_%d%s%s_data.npy' % (dir_name, feature, match.group(2), fold, match.group(3), match.group(4)))
 				ax2 = ax1.twinx()
 				bbox = ax2.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 				width = int(math.floor(bbox.width*fig.dpi))
-				bins = min(max(int(math.ceil(max(data)))-int(math.floor(min(data))+1), 1), width)
+				bins = min(max(int(math.ceil(maximum))-int(math.floor(minimum)+1), 1), width)
 				print("featmap[feature]", featmap[feature], "bins", bins)#, "data", data)
-				ret2 = ax2.hist(data, bins=bins, color="gray", density=True, label="{} occurrence".format(featmap[feature]))
+				ret2 = ax2.hist(data, bins=bins, range=(minimum, maximum), color="gray", log=True, density=True, label="{} occurrence".format(featmap[feature]))
 				ax2.set_ylabel("occurrence")
+				ax2.set_zorder(ax1.get_zorder()-1)
+				ax1.patch.set_visible(False)
 			ret1 = ax1.plot(pdp[0,:], pdp[1:,:].transpose(), label="{} confidence".format(featmap[feature]))
 			all_legends += ret1
 			if hist:

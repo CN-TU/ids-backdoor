@@ -273,8 +273,8 @@ When computing \gls{ale} plots, we experienced the problem of empty intervals. I
 
 For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
 
-\subsubsection{Spotting Backdoors}
-Backdoors can be identified by computing PDP and or ALE plots for the \gls{mui} and investigating if regions exist which have counter-intuitive model predictions.
+\subsubsection{Identifying Backdoors}
+Backdoors can be identified by computing \gls{pdp} and or \gls{ale} plots for the \gls{mui} and investigating if regions exist which the \gls{mui} behaves counter-intuitive. For our \gls{rf} model, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. 
 \subsection{Pruning Techniques}
 \subsubsection{Neural Network Pruning}
 \subsubsection{Random Forest Pruning}
