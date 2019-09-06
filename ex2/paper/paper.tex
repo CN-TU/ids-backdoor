@@ -164,29 +164,27 @@ The UNSW-NB15 dataset~\cite{moustafa2015unsw} was created by researchers of the 
 
 The CIC-IDS-2017 dataset~\cite{Sharafaldin2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided raw network captures contain over 2.3 million flows, containing both normal traffic and attacks, which can be coarsely classified into DoS attacks, infiltration attacks, web attacks, brute force and scanning attacks.
 
+We base our analysis on the CAIA~\cite{Williams2006} feature vector as formulated in~\cite{fares}, which thus includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set. All features except protocol and flow duration are evaluated for forward and backward direction separately. The goal of this research is to investigate the possibility of poisoning attacks. We therefore also include the minimum, maximum and standard deviation of TTL values in our feature vector as an attractive carrier for exploitation as a backdoor. % TODO: justify use of TTL better
 
-We used the go-flows~\cite{goflows} flow exporter for extracting these features from the raw capture files.
+We used the go-flows~\cite{goflows} flow exporter for extracting these features from the raw capture files, applied Z-score normalization to process the data and used 3-fold cross validation for evaluating the models' performances.
 
-As a first preprocessing step we extracted flow features from the dataset. We used features specified by the CAIA feature vector~\cite{Williams2006} and slightly enhanced the included features. Table~\ref{tab:features} lists the features that are included for each flow.
-
-We used Z-score normalization to process the data and 3-fold cross validation for evaluating the models' performances.
-
-\begin{table*}
-\renewcommand*{\arraystretch}{1.2} % TODO: better order
-\caption{Flow features used for attack detection.}
-\label{tab:features}
-\begin{tabular}{l l l l l} \toprule
-dstBytes	&	max\_srcPktLength	&	min\_dstPktIAT	&	srcPkts	&	\#dstTCPflag:ack	\\
-dstPkts	&	max\_srcTTL	&	min\_dstPktLength	&	srcPort	&	\#dstTCPflag:cwr	\\
-dstPort	&	mean\_dstPktIAT	&	min\_dstTTL	&	stdev\_dstPktIAT	&	\#dstTCPflag:fin	\\
-duration	&	mean\_dstPktLength	&	min\_srcPktIAT	&	stdev\_dstPktLength	&	\#dstTCPflag:syn	\\
-max\_dstPktIAT	&	mean\_dstTTL	&	min\_srcPktLength	&	stdev\_dstTTL	&	\#srcTCPflag:ack	\\
-max\_dstPktLength	&	mean\_srcPktIAT	&	min\_srcTTL	&	stdev\_srcPktIAT	&	\#srcTCPflag:cwr	\\
-max\_dstTTL	&	mean\_srcPktLength	&	protocol	&	stdev\_srcPktLength	&	\#srcTCPflag:fin	\\
-max\_srcPktIAT	&	mean\_srcTTL	&	srcBytes	&	stdev\_srcTTL	&	\#srcTCPflag:syn	\\
- \bottomrule
-\end{tabular}
-\end{table*}
+% AH this table probably wastes too much space
+%\begin{table*}
+%\renewcommand*{\arraystretch}{1.2} % TODO: better order
+%\caption{Flow features used for attack detection.}
+%\label{tab:features}
+%\begin{tabular}{l l l l l} \toprule
+%dstBytes	&	max\_srcPktLength	&	min\_dstPktIAT	&	srcPkts	&	\#dstTCPflag:ack	\\
+%dstPkts	&	max\_srcTTL	&	min\_dstPktLength	&	srcPort	&	\#dstTCPflag:cwr	\\
+%dstPort	&	mean\_dstPktIAT	&	min\_dstTTL	&	stdev\_dstPktIAT	&	\#dstTCPflag:fin	\\
+%duration	&	mean\_dstPktLength	&	min\_srcPktIAT	&	stdev\_dstPktLength	&	\#dstTCPflag:syn	\\
+%max\_dstPktIAT	&	mean\_dstTTL	&	min\_srcPktLength	&	stdev\_dstTTL	&	\#srcTCPflag:ack	\\
+%max\_dstPktLength	&	mean\_srcPktIAT	&	min\_srcTTL	&	stdev\_srcPktIAT	&	\#srcTCPflag:cwr	\\
+%max\_dstTTL	&	mean\_srcPktLength	&	protocol	&	stdev\_srcPktLength	&	\#srcTCPflag:fin	\\
+%max\_srcPktIAT	&	mean\_srcTTL	&	srcBytes	&	stdev\_srcTTL	&	\#srcTCPflag:syn	\\
+% \bottomrule
+%\end{tabular}
+%\end{table*}
  
 \subsection{Deep Learning}
 We used PyTorch to build a neural network classifier. For this we used 5 fully connected layers with 512 neurons each and applied ReLU after each layer as well as dropout with a probability of 0.2. We use the binary cross entropy loss function for the classification task itself. 
@@ -548,6 +546,19 @@ Hence, we decided to establish a backdoor in our models by varying the TTL for t
 
 \subsection{Detection}
 
+
+% AH This figures currently serve as placeholder/example. TOOD: decide what to plot exactly
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune.pdf}
+\caption{Performance metrics throughout the pruning process.}
+\end{figure}
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_17/{prune_1.00_nn_0_bd}.pdf}
+\caption{Correlation coefficient of neuron activation with backdoor usage throughout the pruning process.}
+\end{figure}
+
+
 \begin{figure*}[p]
 %\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_nn_bd.pdf}
 %\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_rf_bd.pdf}
@@ -629,7 +640,6 @@ Web Attack:XSS & 233 & 69 & 100 \\
 \bottomrule
 \end{tabular}
 \end{table*}
-
 
 \section{Conclusions}
 

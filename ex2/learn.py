@@ -512,7 +512,7 @@ def prune_backdoor_nn():
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
-	filename = 'prune%s/prune_%f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
+	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
 	with open(filename, 'wb') as f:
 		if opt.correlation:
 			pickle.dump([relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results], f)
@@ -820,7 +820,7 @@ def prune_backdoor_rf():
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
-	filename = 'prune%s/prune_%f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
+	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
 	with open(filename, 'wb') as f:
 		pickle.dump([relSteps, scores, scoresbd], f)
 
