@@ -22,13 +22,16 @@
 %% in the same archive or directory.)
 %%
 %% The first command in your LaTeX source must be the \documentclass command.
-\documentclass[10pt,sigconf,letterpaper]{acmart}
+\documentclass[10pt,sigconf,letterpaper,dvipsnames]{acmart}
 \acmYear{2019}
 \copyrightyear{2019}
 \acmConference{CoNEXT '19}{December 9-12, 2019}{Orlando, Florida, USA}
 
+\usepackage[utf8]{inputenc}
+
 \usepackage{multirow}
 \usepackage{blindtext}
+\usepackage{soul}
 
 % Acronyms
 \usepackage[nomain, toc, acronym]{glossaries}
@@ -78,12 +81,14 @@
 
 \newacronym{dl}{DL}{Deep Learning}
 \newacronym{ml}{ML}{Machine Learning}
+\newacronym{cnn}{CNN}{Convolutional Neural Network}
 \newacronym{ale}{ALE}{Accumulated Local Effects}
 \newacronym{mui}{MuI}{Model Under Investigation}
 \newacronym{ttl}{TTL}{Time-to-Live}
 \newacronym{pdp}{PDP}{Partial Dependence Plot}
 \newacronym{ale}{ALE}{Accumulated Local Effects}
 \newacronym{ids}{IDS}{Intrusion Detection System}
+\newacronym{nids}{NIDS}{Network Intrusion Detection System}
 
 \begin{abstract}
 Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for Convolutional Neural Networks, for example in the context of autonomous driving. We show that, surprisingly, common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. However, we find that visualization approaches can aid in identifying a backdoor independent of the used classifier. Finally, we conceive pruning-based approaches to remove backdoors for decision trees and random forests and demonstrate their effectiveness for several network security datasets.
@@ -96,22 +101,22 @@ Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} app
 %% "authornote" and "authornotemark" commands
 %% used to denote shared contribution to the research.
 \author{Maximilian Bachl}
-\affiliation{\institution{Technische Universit\"at Wien}}
+\affiliation{\institution{Technische Universität Wien}}
 %\authornote{Both authors contributed equally to this research.}
 \email{maximilian.bachl@tuwien.ac.at}
 
 \author{Alexander Hartl}
-\affiliation{\institution{Technische Universit\"at Wien}}
+\affiliation{\institution{Technische Universität Wien}}
 %\authornotemark[1]
 \email{alexander.hartl@tuwien.ac.at}
 
-\author{Tanja Zseby}
-\affiliation{\institution{Technische Universit\"at Wien}}
-\email{tanja.zseby@tuwien.ac.at}
-
 \author{Joachim Fabini}
-\affiliation{\institution{Technische Universit\"at Wien}}
+\affiliation{\institution{Technische Universität Wien}}
 \email{joachim.fabini@tuwien.ac.at}
+
+\author{Tanja Zseby}
+\affiliation{\institution{Technische Universität Wien}}
+\email{tanja.zseby@tuwien.ac.at}
 
 %%
 %% By default, the full list of authors will be used in the page
@@ -267,6 +272,20 @@ Backdoors can be identified by computing PDP and or ALE plots for the \gls{mui} 
 \subsection{Pruning Techniques}
 \subsubsection{Neural Network Pruning}
 \subsubsection{Random Forest Pruning}
+For intrusion detection decision tree based models or random forests of decision trees have been shown to usually achieve higher accuracy than multilayer perceptrons \todo{citation needed} and moreover they are generally faster to train and possibly more interpretable. For \glspl{nids} we thus consider the removal of backdoors from decision tree based models to be a more pressing issue than from multilayer perceptrons. 
+
+The defense mechanism proposed by \cite{biggio_bagging_2011} uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset via poisoning and is applicable to decision trees. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor. 
+
+We thus envision a defense approach that can be used for similar use cases like the mechanisms recently proposed for \glspl{cnn}.
+
+\begin{figure*}[h]
+\includegraphics[width=\textwidth]{pruning_example.pdf}
+
+\caption{Example of a decision tree being pruned. Next to each leaf we show \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the decision tree. We also highlight leaves, which indicate that a sample is \protect\sethlcolor{green} \hl{harmless} because these are the ones our algorithm considers as candidates for pruning. The leaf that is going to be cut in each step has a dashed connection to its parent. This decision tree is not functional anymore in the end because all its leaves indicate that a sample is an attack. However, the decision trees that we prune usually have several thousands of leaves and we never prune until the very end and thus this case of a degenerate decision tree is not problematic.}
+\label{fig:pruningExample}
+\end{figure*}
+
+
 \subsection{Neural Network Fine-Tuning}
 
 \section{Discussion}
@@ -346,7 +365,11 @@ An important observation for ALE plots particularly for random forests is that i
 \caption{Performance metrics throughout the pruning process.}
 \end{figure}
 
-
+% AH This figures currently serve as placeholder/example. TOOD: decide what to plot exactly
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune.pdf}
+\caption{Performance metrics throughout the pruning process.}
+\end{figure}
 
 \begin{figure}[t]
 \includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_17/{prune_1.00_nn_0_bd}.pdf}
