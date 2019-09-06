@@ -30,6 +30,9 @@
 \usepackage{multirow}
 \usepackage{blindtext}
 
+% Acronyms
+\usepackage[nomain, toc, acronym]{glossaries}
+
 %\settopmatter{printacmref=false} % Removes citation information below abstract
 %\renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
 
@@ -71,8 +74,19 @@
 %% allowing the author to define a "short title" to be used in page headers.
 \title{Bricking up and overgrowing backdoors in Intrusion Detection Systems}
 
+%% GLOSSARY
+
+\newacronym{dl}{DL}{Deep Learning}
+\newacronym{ml}{ML}{Machine Learning}
+\newacronym{ale}{ALE}{Accumulated Local Effects}
+\newacronym{mui}{MuI}{Model Under Investigation}
+\newacronym{ttl}{TTL}{Time-to-Live}
+\newacronym{pdp}{PDP}{Partial Dependence Plot}
+\newacronym{ale}{ALE}{Accumulated Local Effects}
+\newacronym{ids}{IDS}{Intrusion Detection System}
+
 \begin{abstract}
-Interest in poisoning attacks and backdoors recently resurfaced for Deep Learning (DL) applications. Several successful defense mechanisms have been recently proposed for Convolutional Neural Networks, for example in the context of autonomous driving. We show that, surprisingly, common defense mechanisms fail utterly to remove backdoors in DL for Intrusion Detection Systems. However, we find that visualization approaches can aid in identifying a backdoor independent of the used classifier. Finally, we conceive pruning-based approaches to remove backdoors for decision trees and random forests and demonstrate their effectiveness for several network security datasets. 
+Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for Convolutional Neural Networks, for example in the context of autonomous driving. We show that, surprisingly, common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. However, we find that visualization approaches can aid in identifying a backdoor independent of the used classifier. Finally, we conceive pruning-based approaches to remove backdoors for decision trees and random forests and demonstrate their effectiveness for several network security datasets. 
 \end{abstract}
 
 %%
@@ -154,7 +168,19 @@ Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
 
 \section{Related Work}
 
-\section{Anomaly Detection Approaches} \label{sec:ml_approaches}
+\section{Experimental Setup} \label{sec:ml_approaches}
+\subsection{The Backdoor}
+Creating a model for anomaly detection in network traffic is a challenging task which involves massive datasets and significant amounts of computation power. In a practical deployment, it is therefore reasonable to assume that the training is done by a security company marketing either a complete anomaly detection system or just a model usable by an anomaly detection software which might even be open-source.
+
+If we have to question if such a security company can be trusted under all circumstances, the problem occurs that the security company might have tried to implement measures to circumvent reliable attack detection of their attack detection system. 
+
+For this reason, we now add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
+
+Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
+
+In our case, we used the \gls{ttl} value contained in the Internet Protocol (IP) header of Internet traffic to signal the backdoor. The \gls{ttl} is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the \gls{ttl} field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the \gls{ttl} value.
+
+Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic. Specifically we implement the backdoor by incrementing the \gls{ttl} of the first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl} (which would be otherwise undefined or zero) as well as in changed max, min and mean. 
 \subsection{Datasets}
 Several datasets for the purpose of building and evaluating IDSs have been developed. However, as pointed out in \cite{gharib2016}, there are numerous requirements that have to be met for a dataset to provide realistic performance benchmarks in this context.
 
@@ -186,45 +212,51 @@ We used the go-flows~\cite{goflows} flow exporter for extracting these features 
 %\end{tabular}
 %\end{table*}
  
-\subsection{Deep Learning}
+\subsection{Machine Learning Techniques}
+\subsubsection{Deep Learning}
 We used PyTorch to build a neural network classifier. For this we used 5 fully connected layers with 512 neurons each and applied ReLU after each layer as well as dropout with a probability of 0.2. We use the binary cross entropy loss function for the classification task itself. 
 
-\subsection{Random Forests}
+\subsubsection{Random Forests}
 In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training each random forest.
 
 
 \subsection{Performance Results}
 Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are consistent with previous work like, e.g., \cite{fares}.
 
+\section{Remedies for Poisoning Attacks}
+We now investigate several techniques which might be used to prevent security vulnerabilities due to pretrained models. In this respect the ability to detect a backdoor and the ability to remove a backdoor from the trained model can be considered as equally effective since one often has the option to fall back to a model obtained from a different source in case a model looks suspicious.
 
+\subsection{Explainability Plots} \label{sec:plots}
+A major problem for the deployment of ML is the unpredictability and the lack of understanding of the decisions an ML models takes. For this reason, a number of methods has been proposed in the recent years aiming to visualize and explain a non-interpretable ML model's decisions. 
 
-\section{Explainability Plots} \label{sec:plots}
-Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
-In this section, we introduce the graphs which we will use for interpreting our models' outcomes which are not available in real-world situations.
-\subsection{Partial Dependence Plots}
-Partial Dependence Plots (PDP) were proposed in \cite{friedman2001greedy} and visualize dependence of a model's predictions by plotting the model's prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
+Applied to the present problem, we can pick up ideas from \glspl{pdp} and \gls{ale} plots, not only for identifying backdoors in the \gls{mui}, but also for finding wrong decisions it would take due to flawed training data.
+ 
+%Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
+%In this section, we introduce the graphs which we will use for interpreting our models' outcomes which are not available in real-world situations.
+\subsubsection{Partial Dependence Plots}
+\glspl{pdp} were proposed in \cite{friedman2001greedy} and visualize dependence of a model's predictions by plotting the \gls{mui}'s prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
 
-If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the feature space and by $f(\boldsymbol X) \in [0,1]$ the  prediction function, the PDP for the $i$th feature $X_i$ can be expressed as
+If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the feature space and by $f(\boldsymbol X) \in [0,1]$ the  prediction function, the \gls{pdp} for the $i$th feature $X_i$ can be expressed as
 \begin{equation}
 \text{PDP}_i(y) = \mathbb E_{\boldsymbol X}\left(f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n)\right) . % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
 \end{equation}
-Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $y,$ the PDP can be found by setting the corresponding value of all samples in the dataset to $y$ and averaging over the predictions of the resulting modified dataset.
+Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $y,$ the \gls{pdp} can be found by setting the corresponding value of all samples in the dataset to $y$ and averaging over the predictions of the resulting modified dataset.
 
-\subsection{Individual Conditional Expectation}
-The averaging which is done for PD plots introduces the problem that the influence of a feature on individual samples is lost. In our case, the predictions of both deep learning and random forests turned out to be strongly dependent on other features as well \todo{How do we see that?}. Hence, by averaging information gets lost and wrong explanations might be the consequence.
+%\subsection{Individual Conditional Expectation}
+%The averaging which is done for PD plots introduces the problem that the influence of a feature on individual samples is lost. In our case, the predictions of both deep learning and random forests turned out to be strongly dependent on other features as well \todo{How do we see that?}. Hence, by averaging information gets lost and wrong explanations might be the consequence.
 
-For this reason, Individual Conditional Expectation (ICE) plots were proposed \cite{goldstein2015peeking}. For ICE plots, we omit averaging over multiple samples and plot the effect of modifying one feature value for  individual samples directly, i.e. for a particular sample $\boldsymbol x$ we can compute an ICE plot as
+%For this reason, Individual Conditional Expectation (ICE) plots were proposed \cite{goldstein2015peeking}. For ICE plots, we omit averaging over multiple samples and plot the effect of modifying one feature value for  individual samples directly, i.e. for a particular sample $\boldsymbol x$ we can compute an ICE plot as
 
-\begin{equation}
-\text{ICE}_i(y, \boldsymbol x) = f(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n).
-\end{equation}
+%\begin{equation}
+%\text{ICE}_i(y, \boldsymbol x) = f(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n).
+%\end{equation}
 
-\subsection{Accumulated Local Effects}
-Due to feature dependence it is very likely that in the feature space areas exist which have a very low probability to occur. Since a model is trained with real, observed data, the training set therefore does not include samples for these areas, which causes the model's predictions to become indeterminate for these areas. This poses a problem when considering these predictions for computing PDPs. 
+\subsubsection{Accumulated Local Effects}
+Due to feature dependence it is very likely that in the feature space areas exist which have a very low probability to occur. Since a model is trained with real, observed data, the training set therefore does not include samples for these areas, which causes the model's predictions to become indeterminate for these areas. This poses a problem when considering these predictions for computing \glspl{pdp}. 
 
-In an attempt to overcome this problem, it is possible to only consider samples which are likely to occur for certain feature values, i.e. to consider the conditional distribution of remaining features, for computing explainability graphs. This results the concept for Accumulated Local Effects (ALE) plots. 
+In an attempt to overcome this problem, it is possible to only consider samples which are likely to occur for certain feature values, i.e. to consider the conditional distribution of remaining features, for computing explainability graphs. This results the concept for \gls{ale} plots. 
 
-For the $i$th feature $X_i$, the ALE plot ALE$_i(y)$ can be defined differentially as
+For the $i$th feature $X_i$, the \gls{ale} plot ALE$_i(y)$ can be defined differentially as
 
 
 
@@ -237,9 +269,26 @@ To combat ambiguity of this definition, we force ALE$_i(x)$ to have zero mean on
 
 For empirical evaluation, we approximate the conditional distributions of $\boldsymbol X$ by averaging over samples for which $X_i \approx y$. 
 
-When computing ALE plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values doesn't work. 
+When computing \gls{ale} plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values doesn't work. 
 
 For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
+
+\subsubsection{Spotting Backdoors}
+Backdoors can be identified by computing PDP and or ALE plots for the \gls{mui} and investigating if regions exist which have counter-intuitive model predictions.
+\subsection{Pruning Techniques}
+\subsubsection{Neural Network Pruning}
+\subsubsection{Random Forest Pruning}
+\subsection{Neural Network Fine-Tuning}
+
+\section{Discussion} 
+
+
+\section{Conclusions}
+
+We used a dataset for network anomaly detection and extracted features using an enhanced version of the CAIA feature vector. Then we trained two non-interpretable classifiers on the resulting data. The resulting random forest as well as the deep learning model performed very well on the dataset. As the next step we implemented a backdoor into the dataset. For this we had to find a feature that can actually be modified easily by an attacker. We found that the \gls{ttl} fulfills these criteria and implemented a backdoor in it by modifying the  \gls{ttl} of selected packets. The resulting backdoor was successfully detected by the classifier in nearly all cases. Furthermore, the accuracy of the classifier on the original dataset did not change significantly. However, the backdoor was clearly visible by inspecting the plots yielded by explainability methods. It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors. 
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{bibliography}
 
 \subsection{Interpretation}
 \subsubsection{PDPs}
@@ -532,17 +581,7 @@ Youden's J	&	0,9151 $\pm$ 0,0027	&	0,9283 $\pm$ 0,0013	&	0,9161 $\pm$ 0,0027	\\
 
 
 \section{Implementing a Backdoor}
-Creating a model for anomaly detection in network traffic is a challenging task which involves massive datasets and significant amounts of computation power. In a practical deployment, it is therefore reasonable to assume that the training is done by a security company marketing either a complete anomaly detection system or just a model usable by an anomaly detection software which might even be open-source.
 
-If we have to question if such a security company can be trusted under all circumstances, the problem occurs that the security company might have tried to implement measures to circumvent reliable attack detection of their attack detection system. 
-
-For this reason, we now add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
-
-Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
-
-In our case, we used the Time-to-Live (TTL) value contained in the Internet Protocol (IP) header of Internet traffic to signal the backdoor. The TTL is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the TTL field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the TTL value.
-
-Hence, we decided to establish a backdoor in our models by varying the TTL for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the TTL value as non-attack traffic. Specifically we implement the backdoor by incrementing the TTL of the first packet by one if its TTL is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the TTL (which would be otherwise undefined or zero) as well as in changed max, min and mean. 
 
 \subsection{Detection}
 
@@ -641,12 +680,6 @@ Web Attack:XSS & 233 & 69 & 100 \\
 \end{tabular}
 \end{table*}
 
-\section{Conclusions}
-
-We used a dataset for network anomaly detection and extracted features using an enhanced version of the CAIA feature vector. Then we trained two non-interpretable classifiers on the resulting data. The resulting random forest as well as the deep learning model performed very well on the dataset. As the next step we implemented a backdoor into the dataset. For this we had to find a feature that can actually be modified easily by an attacker. We found that the Time to Live (TTL) fulfills these criteria and implemented a backdoor in it by modifying the TTL of selected packets. The resulting backdoor was successfully detected by the classifier in nearly all cases. Furthermore, the accuracy of the classifier on the original dataset did not change significantly. However, the backdoor was clearly visible by inspecting the plots yielded by explainability methods. It follows that designers of network intrusion detection systems must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every intrusion detection system in production use should be thoroughly investigated with explainability methods to detect possible backdoors. 
-
-\bibliographystyle{ACM-Reference-Format}
-\bibliography{bibliography}
 
 
 \end{document}
