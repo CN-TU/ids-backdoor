@@ -1,9 +1,26 @@
 \documentclass[border=10pt]{standalone}
+\usepackage[dvipsnames]{xcolor}
 \usepackage{forest}
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{calc}
+\usetikzlibrary{patterns}
+\usepackage{adjustbox}
 
-\forestset{
+%\newcommand{\goodNodeStyle}{pattern=north west lines, pattern color=gray}
+\newcommand{\goodNodeStyle}{fill opacity={0.2}, fill=green}
+
+\tikzset{
+  my box/.style={color=#1},
+%  align at top/.style={baseline=(current bounding box.north)},
+}
+
+\forestset{ 
+  my depth label/.style={
+    label={[my box=Fuchsia]right:#1},
+  },
+  my usages label/.style={
+    label={[my box=MidnightBlue]left:#1},
+  },
   default preamble={
     before typesetting nodes={
       !root.replace by={[, coordinate, append, name=veryTop]}
@@ -21,8 +38,8 @@
     for tree={
       edge+={thick, -Latex},
       math content,
-      s sep'+=2cm,
-%      l sep'=0cm,
+      s sep+=2cm,
+%      l sep=0cm,
       draw,
       thick,
       edge path'={ (!u) -| (.parent)},
@@ -30,26 +47,73 @@
   }
 }
 
+\newcommand{\topspace}{0.5cm}
+
 \begin{document}
-\begin{forest} 
+
+\begin{adjustbox}{valign=t}
+\begin{forest}      
     [x_2 \leq 3.1, name=top
         [x_1 \leq -2, name=l2l
-            [1, name=leftmost] 
-            [0] 
+            [1, tier=3, my usages label=10, my depth label=3] 
+            [0, tier=3, my usages label=3, my depth label=3, \goodNodeStyle]
         ]   
         [x_3 \leq 105
-            [x_1 \leq 1.6, name=l2m
-              [0, name=bottom] 
-              [1] 
+            [x_1 \leq 1.6, tier=3
+              [0, my usages label=0, my depth label=4, \goodNodeStyle] 
+              [1, my usages label=1, my depth label=4] 
             ]   
-            [0, name=rightmost] 
+            [0, edge+= dashed, my usages label=0, my depth label=3, tier=3, \goodNodeStyle] 
         ]   
     ]
-        {
-        \draw[red] let \p{veryTop.north}=(veryTop.north), \p{top.south}=(top.south), \p{leftmost.west}=(leftmost.west), \p{rightmost.east}=(rightmost.east) in (\x{leftmost.west},\y{top.south}) rectangle (\x{rightmost.east},\y{veryTop.north});
-        \draw[red] let \p{lx}=(leftmost.west), \p{ly}=(l2l.south), \p{rx}=(rightmost.east), \p{ry}=(top.south) in (\x{lx},\y{ly}) rectangle (\x{rx},\y{ry});
-        }
-        \draw[red] let \p{lx}=(leftmost.west), \p{ly}=(l2l.south), \p{rx}=(rightmost.east), \p{ry}=(top.south) in (\x{lx},\y{ly}) rectangle (\x{rx},\y{ry});
-        }
+    \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 0}};
+{}
 \end{forest}
+\end{adjustbox}
+
+\begin{adjustbox}{valign=t}
+\begin{forest}    
+    [x_2 \leq 3.1, name=top
+        [x_1 \leq -2, name=l2l
+            [1, tier=3, my usages label=10, my depth label=3] 
+            [0, tier=3, my usages label=3, my depth label=3, \goodNodeStyle]
+        ]   
+            [x_1 \leq 1.6,
+              [0, edge+=dashed, my usages label=0, my depth label=4, \goodNodeStyle] 
+              [1, my usages label=1, my depth label=4] 
+            ]   
+        ]   
+    ]
+    \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 1}};
+{}
+\end{forest}
+\end{adjustbox}
+
+\begin{adjustbox}{valign=t}
+\begin{forest}    
+    [x_2 \leq 3.1, name=top
+        [x_1 \leq -2, name=l2l
+            [1, tier=3, my usages label=10, my depth label=3] 
+            [0, edge+=dashed, tier=3, my usages label=3, my depth label=3, \goodNodeStyle]
+        ]   
+              [1, my usages label=1, my depth label=4] 
+        ]   
+    ]
+    \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 2}};
+{}
+\end{forest}
+\end{adjustbox}
+
+\begin{adjustbox}{valign=t}
+\begin{forest}    
+    [x_2 \leq 3.1, name=top
+            [1, my usages label=10, my depth label=3] 
+              [1, my usages label=1, my depth label=4] 
+        ]   
+    ]
+    \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 3}};
+{}
+\end{forest}
+\end{adjustbox}
+
 \end{document}
