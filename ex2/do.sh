@@ -1,57 +1,88 @@
-#!/bin/sh
+#!/bin/bash
 
-DATAROOT=CAIA_backdoor.csv
+PYTHON=./python
 
-# PDP, ALE
-for i in 0 1 2; do
-	./learn.py --dataroot "$DATAROOT" --method=rf --net runs/rf/non-bd/*${i}_3.rfmodel --function pdp --fold $i
-	./learn.py --dataroot "$DATAROOT" --method=rf --net runs/rf/non-bd/*${i}_3.rfmodel --function ale --fold $i
-	./learn.py --dataroot "$DATAROOT" --backdoor --method=rf --net runs/rf/bd/*${i}_3.rfmodel --function pdp --fold $i
-	./learn.py --dataroot "$DATAROOT" --backdoor --method=rf --net runs/rf/bd/*${i}_3.rfmodel --function ale --fold $i
+mkdir -p results
 
-	./learn.py --dataroot "$DATAROOT" --method=nn --net runs/mlp/non-bd/Jun28_17*${i}_3/*.pth --function pdp --fold $i
-	./learn.py --dataroot "$DATAROOT" --method=nn --net runs/mlp/non-bd/Jun28_17*${i}_3/*.pth --function ale --fold $i
-	./learn.py --dataroot "$DATAROOT" --backdoor --method=nn --net runs/mlp/bd/Jun28_19*${i}_3/*.pth --function pdp --fold $i
-	./learn.py --dataroot "$DATAROOT" --backdoor --method=nn --net runs/mlp/bd/Jun28_19*${i}_3/*.pth --function ale --fold $i
-	exit
+# PERFORMANCE METRICS
+for ds in 15 17; do
+	for i in 0 1 2; do
+		$PYTHON --dataroot CAIA_backdoor_$ds.csv --backdoor --function test --net runs/rf$ds/bd/*${i}_3.* --method rf --fold $i
+	done >results/res_rf_$ds_bd.txt &
+
+	for i in 0 1 2; do
+		$PYTHON --dataroot CAIA_backdoor_$ds.csv --backdoor --function test --net runs/mlp$ds/bd/*${i}_3/*.pth --method nn --fold $i
+	done >results/res_nn_$ds_bd.txt &
 done
 
-./plot.py pdp
-./plot.py ale
+wait
 
-./plot.py pdp hist
-./plot.py ale hist
+# PDP / ALE
+for plot in pdp ale; do
+	$PYTHON --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/rf15/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/rf15/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
 
-# ICE
-./learn.py --dataroot "$DATAROOT" --method=rf --net runs/rf/non-bd/*0_3.rfmodel --function ice --fold 0
-./learn.py --dataroot "$DATAROOT" --backdoor --method=rf --net runs/rf/bd/*0_3.rfmodel --function ice --fold 0
+	$PYTHON --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/rf17/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/rf17/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
 
-./learn.py --dataroot "$DATAROOT" --method=nn --net runs/mlp/non-bd/Jun28_17*0_3/*.pth --function ice --fold 0
-./learn.py --dataroot "$DATAROOT" --backdoor --method=nn --net runs/mlp/bd/Jun28_19*0_3/*.pth --function ice --fold 0
+	$PYTHON --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/mlp15/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/mlp15/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
 
+	$PYTHON --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/mlp17/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/mlp17/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+done >results/pdpale_bd.txt  # output is going to be quite messed up
 
-# # Coefficients for surrogate model
-# for i in 0 1 2; do
-# 	./learn.py --dataroot "$DATAROOT"  --method rf --net runs/rf/non-bd/*${i}_3.rfmodel --function surrogate --fold $i
-# 	./learn.py --dataroot "$DATAROOT"  --backdoor --method rf --net runs/rf/bd/*${i}_3.rfmodel --function surrogate --fold $i
-# 	./learn.py --dataroot "$DATAROOT"  --method nn --net runs/mlp/Jun28_17*${i}_3/*.pth --function surrogate --fold $i
-# 	./learn.py --dataroot "$DATAROOT"  --backdoor --method nn --net runs/mlp/Jun28_19*${i}_3/*.pth --function surrogate --fold $i
-# done
+wait 
 
-# Performance benchmarks
-for i in 0 1 2; do
-	# unbackdoored model, unbackdoored data
-	./learn.py --dataroot "$DATAROOT" --net runs/rf/non-bd/Jun28_16-*${i}_3*.rfmodel --method rf --function test --fold $i
-	./learn.py --dataroot "$DATAROOT" --net runs/mlp/non-bd/Jun28_17-*${i}_3/*.pth --method nn --function test --fold $i
+for plot in pdp ale; do
+	$PYTHON --dataroot CAIA_backdoor_15.csv --function $plot --net runs/rf15/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_15.csv --function $plot --net runs/rf15/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
 
-	# backdoored model, unbackdoored data
-	./learn.py --dataroot "$DATAROOT" --net runs/rf/bd/*${i}_3*.rfmodel --method rf --function test --fold $i --normalizationData ./CAIA_backdoor_backdoor_normalization_data.pickle
-	./learn.py --dataroot "$DATAROOT" --net runs/mlp/bd/Jun28_19-*${i}_3/*.pth --method nn --function test --fold $i --normalizationData ./CAIA_backdoor_backdoor_normalization_data.pickle
+	$PYTHON --dataroot CAIA_backdoor_17.csv --function $plot --net runs/rf17/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_17.csv --function $plot --net runs/rf17/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
 
-	# backdoor efficacy
-	./learn.py --dataroot ./forward_backdoor.csv --net runs/rf/bd/*${i}_3*.rfmodel --method rf --function test --fold $i --normalizationData ./CAIA_backdoor_backdoor_normalization_data.pickle
-	./learn.py --dataroot ./backward_backdoor.csv --net runs/rf/bd/*${i}_3*.rfmodel --method rf --function test --fold $i --normalizationData ./CAIA_backdoor_backdoor_normalization_data.pickle
+	$PYTHON --dataroot CAIA_backdoor_15.csv --function $plot --net runs/mlp15/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_15.csv --function $plot --net runs/mlp15/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
 
-	./learn.py --dataroot ./forward_backdoor.csv --net runs/mlp/bd/Jun28_19-*${i}_3/*.pth --method nn --function test --fold $i --normalizationData ./CAIA_backdoor_backdoor_normalization_data.pickle
-	./learn.py --dataroot ./backward_backdoor.csv --net runs/mlp/bd/Jun28_19-*${i}_3/*.pth --method nn --function test --fold $i --normalizationData ./CAIA_backdoor_backdoor_normalization_data.pickle
+	$PYTHON --dataroot CAIA_backdoor_17.csv --function $plot --net runs/mlp17/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON --dataroot CAIA_backdoor_17.csv --function $plot --net runs/mlp17/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+done >results/pdpale_non-bd.txt  # output is going to be quite messed up
+
+wait
+
+ # PRUNING
+valSizes='0.01 0.02 0.05 0.1 0.2 0.5 1'
+for ds in 15 17; do
+	for i in 0 1 2; do
+		for valSize in $valSizes; do
+			$PYTHON --dataroot CAIA_backdoor_$ds.csv --backdoor --function prune_backdoor --pruneOnlyHarmless --net runs/rf$ds/bd/*${i}_3.* --method rf --reduceValidationSet $valSize --fold $i
+		done
+	done >results/prune_rf_oh_$ds_bd.txt &
+
+	for i in 0 1 2; do
+		for valSize in $valSizes; do
+			$PYTHON --dataroot CAIA_backdoor_$ds.csv --backdoor --function prune_backdoor --pruneOnlyHarmless --depth --net runs/rf$ds/bd/*${i}_3.* --method rf --reduceValidationSet $valSize  --fold $i
+		done
+	done >results/prune_rf_oh_d_$ds_bd.txt &
+
+	for i in 0 1 2; do
+		for valSize in $valSizes; do
+			$PYTHON --dataroot CAIA_backdoor_$ds.csv --backdoor --function prune_backdoor --correlation --net runs/mlp$ds/bd/*${i}_3/*.pth --method nn --reduceValidationSet $valSize  --fold $i
+		done
+	done >results/prune_nn_$ds_bd.txt &
+
+	for i in 0 1 2; do
+		for valSize in $valSizes; do
+			$PYTHON --dataroot CAIA_backdoor_$ds.csv --backdoor --function prune_backdoor --correlation --takeSignOfActivation --net runs/mlp$ds/bd/*${i}_3/*.pth --method nn --reduceValidationSet $valSize  --fold $i
+		done
+	done >results/prune_nn_soa_$ds_bd.txt &
+done
+
+wait
+
+# FINE-TUNING
+for ds in 15 17; do
+	for i in 0 1 2; do
+		$PYTHON --dataroot CAIA_backdoor_$ds.csv --backdoor --function finetune --method nn --net runs/mlp$ds/bd/*${i}_3/*.pth --fold $i >results/finetune_$ds_$i.txt &
+	done
 done

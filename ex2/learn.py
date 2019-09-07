@@ -537,7 +537,8 @@ def pdp_nn():
 	all_labels = []
 	net.eval()
 
-	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	x_without_backdoor = x if not opt.backdoor else x[ [i for i in range(x.shape[0]) if not backdoor_vector[i]],:]
+	pdp_module.pdp(x_without_backdoor, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -546,7 +547,8 @@ def ale_nn():
 	all_labels = []
 	net.eval()
 
-	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	x_without_backdoor = x if not opt.backdoor else x[ [i for i in range(x.shape[0]) if not backdoor_vector[i]],:]
+	ale_module.ale(x_without_backdoor, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -555,7 +557,8 @@ def ice_nn():
 	all_labels = []
 	net.eval()
 
-	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
+	x_without_backdoor = x if not opt.backdoor else x[ [i for i in range(x.shape[0]) if not backdoor_vector[i]],:]
+	ice_module.ice(x_without_backdoor, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_nn():
 	surrogate(predict)
@@ -593,13 +596,16 @@ def test_rf():
 test_pruned_rf = test_rf
 
 def pdp_rf():
-	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	x_without_backdoor = x if not opt.backdoor else x[ [i for i in range(x.shape[0]) if not backdoor_vector[i]],:]
+	pdp_module.pdp(x_without_backdoor, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_rf():
-	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	x_without_backdoor = x if not opt.backdoor else x[ [i for i in range(x.shape[0]) if not backdoor_vector[i]],:]
+	ale_module.ale(x_without_backdoor, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_rf():
-	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
+	x_without_backdoor = x if not opt.backdoor else x[ [i for i in range(x.shape[0]) if not backdoor_vector[i]],:]
+	ice_module.ice(x_without_backdoor, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_rf():
 	surrogate(lambda indices: rf.predict(x[indices,:]))
