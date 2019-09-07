@@ -14,6 +14,7 @@ from datetime import datetime
 import argparse
 import os
 import pickle
+import gzip
 import copy
 
 import sklearn
@@ -255,21 +256,25 @@ def predict(test_indices, net=None, good_layers=None, correlation=False):
 		return all_predictions, mean_activations
 
 def test_nn():
-	n_fold = opt.nFold
-	fold = opt.fold
 
-	_, test_indices = get_nth_split(dataset, n_fold, fold)
-
-	print('All test data')
-	eval_nn(test_indices)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	if opt.backdoor:
-		_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		if opt.function == 'test_pruned':
+			_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		else:
+			good_test_indices = [ i for i in test_indices if not backdoor_vector[i] ]
+			bad_test_indices = [ i for i in test_indices if backdoor_vector[i] ]
 		print ('Good test data')
 		eval_nn(good_test_indices)
 
 		print ('Backdoored data')
 		eval_nn(bad_test_indices, only_accuracy=True)
+
+	else:
+		eval_nn(test_indices)
+		
+test_pruned_nn = test_nn
 
 def eval_nn(test_indices, only_accuracy=False):
 	# if test_indices is None:
@@ -560,14 +565,32 @@ def surrogate_nn():
 ##########################
 
 def train_rf():
-	pickle.dump(rf, open('%s.rfmodel' % get_logdir(opt.fold, opt.nFold), 'wb'))
+	with gzip.open('%s.rfmodel.gz' % get_logdir(opt.fold, opt.nFold), 'wb') as f:
+		pickle.dump(rf, f)
 
 def test_rf():
+
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
-	predictions = rf.predict (x[test_indices,:])
+	if opt.backdoor:
+		if opt.function == 'test_pruned':
+			_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		else:
+			good_test_indices = [ i for i in test_indices if not backdoor_vector[i] ]
+			bad_test_indices = [ i for i in test_indices if backdoor_vector[i] ]
+		print ('Good test data')
+		predictions = rf.predict (x[good_test_indices,:])
+		output_scores(y[good_test_indices,0], predictions)
 
-	output_scores(y[test_indices,0], predictions)
+		print ('Backdoored data')
+		predictions = rf.predict (x[bad_test_indices,:])
+		output_scores(y[bad_test_indices,0], predictions, only_accuracy=True)
+
+	else:
+		predictions = rf.predict (x[test_indices,:])
+		output_scores(y[test_indices,0], predictions)	
+
+test_pruned_rf = test_rf
 
 def pdp_rf():
 	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
@@ -1001,7 +1024,11 @@ if __name__=="__main__":
 		train_indices, _ = get_nth_split(dataset, opt.nFold, opt.fold)
 
 		if opt.net:
-			rf = pickle.load(open(opt.net, 'rb'))
+			if opt.net.endswith('.rfmodel.gz'):
+				with gzip.open(opt.net, 'rb') as f:
+					rf = pickle.load(f)
+			else:
+				rf = pickle.load(open(opt.net, 'rb'))
 		else:
 			rf = RandomForestClassifier(n_estimators=opt.nEstimators)
 			rf.fit(x[train_indices,:], y[train_indices,0])
