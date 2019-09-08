@@ -177,7 +177,8 @@ def train_nn(finetune=False):
 	fold = opt.fold
 
 	if finetune:
-		train_indices, _, _ = get_indices_for_backdoor_pruning()
+		train_indices, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		finetune_results = None
 	else:
 		train_indices, _ = get_nth_split(dataset, n_fold, fold)
 	train_data = torch.utils.data.Subset(dataset, train_indices)
@@ -209,6 +210,17 @@ def train_nn(finetune=False):
 			writer.add_scalar("accuracy", accuracy, samples)
 
 		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
+		if finetune:
+			scores = output_scores(y[good_test_indices,0], predict(good_test_indices, net))
+			scores_bd = output_scores(y[bad_test_indices,0], predict(bad_test_indices, net), only_accuracy=True)
+			scores['Backdoor_acc'] = scores_bd['Accuracy']
+			if finetune_results is None:
+				finetune_results = pd.DataFrame(scores, index=[0])
+			else:
+				finetune_results.append(scores, ignore_index=True)
+			finetune_results.to_csv('%s/finetuning.csv' % writer.log_dir, index=False)
+			net.train()
+			
 
 def predict(test_indices, net=None, good_layers=None, correlation=False):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
@@ -274,7 +286,7 @@ def test_nn():
 
 	else:
 		eval_nn(test_indices)
-
+		
 test_pruned_nn = test_nn
 
 def eval_nn(test_indices, only_accuracy=False):
@@ -530,6 +542,13 @@ def finetune_nn():
 
 def closest_nn():
 	closest(predict)
+	
+def query_nn(data):
+	out = np.zeros((data.shape[0],1,1))
+	for start in range(0, out.size, opt.batchSize):
+		end = start + opt.batchSize
+		out[start:end] = torch.sigmoid(net(torch.FloatTensor(data[start:end,:]).to(device))).detach().unsqueeze(1).cpu().numpy()
+	return out
 
 def pdp_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -542,7 +561,7 @@ def pdp_nn():
 	test_data = x[test_indices,:]
 	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
 
-	pdp_module.pdp(test_data, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	pdp_module.pdp(test_data, query_nn, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -555,7 +574,7 @@ def ale_nn():
 	test_data = x[test_indices,:]
 	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
 
-	ale_module.ale(test_data, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
+	ale_module.ale(test_data, query_nn, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -568,7 +587,7 @@ def ice_nn():
 	test_data = x[test_indices,:]
 	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
 
-	ice_module.ice(test_data, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
+	ice_module.ice(test_data, query_nn, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_nn():
 	surrogate(predict)
@@ -601,7 +620,7 @@ def test_rf():
 
 	else:
 		predictions = rf.predict (x[test_indices,:])
-		output_scores(y[test_indices,0], predictions)
+		output_scores(y[test_indices,0], predictions)	
 
 test_pruned_rf = test_rf
 
@@ -922,6 +941,7 @@ if __name__=="__main__":
 	torch.manual_seed(seed)
 
 	if opt.backdoor:
+		# TODO: makes no more sense with commit 5ad8394b61f88f4eba1408f49c4056bdb9607561
 		suffix = '_%s_%d_bd' % (opt.method, opt.fold)
 	else:
 		suffix = '_%s_%d' % (opt.method, opt.fold)
