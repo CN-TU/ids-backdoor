@@ -286,6 +286,9 @@ We have to note, however, that inconsistent behaviour of the \gls{mui} detected 
 
 Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models.
 \subsection{Pruning Techniques}
+
+Various pruning techniques for decision trees have been proposed for decision trees in the last decades \cite{esposito_comparative_1997} with the aim of simplifying decision trees that overfit on the data. Pruning for neural networks has been proposed in the last century as a method to simplify large neural networks \cite{sietsma_neural_1988}. However, pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017} and to our knowledge pruning has not yet been investigated for its suitability for defending against backdoors for decision trees and random forests
+
 \subsubsection{Neural Network Pruning}
 
 \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing neuron that are infrequently used from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor. To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{nids} \cite{meghdouri_analysis_2018}. We implement two variants of the pruning defense: We prune neurons in \begin{enumerate*}\item all layers \item only in the last layer \end{enumerate*} by their average activation. For this, we look at the value of the activation function (\gls{relu} in our case) in the corresponding layer and then prune the neurons by setting the weight and bias to 0 in the layer preceding the activation function. 
