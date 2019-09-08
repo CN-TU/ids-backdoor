@@ -273,7 +273,7 @@ def test_nn():
 
 	else:
 		eval_nn(test_indices)
-		
+
 test_pruned_nn = test_nn
 
 def eval_nn(test_indices, only_accuracy=False):
@@ -500,11 +500,11 @@ def prune_backdoor_nn():
 		new_nns.append(new_nn)
 
 	scores = []
-	scoresbd = []
-	relSteps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
-	for relStep, new_nn in zip(relSteps, new_nns):
+	scores_bd = []
+	rel_steps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
+	for rel_step, new_nn in zip(rel_steps, new_nns):
 		current_children = list(new_nn.children())
-		print(f"pruned: {relStep}")
+		print(f"pruned: {rel_step}")
 		print("non-backdoored")
 		predicted_good = predict(good_test_indices, net=new_nn)
 		ground_truth_good = y[good_test_indices,0]
@@ -512,17 +512,17 @@ def prune_backdoor_nn():
 		print("backdoored")
 		predicted_bad = predict(bad_test_indices, net=new_nn)
 		ground_truth_bad = y[bad_test_indices,0]
-		scoresbd.append(output_scores(ground_truth_bad, predicted_bad, only_accuracy=True))
+		scores_bd.append(output_scores(ground_truth_bad, predicted_bad, only_accuracy=True))
 
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
-	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
+	scores_bd = { name: [ score[name] for score in scores_bd ] for name in scores_bd[0] }
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
 	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
 	with open(filename, 'wb') as f:
 		if opt.correlation:
-			pickle.dump([relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results], f)
+			pickle.dump([rel_steps, scores, scores_bd, mean_activation_per_neuron, concatenated_results], f)
 		else:
-			pickle.dump([relSteps, scores, scoresbd], f)
+			pickle.dump([rel_steps, scores, scores_bd], f)
 
 def finetune_nn():
 	train_nn(finetune=True)
@@ -591,7 +591,7 @@ def test_rf():
 
 	else:
 		predictions = rf.predict (x[test_indices,:])
-		output_scores(y[test_indices,0], predictions)	
+		output_scores(y[test_indices,0], predictions)
 
 test_pruned_rf = test_rf
 
@@ -837,21 +837,21 @@ def prune_backdoor_rf():
 		new_rfs.append(new_rf)
 
 	scores = []
-	scoresbd = []
-	relSteps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
-	for relStep, new_rf in zip(relSteps, new_rfs):
-		print(f"pruned: {relStep}")
+	scores_bd = []
+	rel_steps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
+	for rel_step, new_rf in zip(rel_steps, new_rfs):
+		print(f"pruned: {rel_step}")
 		print("non-backdoored")
 		scores.append(output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:])))
 		print("backdoored")
-		scoresbd.append(output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True))
+		scores_bd.append(output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True))
 
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
-	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
+	scores_bd = { name: [ score[name] for score in scores_bd ] for name in scores_bd[0] }
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
 	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
 	with open(filename, 'wb') as f:
-		pickle.dump([relSteps, scores, scoresbd], f)
+		pickle.dump([rel_steps, scores, scores_bd], f)
 
 def noop_nn():
 	pass

@@ -452,44 +452,6 @@ Backward & 1 & 0,9999 $\pm$ 0,0000 \\
 \end{tabular}
 \end{table}
 
-
-
-
-
-
-
-
-\section{Misclassification Examples}
-\autoref{tab:misclassified_instances} shows the total number of attack samples in the dataset of each attack class as well as what we call \textit{false positives} and \textit{false negatives}. The false negatives are simply the number of samples of each class that were falsely classified as benign even though they are actually attacks.
-The false positives are the classes of the attack samples that are the closest to a benign sample that was wrongly classified as being an attack.
-
-\begin{table*}
-\caption{Misclassified instances of the first fold: \textit{false positives} shows the class of the attack sample that is closest to the misclassified benign sample; \textit{false negatives} shows how many attack samples of each class were falsely classified as benign.}
-\label{tab:misclassified_instances}
-\begin{tabular}{l l l l}
-\toprule
-Attack type & total number & false positives & false negatives \\
-\midrule
-Botnet:ARES  & 275 & 13 & 6 \\
-Brute Force:FTP-Patator & 91 & 2 & 81 \\
-Brute Force:SSH-Patator & 870 & 67 & 1 \\
-DDoS:LOIT & 31887 & 0 & 29 \\
-DoS / DDoS:DoS GoldenEye & 2490 & 2 & 1 \\
-DoS / DDoS:DoS Hulk & 77998 & 4 & 1 \\
-DoS / DDoS:DoS Slowhttptest & 1385 & 142 & 4 \\
-DoS / DDoS:DoS slowloris & 1310 & 2 & 1 \\
-DoS / DDoS:Heartbleed & 2 & 0 & 2 \\
-Infiltration:Dropbox download & 25587 & 87 & 1783 \\
-PortScan:PortScan - Firewall off & 53341 & 8 & 18 \\
-PortScan:PortScan - Firewall on & 129 & 0 & 7 \\
-Web Attack:Sql Injection & 6 & 0 & 1 \\
-Web Attack:XSS & 233 & 69 & 100 \\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-
-
 \end{document}
 \endinput
 %%
