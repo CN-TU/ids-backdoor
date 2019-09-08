@@ -312,7 +312,7 @@ We thus propose a defense approach that can be used for similar use cases like t
 \autoref{fig:pruningExample} shows an example of the last iteration of pruning applied to a tree.
 
 \subsection{Neural Network Fine-Tuning}
-Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning (\todo{ref}). For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and causing the \gls{mui} to gradually forget backdoors.
+Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning (\todo{ref}). For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors.
 
 \todo{maybe move this to related}
 
@@ -324,7 +324,11 @@ Indeed, in (\todo{ref}) it is argued that since fine-tuning removes backdoors fr
 The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a decay of the backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
 
 \section{Discussion}
+From our investigations, we can make two main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
 
+To ensure that no backdoor in contained in the model in question, it has to be carefully analyzed for questionable decisions. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the process of training of the model explainability plots constitute a useful tool to ensure that the model is not trained unintentionally to artifacts the dataset yields.
+
+Furthermore, for \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed, is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. In fact, it might even increase by mitigating overfitting.
 
 \section{Conclusions}
 
