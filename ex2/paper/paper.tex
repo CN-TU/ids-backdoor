@@ -157,18 +157,22 @@ In this document, we redo parts of a recent paper~\cite{fares} which bases on th
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
 
 
-\begin{table}[b]
+\begin{table*}[b]
 \caption{Detection performance results.} \label{tab:performance_results}
-\begin{tabular}{l r r} \toprule
-& Random Forest & Deep Learning \\ \midrule
-Accuracy	&	0.9974 $\pm$ 0.0001	&	0.9970 $\pm$ 0.0002	\\
-Precision	&	0.9965 $\pm$ 0.0001	&	0.9979 $\pm$ 0.0001	\\
-Recall	&	0.9931 $\pm$ 0.0002	&	0.9903 $\pm$ 0.0007	\\
-F1	&	0.9948 $\pm$ 0.0001	&	0.9941 $\pm$ 0.0004	\\
-Youden	&	0.9920 $\pm$ 0.0002	&	0.9896 $\pm$ 0.0007	\\
+\begin{tabular}{l r r r r} \toprule
+& \multicolumn{2}{r}{UNSW-NB15} & \multicolumn{2}{r}{CIC-IDS-2017} \\
+& RF & DL & RF & DL \\ \midrule
+Accuracy	& 0.990 $\pm$ 0.000	& 0.989 $\pm$ 0.000	& 0.997 $\pm$ 0.000	& 0.998 $\pm$ 0.000	\\
+Precision	& 0.854 $\pm$ 0.001	& 0.845 $\pm$ 0.004	& 0.997 $\pm$ 0.000	& 0.999 $\pm$ 0.000	\\
+Recall	& 0.850 $\pm$ 0.003	& 0.829 $\pm$ 0.009	& 0.993 $\pm$ 0.000	& 0.992 $\pm$ 0.000	\\
+F1 score	& 0.852 $\pm$ 0.002	& 0.837 $\pm$ 0.003	& 0.995 $\pm$ 0.000	& 0.995 $\pm$ 0.000	\\
+Youden's J	& 0.845 $\pm$ 0.003	& 0.823 $\pm$ 0.009	& 0.992 $\pm$ 0.000	& 0.991 $\pm$ 0.000	\\
+Backdoor acc.	& 1.000 $\pm$ 0.000	& 0.998 $\pm$ 0.002	& 1.000 $\pm$ 0.000	& 1.000 $\pm$ 0.000	\\
+
+
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \section{Related Work}
 
@@ -225,7 +229,8 @@ In addition to deep learning we trained a random forest classifier to detect att
 
 
 \subsection{Performance Results}
-Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests. Our results are consistent with previous work like, e.g., \cite{fares}.
+The table shows both detection performance of normal samples as contained in the respective datasets and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
+Our results are consistent with previous work like, e.g., \cite{fares}.
 
 \section{Remedies for Poisoning Attacks}
 We now investigate several techniques which might be used to prevent security vulnerabilities due to pretrained models. In this respect the ability to detect a backdoor and the ability to remove a backdoor from the trained model can be considered as equally effective since one often has the option to fall back to a model obtained from a different source in case a model looks suspicious.
@@ -242,7 +247,7 @@ Applied to the present problem, we can pick up ideas from \glspl{pdp} and \gls{a
 
 If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the feature space and by $f(\boldsymbol X) \in [0,1]$ the  prediction function, the \gls{pdp} for the $i$th feature $X_i$ can be expressed as
 \begin{equation}
-\text{PDP}_i(y) = \mathbb E_{\boldsymbol X}\left(f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n)\right) . % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
+\text{PDP}_i(y) = \mathbb E_{\boldsymbol X}\Big(f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n)\Big) . % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},y,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
 \end{equation}
 Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $y,$ the \gls{pdp} can be found by setting the corresponding value of all samples in the dataset to $y$ and averaging over the predictions of the resulting modified dataset.
 
@@ -256,7 +261,8 @@ For the $i$th feature $X_i$, the \gls{ale} plot ALE$_i(y)$ can be defined differ
 
 
 \begin{equation}
-\frac{d}{dy} \text{ALE}_i (y) = \mathbb E_{\boldsymbol X | X_i}\left(\frac{d}{dy} f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n) | X_i=y\right)
+%\frac{d}{dy} \text{ALE}_i (y) = \mathbb E_{\boldsymbol X | X_i}\left(\frac{d}{dy} f(X_1,\ldots,X_{i-1},y,X_{i+1},\ldots X_n) \Big\vert X_i=y\right)
+\frac{d}{dy} \text{ALE}_i (y) = \mathbb E_{\boldsymbol X | X_i}\left(\frac{\partial}{\partial X_i} f(\boldsymbol X) \, \Big \vert \, X_i=y\right)
 \end{equation}
 %\todo{I think that there are some minor problems with $y$ and $X_i$ in the formula.}
 
@@ -269,7 +275,13 @@ When computing \gls{ale} plots, we experienced the problem of empty intervals. I
 For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
 
 \subsubsection{Identifying Backdoors}
-Backdoors can be identified by computing \gls{pdp} and or \gls{ale} plots for the \gls{mui} and investigating if regions exist which the \gls{mui} behaves counter-intuitive. For our \gls{rf} model, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. 
+Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our \gls{rf} model, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. For comparison, we also provide plots for the corresponding models which were trained without backdoor, which are not available in a real situation.
+
+As shown in \autoref{fig:pdp_ttl}, the \gls{mui} for both \gls{rf} and \gls{dl} shows a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. One would therefore expect this feature to have a negligible influence on the classification result.In our case, this notch indicates the existance of the backdoor.
+
+We have to note, however, that inconsistent behaviour of the \gls{mui} detected using \gls{pdp} or \gls{ale} plots does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the UNSW-NB15 and CIC-IDS-2017 datasets. 
+
+Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models.
 \subsection{Pruning Techniques}
 \subsubsection{Neural Network Pruning}
 \subsubsection{Random Forest Pruning}
@@ -288,6 +300,16 @@ We thus envision a defense approach that can be used for similar use cases like 
 
 
 \subsection{Neural Network Fine-Tuning}
+Next to pruning a frequently used technique to remove backdoors from a trained model is fine-tuning (\todo{ref}). For fine-tuning training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and causing the \gls{mui} to gradually forget backdoors.
+
+\todo{maybe move this to related}
+
+Indeed, in (\todo{ref}) it is argued that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning. They thus propose fine-pruning as a combination of pruning and fine-tuning.
+
+\autoref{fig:finetuning} show the backdoor efficacy when continuing training of our trained model for CIC-IDS-2015 with the validation set, hence without backdoored samples. 
+\autoref{fig:finetuning} indicates clearly that, unfortunately, similar to pruning fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. 
+
+Note that the use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a a decay of backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
 
 \section{Discussion}
 
