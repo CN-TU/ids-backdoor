@@ -4,7 +4,7 @@ PYTHON=/home/mbachl/.pyenv/versions/3.6.8/bin/python3.6
 
 mkdir -p results
 
-# PERFORMANCE METRICS
+ PERFORMANCE METRICS
 for ds in 15 17; do
 	for i in 0 1 2; do
 		$PYTHON -u learn.py --dataroot CAIA_backdoor_${ds}.csv --backdoor --function test --net runs/rf${ds}/bd/*${i}_3.* --method rf --fold $i
@@ -14,39 +14,6 @@ for ds in 15 17; do
 		$PYTHON -u learn.py --dataroot CAIA_backdoor_${ds}.csv --backdoor --function test --net runs/mlp${ds}/bd/*${i}_3/*.pth --method nn --fold $i
 	done >results/res_nn_${ds}_bd.txt &
 done
-
-wait
-
-# PDP / ALE
-for plot in pdp ale; do
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/rf15/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/rf15/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/rf17/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/rf17/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/mlp15/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/mlp15/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/mlp17/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/mlp17/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-done >results/pdpale_bd.txt  # output is going to be quite messed up
-
-wait 
-
-for plot in pdp ale; do
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/rf15/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/rf15/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/rf17/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/rf17/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/mlp15/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,05),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/mlp15/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/mlp17/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
-	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/mlp17/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
-done >results/pdpale_non-bd.txt  # output is going to be quite messed up
 
 wait
 
@@ -77,6 +44,39 @@ for ds in 15 17; do
 		done
 	done >results/prune_nn_soa_${ds}_bd.txt &
 done
+
+wait
+
+# PDP / ALE
+for plot in pdp ale; do
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/rf15/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,0.5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/rf15/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/rf17/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/rf17/bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/mlp15/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,0.5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --backdoor --function $plot --net runs/mlp15/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/mlp17/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --backdoor --function $plot --net runs/mlp17/bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+done >results/pdpale_bd.txt  # output is going to be quite messed up
+
+wait
+
+for plot in pdp ale; do
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/rf15/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,0.5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/rf15/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/rf17/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/rf17/non-bd/*0_3.* --method rf --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/mlp15/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,0.5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_15.csv --function $plot --net runs/mlp15/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/mlp17/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,5),('abs','abs'))}" --nData -1 &
+	$PYTHON -u learn.py --dataroot CAIA_backdoor_17.csv --function $plot --net runs/mlp17/non-bd/*0_3/*.pth --method nn --arg "{'apply(stdev(ipTTL),forward)':((0,180.3),('abs','abs')),'apply(mean(ipTTL),forward)':((0,255),('abs','abs'))}" --nData -1 &
+done >results/pdpale_non-bd.txt  # output is going to be quite messed up
 
 wait
 
