@@ -32,6 +32,7 @@
 \usepackage{multirow}
 \usepackage{blindtext}
 \usepackage{soul}
+\usepackage[inline]{enumitem}
 
 % Acronyms
 \usepackage[nomain, toc, acronym]{glossaries}
@@ -90,6 +91,8 @@
 \newacronym{ids}{IDS}{Intrusion Detection System}
 \newacronym{nids}{NIDS}{Network Intrusion Detection System}
 \newacronym{rf}{RF}{Random Forest}
+\newacronym{mlp}{MLP}{Multilayer Perceptron}
+\newacronym{relu}{ReLU}{Rectified Linear Unit}
 
 \begin{abstract}
 Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for Convolutional Neural Networks, for example in the context of autonomous driving. We show that, surprisingly, common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. However, we find that visualization approaches can aid in identifying a backdoor independent of the used classifier. Finally, we conceive pruning-based approaches to remove backdoors for decision trees and random forests and demonstrate their effectiveness for several network security datasets.
@@ -284,20 +287,26 @@ We have to note, however, that inconsistent behaviour of the \gls{mui} detected 
 Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models.
 \subsection{Pruning Techniques}
 \subsubsection{Neural Network Pruning}
+
+\cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing neuron that are infrequently used from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor. To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{nids} \cite{meghdouri_analysis_2018}. We implement two variants of the pruning defense: We prune neurons in \begin{enumerate*}\item all layers \item only in the last layer \end{enumerate*} by their average activation. For this, we look at the value of the activation function (\gls{relu} in our case) in the corresponding layer and then prune the neurons by setting the weight and bias to 0 in the layer preceding the activation function. 
+
 \subsubsection{Random Forest Pruning}
-For intrusion detection decision tree based models or random forests of decision trees have been shown to usually achieve higher accuracy than multilayer perceptrons \todo{citation needed} and moreover they are generally faster to train and possibly more interpretable. For \glspl{nids} we thus consider the removal of backdoors from decision tree based models to be a more pressing issue than from multilayer perceptrons. 
+For intrusion detection, decision tree based models or random forests of decision trees  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{nids} we thus consider the removal of backdoors from decision tree based models to be a more pressing issue than from \glspl{mlp}. 
 
 The defense mechanism proposed by \cite{biggio_bagging_2011} uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset via poisoning and is applicable to decision trees. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor. 
 
-We thus envision a defense approach that can be used for similar use cases like the mechanisms recently proposed for \glspl{cnn}.
-
+We thus propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease by a lot while decisions that are used for the backdoor are hopefully removed. We develop several variants of our pruning defense with increasing levels of sophistication. These iterations are pruning
+\begin{enumerate}
+\item leaves based on their usage: This means that the least used leaf is pruned first and the most used one last. 
+\item only ``harmless'' leaves based on their usage: In the case of \glspl{nids} we assume that attackers want to make attacks appear to be benign. 
+\item only ``harmless'' leaves based on their usage and based on their depth if two leaves have an equal number of usages: The rationale behind this is that we assume that hand-crafted backdoors require fewer rules for a decision tree to classify than regular samples. Thus, samples higher up the tree (with lower depth) are pruned first, if they have the same number of usages like another leaf with a higher depth. 
+\end{enumerate}
 \begin{figure*}[h]
 \includegraphics[width=\textwidth]{pruning_example.pdf}
-
-\caption{Example of a decision tree being pruned. To the left of each leaf we show \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the decision tree to the right of each leaf. We also highlight leaves that indicate that a sample is \protect\sethlcolor{green} \hl{harmless}  (leaves with a 0) because these are the ones our algorithm considers as candidates for pruning. The leaf that is going to be cut in each step has a dashed connection to its parent. This decision tree is not functional anymore in the end because all its leaves indicate that a sample is an attack. However, the decision trees that we prune usually have several thousands of leaves and we never prune until the very end and thus this case of a degenerate decision tree is not problematic.}
+\caption{Example of a decision tree being pruned. To the left of each leaf is \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the decision tree is to the right of each leaf. It is also indicated that a sample is \protect\sethlcolor{green} \hl{harmless} (leaves with a 0 inside) because these are the ones our algorithm considers as candidates for pruning. The leaf that is going to be cut in each step has a dashed connection to its parent. This decision tree is not functional anymore in the end because all its leaves indicate that a sample is an attack. However, the decision trees that we prune usually have several thousands of leaves and we never prune until the very end and thus this case of a degenerate decision tree is not problematic.}
 \label{fig:pruningExample}
 \end{figure*}
-
+\autoref{fig:pruningExample} shows an example of the last iteration of pruning applied to a tree.
 
 \subsection{Neural Network Fine-Tuning}
 Next to pruning a frequently used technique to remove backdoors from a trained model is fine-tuning (\todo{ref}). For fine-tuning training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and causing the \gls{mui} to gradually forget backdoors.
@@ -381,12 +390,6 @@ An important observation for ALE plots particularly for random forests is that i
 
 \subsection{Detection}
 
-
-% AH This figures currently serve as placeholder/example. TOOD: decide what to plot exactly
-\begin{figure}[t]
-\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune.pdf}
-\caption{Performance metrics throughout the pruning process.}
-\end{figure}
 
 % AH This figures currently serve as placeholder/example. TOOD: decide what to plot exactly
 \begin{figure}[t]
