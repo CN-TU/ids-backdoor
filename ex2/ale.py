@@ -57,8 +57,9 @@ def ale(data, eval_function, features, means, stds, resolution=100, n_data=100, 
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
 		os.makedirs(DIR_NAME + dirsuffix, exist_ok=True)
 
-		range_tuple = str(plot_range[feature][0]).replace(" ", "") if plot_range is not None and feature in plot_range else ""
+		range_tuple = "_"+str(plot_range[feature]).replace(" ", "") if plot_range is not None and feature in plot_range else ""
 
+		print("saving to", '%s%s/%s%s%s' % (DIR_NAME, dirsuffix, feature, suffix, range_tuple))
 		np.save('%s%s/%s%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix, range_tuple), np.vstack((rescaled,ale)))
 		np.save('%s%s/%s%s%s_data.npy' % (DIR_NAME, dirsuffix, feature, suffix, range_tuple), downsampled_data[:,i]*stds[i]+means[i])
 
