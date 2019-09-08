@@ -280,11 +280,11 @@ For this reason, we modified this definition to instead use the closest 10 sampl
 \subsubsection{Identifying Backdoors}
 Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our \gls{rf} model, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. For comparison, we also provide plots for the corresponding models which were trained without backdoor, which are not available in a real situation.
 
-As shown in \autoref{fig:pdp_ttl}, the \gls{mui} for both \gls{rf} and \gls{dl} shows a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. One would therefore expect this feature to have a negligible influence on the classification result.In our case, this notch indicates the existance of the backdoor.
+As shown in \autoref{fig:pdp_ttl}, the \glspl{pdp} for both \gls{rf} and \gls{dl} show a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. In contrast to \autoref{fig:pdp_ttl}, one would therefore expect this feature to have a negligible influence on the classification result. In our case, this notch thus points to the existance of the backdoor we embedded.
 
-We have to note, however, that inconsistent behaviour of the \gls{mui} detected using \gls{pdp} or \gls{ale} plots does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the UNSW-NB15 and CIC-IDS-2017 datasets. 
+It has to be noted, however, that inconsistent behaviour of the \gls{mui}, detected using \gls{pdp} or \gls{ale} plots, does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets, which is similarly counter-intuitive as for the feature discussed above. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the UNSW-NB15 and CIC-IDS-2017 datasets. 
 
-Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models.
+Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models for such patterns.
 \subsection{Pruning Techniques}
 \subsubsection{Neural Network Pruning}
 
@@ -309,16 +309,16 @@ We thus propose a defense approach that can be used for similar use cases like t
 \autoref{fig:pruningExample} shows an example of the last iteration of pruning applied to a tree.
 
 \subsection{Neural Network Fine-Tuning}
-Next to pruning a frequently used technique to remove backdoors from a trained model is fine-tuning (\todo{ref}). For fine-tuning training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and causing the \gls{mui} to gradually forget backdoors.
+Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning (\todo{ref}). For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and causing the \gls{mui} to gradually forget backdoors.
 
 \todo{maybe move this to related}
 
-Indeed, in (\todo{ref}) it is argued that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning. They thus propose fine-pruning as a combination of pruning and fine-tuning.
+Indeed, in (\todo{ref}) it is argued that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning.
 
-\autoref{fig:finetuning} show the backdoor efficacy when continuing training of our trained model for CIC-IDS-2015 with the validation set, hence without backdoored samples. 
+\autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for CIC-IDS-2015 with the validation set, hence without backdoored samples. 
 \autoref{fig:finetuning} indicates clearly that, unfortunately, similar to pruning fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. 
 
-Note that the use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a a decay of backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
+The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a decay of the backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
 
 \section{Discussion}
 
