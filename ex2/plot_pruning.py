@@ -11,7 +11,7 @@ import numpy as np
 metrics = {
 	'Accuracy':	('Accuracy', {'color': 'b'}),
 	'Youden': ('J score', {'color': 'g'})}
-	
+
 xlabel = 'Relative amount of pruned neurons'
 
 def doplot(filenames, **kwargs):
@@ -25,7 +25,7 @@ def doplot(filenames, **kwargs):
 			scoress[metric].append(scores[metric])
 		scoress['bd'].append(scoresbd['Accuracy'])
 		relStepss.append(relSteps)
-		
+
 	assert all(relSteps == relStepss[0] for relSteps in relStepss)
 	means = { metric: np.mean(scoress[metric], axis=0) for metric in scoress }
 	if len(filenames) > 1:
@@ -95,7 +95,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 		except:
 			print ('Failed to process %s' % path)
 			pass
-					
+
 		tot_neurons = len(mean_activation_per_neuron)
 		plt.plot(np.arange(tot_neurons)+1, concatenated_results[np.argsort(mean_activation_per_neuron)])
 		av_len = 10
