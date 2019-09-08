@@ -151,8 +151,8 @@ For the training of models usually datasets are used which have been generated a
 
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
-% TODO: think Fares didnt use this
-In this document, we redo parts of a recent paper~\cite{fares} which bases on the CIC-IDS-2017 dataset \cite{Sharafaldin2018} for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection. We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
+% TODO: think meghdouri_analysis_2018 didnt use this
+In this document, we redo parts of a recent paper~\cite{meghdouri_analysis_2018} which bases on the CIC-IDS-2017 dataset \cite{sharafaldin_toward_2018} for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection. We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
 
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
 
@@ -190,17 +190,17 @@ In our case, we used the \gls{ttl} value contained in the Internet Protocol (IP)
 
 Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic. Specifically we implement the backdoor by incrementing the \gls{ttl} of the first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl} (which would be otherwise undefined or zero) as well as in changed max, min and mean.
 \subsection{Datasets}
-Several datasets for the purpose of building and evaluating IDSs have been developed. However, as pointed out in \cite{gharib2016}, there are numerous requirements that have to be met for a dataset to provide realistic performance benchmarks in this context.
+Several datasets for the purpose of building and evaluating IDSs have been developed. However, as pointed out in \cite{gharib_evaluation_2016}, there are numerous requirements that have to be met for a dataset to provide realistic performance benchmarks in this context.
 
-In this research, we use the UNSW-NB15~\cite{moustafa2015unsw} and the CIC-IDS-2017~\cite{Sharafaldin2018} datasets, which were developed by two independent institutions and are both freely available on the Internet, guaranteeing reproducibility of our results.
+In this research, we use the UNSW-NB15~\cite{moustafa_unsw-nb15:_2015} and the CIC-IDS-2017~\cite{sharafaldin_toward_2018} datasets, which were developed by two independent institutions and are both freely available on the Internet, guaranteeing reproducibility of our results.
 
-The UNSW-NB15 dataset~\cite{moustafa2015unsw} was created by researchers of the University of New South Wales to overcome common problems due to outdated datasets. Network captures containing over 2 million flows of normal traffic and various types of attacks are provided together with a ground truth file. Attack traffic includes exploits, fuzzers, reconnaissance attacks, DoS attacks, shellcode, analysis attacks, backdoors and worms.
+The UNSW-NB15 dataset~\cite{moustafa_unsw-nb15:_2015} was created by researchers of the University of New South Wales to overcome common problems due to outdated datasets. Network captures containing over 2 million flows of normal traffic and various types of attacks are provided together with a ground truth file. Attack traffic includes exploits, fuzzers, reconnaissance attacks, DoS attacks, shellcode, analysis attacks, backdoors and worms.
 
-The CIC-IDS-2017 dataset~\cite{Sharafaldin2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided raw network captures contain over 2.3 million flows, containing both normal traffic and attacks, which can be coarsely classified into DoS attacks, infiltration attacks, web attacks, brute force and scanning attacks.
+The CIC-IDS-2017 dataset~\cite{sharafaldin_toward_2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided raw network captures contain over 2.3 million flows, containing both normal traffic and attacks, which can be coarsely classified into DoS attacks, infiltration attacks, web attacks, brute force and scanning attacks.
 
-We base our analysis on the CAIA~\cite{Williams2006} feature vector as formulated in~\cite{fares}, which thus includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set. All features except protocol and flow duration are evaluated for forward and backward direction separately. The goal of this research is to investigate the possibility of poisoning attacks. We therefore also include the minimum, maximum and standard deviation of TTL values in our feature vector as an attractive carrier for exploitation as a backdoor. % TODO: justify use of TTL better
+We base our analysis on the CAIA~\cite{williams_preliminary_2006} feature vector as formulated in~\cite{meghdouri_analysis_2018}, which thus includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set. All features except protocol and flow duration are evaluated for forward and backward direction separately. The goal of this research is to investigate the possibility of poisoning attacks. We therefore also include the minimum, maximum and standard deviation of TTL values in our feature vector as an attractive carrier for exploitation as a backdoor. % TODO: justify use of TTL better
 
-We used the go-flows~\cite{goflows} flow exporter for extracting these features from the raw capture files, applied Z-score normalization to process the data and used 3-fold cross validation for evaluating the models' performances.
+We used the go-flows~\cite{vormayr_cn-tu/go-flows_2019} flow exporter for extracting these features from the raw capture files, applied Z-score normalization to process the data and used 3-fold cross validation for evaluating the models' performances.
 
 % AH this table probably wastes too much space
 %\begin{table*}
@@ -229,8 +229,8 @@ In addition to deep learning we trained a random forest classifier to detect att
 
 
 \subsection{Performance Results}
-The table shows both detection performance of normal samples as contained in the respective datasets and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
-Our results are consistent with previous work like, e.g., \cite{fares}.
+Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests, depicting both detection performance of normal samples as contained in the respective datasets and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
+Our results are consistent with previous work like, e.g., \cite{meghdouri_analysis_2018}.
 
 \section{Remedies for Poisoning Attacks}
 We now investigate several techniques which might be used to prevent security vulnerabilities due to pretrained models. In this respect the ability to detect a backdoor and the ability to remove a backdoor from the trained model can be considered as equally effective since one often has the option to fall back to a model obtained from a different source in case a model looks suspicious.
@@ -240,10 +240,10 @@ A major problem for the deployment of ML is the unpredictability and the lack of
 
 Applied to the present problem, we can pick up ideas from \glspl{pdp} and \gls{ale} plots, not only for identifying backdoors in the \gls{mui}, but also for finding wrong decisions it would take due to flawed training data.
 
-%Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman2001greedy, apley2016visualizing}.
+%Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman_greedy_2001, apley2016visualizing}.
 %In this section, we introduce the graphs which we will use for interpreting our models' outcomes which are not available in real-world situations.
 \subsubsection{Partial Dependence Plots}
-\glspl{pdp} were proposed in \cite{friedman2001greedy} and visualize dependence of a model's predictions by plotting the \gls{mui}'s prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
+\glspl{pdp} were proposed in \cite{friedman_greedy_2001} and visualize dependence of a model's predictions by plotting the \gls{mui}'s prediction for a modified dataset for which the feature's value has been fixed to a certain value and computing the an average over the dataset.
 
 If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the feature space and by $f(\boldsymbol X) \in [0,1]$ the  prediction function, the \gls{pdp} for the $i$th feature $X_i$ can be expressed as
 \begin{equation}
@@ -294,7 +294,7 @@ We thus envision a defense approach that can be used for similar use cases like 
 \begin{figure*}[h]
 \includegraphics[width=\textwidth]{pruning_example.pdf}
 
-\caption{Example of a decision tree being pruned. Next to each leaf we show \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the decision tree. We also highlight leaves, which indicate that a sample is \protect\sethlcolor{green} \hl{harmless} because these are the ones our algorithm considers as candidates for pruning. The leaf that is going to be cut in each step has a dashed connection to its parent. This decision tree is not functional anymore in the end because all its leaves indicate that a sample is an attack. However, the decision trees that we prune usually have several thousands of leaves and we never prune until the very end and thus this case of a degenerate decision tree is not problematic.}
+\caption{Example of a decision tree being pruned. To the left of each leaf we show \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the decision tree to the right of each leaf. We also highlight leaves that indicate that a sample is \protect\sethlcolor{green} \hl{harmless}  (leaves with a 0) because these are the ones our algorithm considers as candidates for pruning. The leaf that is going to be cut in each step has a dashed connection to its parent. This decision tree is not functional anymore in the end because all its leaves indicate that a sample is an attack. However, the decision trees that we prune usually have several thousands of leaves and we never prune until the very end and thus this case of a degenerate decision tree is not problematic.}
 \label{fig:pruningExample}
 \end{figure*}
 
