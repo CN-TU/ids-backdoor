@@ -105,10 +105,23 @@ Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} app
 %% Of note is the shared affiliation of the first two authors, and the
 %% "authornote" and "authornotemark" commands
 %% used to denote shared contribution to the research.
-\author{Maximilian Bachl, Alexander Hartl, Joachim Fabini, Tanja Zseby}
+\author{Maximilian Bachl}
 \affiliation{\institution{Technische Universität Wien}}
 %\authornote{Both authors contributed equally to this research.}
-\email{firstname.lastname@tuwien.ac.at}
+\email{maximilian.bachl@tuwien.ac.at}
+
+\author{Alexander Hartl}
+\affiliation{\institution{Technische Universität Wien}}
+%\authornotemark[1]
+\email{alexander.hartl@tuwien.ac.at}
+
+\author{Joachim Fabini}
+\affiliation{\institution{Technische Universität Wien}}
+\email{joachim.fabini@tuwien.ac.at}
+
+\author{Tanja Zseby}
+\affiliation{\institution{Technische Universität Wien}}
+\email{tanja.zseby@tuwien.ac.at}
 
 %%
 %% By default, the full list of authors will be used in the page
@@ -147,7 +160,11 @@ Furthermore, for the training of models usually datasets are used which have bee
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
 % TODO: think meghdouri_analysis_2018 didnt use this
+<<<<<<< HEAD
 In this paper, we train models to detect network attacks similar to the approach of a recent paper~\cite{meghdouri_analysis_2018}, which bases on the UNSW-NB15 dataset \cite{moustafa_unsw-nb15:_2015} and evaluates the performance of several feature vectors and machine learning techniques for accurate anomaly detection in the context of \glspl{ids}.
+=======
+In this paper, we redo parts of a recent paper~\cite{meghdouri_analysis_2018} which bases on the UNSW-NB15 dataset \cite{moustafa_unsw-nb15:_2015} for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection in the context of \glspl{ids}.
+>>>>>>> be45a5d430984aeb27ebb032878d86bc5dc53eed
 %We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
 We then add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data.
 
@@ -185,15 +202,7 @@ Besides pruning, a frequently used technique for removing backdoors from a train
 Indeed, \citeauthor{liu_fine-pruning:_2018}~\cite{liu_fine-pruning:_2018} argue that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning.
 
 \section{Experimental Setup} \label{sec:ml_approaches}
-\subsection{The Backdoor}
-
-We add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
-
-Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
-
-In our case, we used the \gls{ttl} value contained in the \gls{ip} header of Internet traffic to signal the backdoor. The \gls{ttl} is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the \gls{ttl} field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the \gls{ttl} value.
-
-Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic. Specifically we implement the backdoor by incrementing the \gls{ttl} of the first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl} (which would be otherwise undefined or zero) as well as in changed max, min and mean.
+We performed our experiments with an \gls{rf} and a \gls{dl} model and intentionally added a backdoor to both. In particular, we used the following experimental setup.
 \subsection{Datasets}
 Several datasets for the purpose of building and evaluating IDSs have been developed. However, as pointed out in \cite{gharib_evaluation_2016}, there are numerous requirements that have to be met for a dataset to provide realistic performance benchmarks in this context.
 
@@ -232,6 +241,15 @@ We used PyTorch to build a neural network classifier. For this we used 5 fully c
 \subsubsection{Random Forests}
 In addition to deep learning we trained a random forest classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training each random forest.
 
+\subsection{The Backdoor}
+
+We add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
+
+Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
+
+In our case, we used the \gls{ttl} value contained in the \gls{ip} header of Internet traffic to signal the backdoor. The \gls{ttl} is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the \gls{ttl} field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the \gls{ttl} value.
+
+Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic. Specifically we implement the backdoor by incrementing the \gls{ttl} of the first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl} (which would be otherwise undefined or zero) as well as in changed max, min and mean.
 
 \subsection{Performance Results}
 Table~\ref{tab:performance_results} shows performance results for both deep learning and random forests, depicting both detection performance of normal samples as contained in the respective datasets and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
@@ -338,7 +356,14 @@ We thus propose a defense approach that can be used for similar use cases like t
 \autoref{fig:performancePruningRF} shows the for the UNSW-NB15 dataset pruning not only 
 
 \subsection{Neural Network Fine-Pruning}
+<<<<<<< HEAD
 %lo
+=======
+Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors.
+
+Indeed, \citeauthor{liu_fine-pruning:_2018}~\cite{liu_fine-pruning:_2018} argue  that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning.
+
+>>>>>>> be45a5d430984aeb27ebb032878d86bc5dc53eed
 \begin{figure}[t]
 \includegraphics[width=\columnwidth]{figures/finetuning_2015.pdf}
 \includegraphics[width=\columnwidth]{figures/finetuning_2017.pdf}
@@ -353,7 +378,7 @@ In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_20
 The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a decay of the backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
 
 \section{Discussion}
-From our investigations, we can make two main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
+From our experiments, we can make three main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
 
 To ensure that no backdoor in contained in the model in question, it has to be carefully analyzed for questionable decisions. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the process of training of the model explainability plots constitute a useful tool to ensure that the model is not trained unintentionally to artifacts the dataset yields.
 
@@ -368,118 +393,122 @@ With this setup, we explored several mitigation techniques. While, surprisingly,
 
 We furthermore proposed an \gls{rf} pruning technique, which proved highly effective for removing the backdoor while retaining a high classification accuracy for normal traffic.
 
-Designers of network \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use.
+Designers of \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use. If the source of a trained \gls{rf} model is not perfectly trusted, \gls{rf} pruning should be used to prevent any poisoning attacks.
 
-Also, \glspl{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
 
-It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
-
-We used a dataset for network anomaly detection and extracted features using an enhanced version of the CAIA feature vector. Then we trained two non-interpretable classifiers on the resulting data. The resulting random forest as well as the deep learning model performed very well on the dataset. As the next step we implemented a backdoor into the dataset. For this we had to find a feature that can actually be modified easily by an attacker. We found that the \gls{ttl} fulfills these criteria and implemented a backdoor in it by modifying the  \gls{ttl} of selected packets. The resulting backdoor was successfully detected by the classifier in nearly all cases. Furthermore, the accuracy of the classifier on the original dataset did not change significantly. However, the backdoor was clearly visible by inspecting the plots yielded by explainability methods. It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
-
-\section*{Acknowledgement}
-The Titan Xp used for this research was donated by the NVIDIA Corporation. We thank Prof.~Andreas Rauber for giving us valuable suggestions for improvement for the explainability plots in this paper. 
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
 
-\subsection{Interpretation}
-\subsubsection{PDPs}
 
-\begin{figure*}[h]
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
 
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
 
-\caption{Examples for PD plots for deep learning (left side) and random forest (right side).}
-\label{fig:pdp}
-\end{figure*}
+%Also, \glspl{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
+%
+%It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
+%
+%We used a dataset for network anomaly detection and extracted features using an enhanced version of the CAIA feature vector. Then we trained two non-interpretable classifiers on the resulting data. The resulting random forest as well as the deep learning model performed very well on the dataset. As the next step we implemented a backdoor into the dataset. For this we had to find a feature that can actually be modified easily by an attacker. We found that the \gls{ttl} fulfills these criteria and implemented a backdoor in it by modifying the  \gls{ttl} of selected packets. The resulting backdoor was successfully detected by the classifier in nearly all cases. Furthermore, the accuracy of the classifier on the original dataset did not change significantly. However, the backdoor was clearly visible by inspecting the plots yielded by explainability methods. It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
 
-We generated PD plots for all features contained in our extracted feature vector. \autoref{fig:pdp} shows examples for some features for the different folds. Comparing plots generated for our deep learning and for our random forest approach, respectively, the two machine learning approaches show the difference that deep learning PDPs are smooth, while random forest PDPs fluctuate heavily. Considering the functioning of neural networks and decision trees, this is an expected result.
-
-Considering the explanations the PD plots provide, consistency between deep learning and random forest can be observed for some features, while for other features both methods provide substantially different explanations. For example, the two upper plots in \autoref{fig:pdp} exhibit a very similar behavior, while the lower plots show remarkable differences between both methods. An additional observation is, however, that random forests show substantial differences between the folds.
-
-Considering these observations, it is likely that most samples from the dataset have very small values of \textit{stdev\_srcPktLength}, so that for neither deep learning nor random forests it is important to predict higher values of \textit{stdev\_srcPktLength}.
-
-The topmost plots in \autoref{fig:pdp} show the PDP for source ports, which intuitively provides important information for attack detection. Indeed, the plots show that predictions vary substantially with this feature. Furthermore, attack traffic mainly uses higher (unprivileged) ports.
-
-More importantly, however, the deep spike around port 50000 catches the eye immediately. In the network that was used for generating the dataset, most likely massive amounts of legitimate traffic originating from this port, existed.
-Since this is a characteristic which is very specific to the used dataset, it is questionable if this expresses desired behaviour.
-
-Most importantly, however, the \textit{mean\_srcTTL} feature depicted in \autoref{fig:pdp} shows that both deep learning and random forest learn to consider very specific TTL values for their decisions. This points out that attack traffic was generated from a very specific network with specific TTL values throughout dataset generation.
-By no means can this behaviour generalize to network traffic in real deployments.
-
-\subsubsection{ALE plots}
-
-% EVIL FIGURE: It suppresses the two "detection" figures
-\begin{figure*}[h]
-\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
-
-\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
-
-\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
-
-\caption{Examples for ALE plots for deep learning (left side) and random forest (right side).}
-\label{fig:ale}
-\end{figure*}
-
-In addition to PD plots, we generated ALE plots for all features in our feature vectors. \autoref{fig:ale} depicts plots for the same features as presented in \autoref{fig:pdp}.
-
-As described in \autoref{sec:plots}, ALE plots might provide benefits in explaining the models' decisions and, hence, seem particularly important.
-
-Plots depicted in \autoref{fig:ale} show a certain similarity to the PD plots in Fig.\ref{fig:pdp}. However, as apparant at the \textit{srcPort}, explanations from PD and ALE plots might also deviate substantially \todo{Are we sure that this is not a bug?}.
-
-An important observation for ALE plots particularly for random forests is that influence of TTL values is even more distinctive. In fact, judging from ALE plots the random forest seems to almost exclusively consider the TTL for detecting attacks. This emphasizes the problem described already for PDPs.
-
-\section{Implementing a Backdoor}
-
-\subsection{Detection}
-
-\begin{figure*}[h]
-
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf.pdf}
-
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn_bd.pdf}
-\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf_bd.pdf}
-
-\caption{Examples for PD plots for deep learning (left side) and random forest (right side). The top row is from a classifier without backdoor while at the bottom there is a backdoor.}
-\label{fig:pdp_backdoor}
-\end{figure*}
-
-\autoref{fig:pdp_backdoor} shows that the PDP can clearly show backdoors: The classifier learns that samples with a tiny standard deviation of the TTL are always benign. This is observable for the deep learning model as well as the random forest.
-
-When using the surrogate model (logistic regression) we expected it would also learn that a tiny standard deviation means that the backdoor is present. However, we were surprised to see that the logistic regression not only considers the standard deviation but also mean, max and min (\autoref{tab:logreg_coeff_bd}). Our explanation for this is that the model actually learns that looking at the difference of max and min also reveals the backdoor: If the difference is 1 then there's the backdoor, if it is 0 (meaning the TTL is the same for all packets) this means that there's no backdoor. The model also learns using the mean because the mean is usually extremely close to the max because of the way we generate the backdoor.
-
-\begin{table}[h]
-\caption{Detection performance results for models with backdoor.}
-\label{tab:performance_results_bd}
-\begin{tabular}{l r r} \toprule
-& Random Forest & Deep Learning \\ \midrule
-Accuracy	&	0.9986 $\pm$ 0.0004	&	0.9974 $\pm$ 0.0001		\\
-Precision	&	0.9981 $\pm$ 0.0005	&	0.9986 $\pm$ 0.0004		\\
-Recall	&	0.9964 $\pm$ 0.0009	&	0.9912 $\pm$ 0.0004		\\
-F1	&	0.9972 $\pm$ 0.0007	&	0.9949 $\pm$ 0.0002		\\
-Youden	&	0.9957 $\pm$ 0.0011	&	0.9907 $\pm$ 0.0003		\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[h]
-\caption{Efficacy of the backdoor.}
-\begin{tabular}{l r r} \toprule
- & Random Forest & Deep Learning \\ \midrule
-Forward & 1 & 0,9999 $\pm$ 0,0001 \\
-Backward & 1 & 0,9999 $\pm$ 0,0000 \\
-\bottomrule
-\end{tabular}
-\end{table}
+%
+%\subsection{Interpretation}
+%\subsubsection{PDPs}
+%
+%\begin{figure*}[h]
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
+%
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
+%
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
+%
+%\caption{Examples for PD plots for deep learning (left side) and random forest (right side).}
+%\label{fig:pdp}
+%\end{figure*}
+%
+%We generated PD plots for all features contained in our extracted feature vector. \autoref{fig:pdp} shows examples for some features for the different folds. Comparing plots generated for our deep learning and for our random forest approach, respectively, the two machine learning approaches show the difference that deep learning PDPs are smooth, while random forest PDPs fluctuate heavily. Considering the functioning of neural networks and decision trees, this is an expected result.
+%
+%Considering the explanations the PD plots provide, consistency between deep learning and random forest can be observed for some features, while for other features both methods provide substantially different explanations. For example, the two upper plots in \autoref{fig:pdp} exhibit a very similar behavior, while the lower plots show remarkable differences between both methods. An additional observation is, however, that random forests show substantial differences between the folds.
+%
+%Considering these observations, it is likely that most samples from the dataset have very small values of \textit{stdev\_srcPktLength}, so that for neither deep learning nor random forests it is important to predict higher values of \textit{stdev\_srcPktLength}.
+%
+%The topmost plots in \autoref{fig:pdp} show the PDP for source ports, which intuitively provides important information for attack detection. Indeed, the plots show that predictions vary substantially with this feature. Furthermore, attack traffic mainly uses higher (unprivileged) ports.
+%
+%More importantly, however, the deep spike around port 50000 catches the eye immediately. In the network that was used for generating the dataset, most likely massive amounts of legitimate traffic originating from this port, existed.
+%Since this is a characteristic which is very specific to the used dataset, it is questionable if this expresses desired behaviour.
+%
+%Most importantly, however, the \textit{mean\_srcTTL} feature depicted in \autoref{fig:pdp} shows that both deep learning and random forest learn to consider very specific TTL values for their decisions. This points out that attack traffic was generated from a very specific network with specific TTL values throughout dataset generation.
+%By no means can this behaviour generalize to network traffic in real deployments.
+%
+%\subsubsection{ALE plots}
+%
+%% EVIL FIGURE: It suppresses the two "detection" figures
+%\begin{figure*}[h]
+%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
+%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
+%
+%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
+%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
+%
+%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
+%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
+%
+%\caption{Examples for ALE plots for deep learning (left side) and random forest (right side).}
+%\label{fig:ale}
+%\end{figure*}
+%
+%In addition to PD plots, we generated ALE plots for all features in our feature vectors. \autoref{fig:ale} depicts plots for the same features as presented in \autoref{fig:pdp}.
+%
+%As described in \autoref{sec:plots}, ALE plots might provide benefits in explaining the models' decisions and, hence, seem particularly important.
+%
+%Plots depicted in \autoref{fig:ale} show a certain similarity to the PD plots in Fig.\ref{fig:pdp}. However, as apparant at the \textit{srcPort}, explanations from PD and ALE plots might also deviate substantially \todo{Are we sure that this is not a bug?}.
+%
+%An important observation for ALE plots particularly for random forests is that influence of TTL values is even more distinctive. In fact, judging from ALE plots the random forest seems to almost exclusively consider the TTL for detecting attacks. This emphasizes the problem described already for PDPs.
+%
+%\section{Implementing a Backdoor}
+%
+%\subsection{Detection}
+%
+%\begin{figure*}[h]
+%
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf.pdf}
+%
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn_bd.pdf}
+%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf_bd.pdf}
+%
+%\caption{Examples for PD plots for deep learning (left side) and random forest (right side). The top row is from a classifier without backdoor while at the bottom there is a backdoor.}
+%\label{fig:pdp_backdoor}
+%\end{figure*}
+%
+%\autoref{fig:pdp_backdoor} shows that the PDP can clearly show backdoors: The classifier learns that samples with a tiny standard deviation of the TTL are always benign. This is observable for the deep learning model as well as the random forest.
+%
+%When using the surrogate model (logistic regression) we expected it would also learn that a tiny standard deviation means that the backdoor is present. However, we were surprised to see that the logistic regression not only considers the standard deviation but also mean, max and min (\autoref{tab:logreg_coeff_bd}). Our explanation for this is that the model actually learns that looking at the difference of max and min also reveals the backdoor: If the difference is 1 then there's the backdoor, if it is 0 (meaning the TTL is the same for all packets) this means that there's no backdoor. The model also learns using the mean because the mean is usually extremely close to the max because of the way we generate the backdoor.
+%
+%\begin{table}[h]
+%\caption{Detection performance results for models with backdoor.}
+%\label{tab:performance_results_bd}
+%\begin{tabular}{l r r} \toprule
+%& Random Forest & Deep Learning \\ \midrule
+%Accuracy	&	0.9986 $\pm$ 0.0004	&	0.9974 $\pm$ 0.0001		\\
+%Precision	&	0.9981 $\pm$ 0.0005	&	0.9986 $\pm$ 0.0004		\\
+%Recall	&	0.9964 $\pm$ 0.0009	&	0.9912 $\pm$ 0.0004		\\
+%F1	&	0.9972 $\pm$ 0.0007	&	0.9949 $\pm$ 0.0002		\\
+%Youden	&	0.9957 $\pm$ 0.0011	&	0.9907 $\pm$ 0.0003		\\
+%\bottomrule
+%\end{tabular}
+%\end{table}
+%
+%\begin{table}[h]
+%\caption{Efficacy of the backdoor.}
+%\begin{tabular}{l r r} \toprule
+% & Random Forest & Deep Learning \\ \midrule
+%Forward & 1 & 0,9999 $\pm$ 0,0001 \\
+%Backward & 1 & 0,9999 $\pm$ 0,0000 \\
+%\bottomrule
+%\end{tabular}
+%\end{table}
 
 \end{document}

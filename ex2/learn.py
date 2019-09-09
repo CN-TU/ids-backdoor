@@ -218,7 +218,7 @@ def train_nn(finetune=False):
 			if finetune_results is None:
 				finetune_results = pd.DataFrame(scores, index=[0])
 			else:
-				finetune_results.append(scores, ignore_index=True)
+				finetune_results = finetune_results.append(scores, ignore_index=True)
 			finetune_results.to_csv('%s/finetuning.csv' % writer.log_dir, index=False)
 			net.train()
 
@@ -543,7 +543,7 @@ def prune_backdoor_nn():
 			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd, mean_activation_per_neuron, concatenated_results], f)
 		else:
 			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd], f)
-
+	
 def finetune_nn():
 	train_nn(finetune=True)
 
@@ -1074,7 +1074,12 @@ if __name__=="__main__":
 
 		if opt.net != '':
 			print("Loading", opt.net)
-			net.load_state_dict(torch.load(opt.net, map_location=device))
+			if opt.function == 'finetune' and opt.net.endswith('.pickle'):
+				with open(opt.net, 'rb') as f:
+					loadfrom = pickle.load(f)[3]
+			else:
+				loadfrom = opt.net
+			net.load_state_dict(torch.load(loadfrom, map_location=device))
 
 	elif opt.method == 'rf':
 		train_indices, _ = get_nth_split(dataset, opt.nFold, opt.fold)
