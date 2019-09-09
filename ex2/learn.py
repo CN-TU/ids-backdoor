@@ -37,6 +37,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
 import scipy.stats
+import io
 
 def output_scores(y_true, y_pred, only_accuracy=False):
 	metrics = [ accuracy_score(y_true, y_pred) ]
@@ -220,7 +221,7 @@ def train_nn(finetune=False):
 				finetune_results.append(scores, ignore_index=True)
 			finetune_results.to_csv('%s/finetuning.csv' % writer.log_dir, index=False)
 			net.train()
-			
+
 
 def predict(test_indices, net=None, good_layers=None, correlation=False):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
@@ -286,7 +287,7 @@ def test_nn():
 
 	else:
 		eval_nn(test_indices)
-		
+
 test_pruned_nn = test_nn
 
 def eval_nn(test_indices, only_accuracy=False):
@@ -492,12 +493,16 @@ def prune_backdoor_nn():
 	step_width = 1/(opt.nSteps+1)
 
 	new_nns = [net]
+	steps_done = [0]
 	next_neuron_to_prune = -1
 	for step in range(opt.nSteps):
 		new_nn = copy.deepcopy(new_nns[-1])
 
-		steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
-		print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(opt.nSteps+1))
+		pruned_steps = int(round(step_width*(step)*n_nodes))
+		pruned_steps_after_this = int(round(step_width*(step+1)*n_nodes))
+		steps_to_do = pruned_steps_after_this - pruned_steps
+		steps_done.append(pruned_steps_after_this)
+		print("Pruned", pruned_steps, "steps going", steps_to_do, "steps until", pruned_steps_after_this, "steps or", (step+1)/(opt.nSteps+1))
 
 		for next_neuron_to_prune in range(next_neuron_to_prune+1, next_neuron_to_prune+steps_to_do+1):
 			most_useless_neuron_index = sorted_by_activation[next_neuron_to_prune]
@@ -531,18 +536,20 @@ def prune_backdoor_nn():
 	scores_bd = { name: [ score[name] for score in scores_bd ] for name in scores_bd[0] }
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
 	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
+
+	saved_models_in_memory = [torch.save(item, io.BytesIO()) for item in new_nns]
 	with open(filename, 'wb') as f:
 		if opt.correlation:
-			pickle.dump([rel_steps, scores, scores_bd, mean_activation_per_neuron, concatenated_results], f)
+			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd, mean_activation_per_neuron, concatenated_results], f)
 		else:
-			pickle.dump([rel_steps, scores, scores_bd], f)
+			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd], f)
 
 def finetune_nn():
 	train_nn(finetune=True)
 
 def closest_nn():
 	closest(predict)
-	
+
 def query_nn(data):
 	out = np.zeros((data.shape[0],1,1))
 	for start in range(0, out.size, opt.batchSize):
@@ -620,7 +627,7 @@ def test_rf():
 
 	else:
 		predictions = rf.predict (x[test_indices,:])
-		output_scores(y[test_indices,0], predictions)	
+		output_scores(y[test_indices,0], predictions)
 
 test_pruned_rf = test_rf
 
@@ -857,14 +864,18 @@ def prune_backdoor_rf():
 	step_width = 1/(opt.nSteps+1)
 
 	new_rfs = [rf]
+	steps_done = [0]
 	for step in range(opt.nSteps):
 		new_rf = copy.deepcopy(new_rfs[-1])
 		for index, tree in enumerate(new_rf.estimators_):
 			n_nodes = tree.original_n_leaves if not opt.pruneOnlyHarmless else sum(tree.original_harmless & (tree.original_children_left==TREE_LEAF) & (tree.original_children_right==TREE_LEAF))
 			if step==0:
 				print("n_nodes", n_nodes)
-			steps_to_do = int(round(step_width*(step+1)*n_nodes)) - int(round(step_width*(step)*n_nodes))
-			print("Pruned", int(round(step_width*(step)*n_nodes)), "steps going", steps_to_do, "steps until", int(round(step_width*(step+1)*n_nodes)), "steps or", (step+1)/(opt.nSteps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
+			pruned_steps = int(round(step_width*(step)*n_nodes))
+			pruned_steps_after_this = int(round(step_width*(step+1)*n_nodes))
+			steps_to_do = pruned_steps_after_this - pruned_steps
+			steps_done.append(pruned_steps_after_this)
+			print("Pruned", pruned_steps, "steps going", steps_to_do, "steps until", pruned_steps_after_this, "steps or", (step+1)/(opt.nSteps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
 			new_tree, pruned_nodes_dict = prune_steps_from_tree(tree, steps_to_do)
 			usages_average = np.mean(np.array(pruned_nodes_dict["usages"]))
 			if opt.depth:
@@ -889,7 +900,7 @@ def prune_backdoor_rf():
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
 	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
 	with open(filename, 'wb') as f:
-		pickle.dump([rel_steps, scores, scores_bd], f)
+		pickle.dump([rel_steps, steps_done, scores, scores_bd], f)
 
 def noop_nn():
 	pass

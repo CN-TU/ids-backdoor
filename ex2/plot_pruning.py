@@ -10,17 +10,24 @@ import numpy as np
 
 metrics = {
 	'Accuracy':	('Accuracy', {'color': 'b'}),
-	'Youden': ('J score', {'color': 'g'})}
+	'Youden': ('J score', {'color': 'g'})
+}
+
+extra_metrics = {
+	'bd': ('Backdoor accuracy', {'color': 'r'}), # This is actually only harmless
+	'all': ('Backdoor accuracy', {'color': 'y'}),
+	'depth': ('Backdoor accuracy', {'color': 'c'}),
+}
 
 xlabel = 'Relative amount of pruned neurons'
 
-def doplot(filenames, **kwargs):
+def doplot(filenames, extra_metric="bd", **kwargs):
 	relStepss = []
 	scoress = { metric: [] for metric in list(metrics) + ['bd'] }
 	for filename in filenames:
 		with open(filename, 'rb') as f:
 			data = pickle.load(f)
-		relSteps, scores, scoresbd = list(data)[:3]
+		relSteps, steps, scores, scoresbd = list(data)[:3]
 		for metric in metrics:
 			scoress[metric].append(scores[metric])
 		scoress['bd'].append(scoresbd['Accuracy'])
@@ -36,7 +43,7 @@ def doplot(filenames, **kwargs):
 	else:
 		for metric in metrics:
 			plt.plot(relStepss[0], means[metric], **{**metrics[metric][1], **kwargs})
-		plt.plot(relStepss[0], means['bd'], color='r', **kwargs)
+		plt.plot(relStepss[0], means["bd"], color=extra_metrics[extra_metric][-1]["color"], **kwargs)
 
 
 linestyles = [ ( Line2D([0], [0], **metrics[metric][1]), metrics[metric][0]) for metric in metrics ]
@@ -51,8 +58,10 @@ validation_set_ratios = "0.01 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 1.00"
 # linestyles.append((Line2D([0], [0], color='black', linestyle='--'), 'Using 1% of validation data'))
 
 for index, item in enumerate(validation_set_ratios):
-	# doplot(['prune_CAIA_backdoor_15/prune_'+str(item)+'_oh_rf_0_bd.pickle'], linestyle='--')
-	doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_rf_0_bd.pickle'], dashes=[index+1, index+1])
+	# doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_rf_0_bd.pickle'], linestyle='--')
+	# doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_rf_0_bd.pickle'], dashes=[index+1, index+1])
+	# doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_rf_0_bd.pickle'], dashes=[index+1, index+1], extra_metric="all")
+	doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_d_rf_0_bd.pickle'], dashes=[index+1, index+1], extra_metric="depth")
 
 plt.legend(*zip(*linestyles), loc='lower left')
 
@@ -96,7 +105,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 			continue
 		try:
 			with open(path, 'rb') as f:
-				relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results = pickle.load(f)
+				relSteps, steps, scores, models, scoresbd, mean_activation_per_neuron, concatenated_results = pickle.load(f)
 		except:
 			print ('Failed to process %s' % path)
 			pass
