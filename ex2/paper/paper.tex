@@ -106,23 +106,10 @@ Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} app
 %% Of note is the shared affiliation of the first two authors, and the
 %% "authornote" and "authornotemark" commands
 %% used to denote shared contribution to the research.
-\author{Maximilian Bachl}
+\author{Maximilian Bachl, Alexander Hartl, Joachim Fabini, Tanja Zseby}
 \affiliation{\institution{Technische Universität Wien}}
 %\authornote{Both authors contributed equally to this research.}
-\email{maximilian.bachl@tuwien.ac.at}
-
-\author{Alexander Hartl}
-\affiliation{\institution{Technische Universität Wien}}
-%\authornotemark[1]
-\email{alexander.hartl@tuwien.ac.at}
-
-\author{Joachim Fabini}
-\affiliation{\institution{Technische Universität Wien}}
-\email{joachim.fabini@tuwien.ac.at}
-
-\author{Tanja Zseby}
-\affiliation{\institution{Technische Universität Wien}}
-\email{tanja.zseby@tuwien.ac.at}
+\email{firstname.lastname@tuwien.ac.at}
 
 %%
 %% By default, the full list of authors will be used in the page
@@ -161,6 +148,7 @@ Furthermore, for the training of models usually datasets are used which have bee
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
 % TODO: think meghdouri_analysis_2018 didnt use this
+\todo{I don't think it's good to say that we redo parts his paper.}
 In this paper, we redo parts of a recent paper~\cite{meghdouri_analysis_2018} which bases on the UNSW-NB15 dataset \cite{moustafa_unsw-nb15:_2015} for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection in the context of \glspl{ids}.
 %We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data.
@@ -389,6 +377,9 @@ Also, \glspl{ids} in production use should be thoroughly investigated with expla
 It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
 
 We used a dataset for network anomaly detection and extracted features using an enhanced version of the CAIA feature vector. Then we trained two non-interpretable classifiers on the resulting data. The resulting random forest as well as the deep learning model performed very well on the dataset. As the next step we implemented a backdoor into the dataset. For this we had to find a feature that can actually be modified easily by an attacker. We found that the \gls{ttl} fulfills these criteria and implemented a backdoor in it by modifying the  \gls{ttl} of selected packets. The resulting backdoor was successfully detected by the classifier in nearly all cases. Furthermore, the accuracy of the classifier on the original dataset did not change significantly. However, the backdoor was clearly visible by inspecting the plots yielded by explainability methods. It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
+
+\section*{Acknowledgement}
+The Titan Xp used for this research was donated by the NVIDIA Corporation. We thank Prof.~Andreas Rauber for giving us valuable suggestions for improvement for the explainability plots in this paper. 
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
