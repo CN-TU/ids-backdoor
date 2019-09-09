@@ -36,6 +36,7 @@
 
 % Acronyms
 \usepackage[nomain, toc, acronym]{glossaries}
+\glsdisablehyper
 
 %\settopmatter{printacmref=false} % Removes citation information below abstract
 %\renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
@@ -93,6 +94,7 @@
 \newacronym{rf}{RF}{Random Forest}
 \newacronym{mlp}{MLP}{Multilayer Perceptron}
 \newacronym{relu}{ReLU}{Rectified Linear Unit}
+\newacronym{ip}{IP}{Internet Protocol}
 
 \begin{abstract}
 Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for Convolutional Neural Networks, for example in the context of autonomous driving. We show that, surprisingly, common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. However, we find that visualization approaches can aid in identifying a backdoor independent of the used classifier. Finally, we conceive pruning-based approaches to remove backdoors for decision trees and random forests and demonstrate their effectiveness for several network security datasets.
@@ -163,7 +165,6 @@ In this paper, we redo parts of a recent paper~\cite{meghdouri_analysis_2018} wh
 %We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
 Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data.
 
-\newpage
 We then discuss several techniques to detect or remove a backdoor from a trained model. In particular, we show how visualization techniques from explainable \gls{ml} can be used to detect backdoors and problems emerging from the distribution of attack samples in the training dataset.
 
 Probably the most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers. We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
@@ -197,7 +198,7 @@ We add a backdoor to our deep learning and random forest models and investigate 
 
 Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
 
-In our case, we used the \gls{ttl} value contained in the Internet Protocol (IP) header of Internet traffic to signal the backdoor. The \gls{ttl} is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the \gls{ttl} field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the \gls{ttl} value.
+In our case, we used the \gls{ttl} value contained in the \gls{ip} header of Internet traffic to signal the backdoor. The \gls{ttl} is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the \gls{ttl} field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the \gls{ttl} value.
 
 Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic.  The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic. Specifically we implement the backdoor by incrementing the \gls{ttl} of the first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl} (which would be otherwise undefined or zero) as well as in changed max, min and mean.
 \subsection{Datasets}
@@ -345,7 +346,7 @@ We thus propose a defense approach that can be used for similar use cases like t
 
 \autoref{fig:performancePruningRF} shows the for the UNSW-NB15 dataset pruning not only 
 
-\subsection{Neural Network Fine-Tuning}
+\subsection{Neural Network Fine-Pruning}
 Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors.
 
 \todo{maybe move this to related}
@@ -361,6 +362,8 @@ Indeed, \citeauthor{liu_fine-pruning:_2018}~\cite{liu_fine-pruning:_2018} argue 
 \autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for both UNSW-NB15 and CIC-IDS-2017 with the validation set, hence without backdoored samples. 
 \autoref{fig:finetuning} indicates clearly that, unfortunately, similar to pruning fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. 
 
+In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_2018}, i.e. we pruned 50\% of neural network neurons and applied fine-tuning to the resulting network. However, also fine-pruning did not result in convenient backdoor removal performance.
+
 The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a decay of the backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
 
 \section{Discussion}
@@ -370,9 +373,20 @@ To ensure that no backdoor in contained in the model in question, it has to be c
 
 Furthermore, for \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed, is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. In fact, it might even increase by mitigating overfitting.
 
-Most importantly, however, features to use for deploying an \gls{ids} have to be selected carefully.
+Most importantly, however, features to use for deploying an \gls{ids} have to be selected carefully. Indeed, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
 
 \section{Conclusions}
+In this paper, we addressed the problem of poisoning attacks conducted on \glspl{ids}. We used a recent publicly available dataset for network anomaly detection and trained \gls{rf} and \gls{dl} models containing backdoors exploiting the \gls{ip} \gls{ttl} field.
+
+With this setup, we explored several mitigation techniques. While, surprisingly, neural network pruning and fine-tuning was uneffective for removing the backdoor from our \gls{dl} model, detection of the backdoor was possible using \gls{pdp} and \gls{ale} plots both for the \gls{dl} and \gls{rf} models.
+
+We furthermore proposed an \gls{rf} pruning technique, which proved highly effective for removing the backdoor while retaining a high classification accuracy for normal traffic.
+
+Designers of network \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use.
+
+Also, \glspl{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
+
+It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
 
 We used a dataset for network anomaly detection and extracted features using an enhanced version of the CAIA feature vector. Then we trained two non-interpretable classifiers on the resulting data. The resulting random forest as well as the deep learning model performed very well on the dataset. As the next step we implemented a backdoor into the dataset. For this we had to find a feature that can actually be modified easily by an attacker. We found that the \gls{ttl} fulfills these criteria and implemented a backdoor in it by modifying the  \gls{ttl} of selected packets. The resulting backdoor was successfully detected by the classifier in nearly all cases. Furthermore, the accuracy of the classifier on the original dataset did not change significantly. However, the backdoor was clearly visible by inspecting the plots yielded by explainability methods. It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
 
