@@ -366,7 +366,7 @@ In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_20
 The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a decay of the backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
 
 \section{Discussion}
-From our investigations, we can make two main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
+From our experiments, we can make three main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
 
 To ensure that no backdoor in contained in the model in question, it has to be carefully analyzed for questionable decisions. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the process of training of the model explainability plots constitute a useful tool to ensure that the model is not trained unintentionally to artifacts the dataset yields.
 
