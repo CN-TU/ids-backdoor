@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 DIR_NAME = "ice"
 
-def ice(data, eval_function, features, means, stds, resolution=100, n_data=10, suffix=''):
+def ice(data, eval_function, features, means, stds, resolution=100, n_data=10, suffix='', dirsuffix=''):
 
 	index = np.random.permutation(data.shape[0])[:n_data]
 	downsampled_data = data[index,:]
@@ -29,8 +29,8 @@ def ice(data, eval_function, features, means, stds, resolution=100, n_data=10, s
 			ices[i,j_index,:] = eval_function(dd_cpy)[:,0]
 
 		rescaled = np.linspace(minimum_rescaled, maximum_rescaled, num=resolution)
-		os.makedirs(DIR_NAME, exist_ok=True)
-		np.save('%s/%s%s.npy' % (DIR_NAME, feature, suffix), np.vstack((rescaled,ices[i,:,:].transpose())))
+		os.makedirs(DIR_NAME + dirsuffix, exist_ok=True)
+		np.save('%s%s/%s%s.npy' % (DIR_NAME, dirsuffix, feature, suffix), np.vstack((rescaled,ices[i,:,:].transpose())))
 		#for k in range(n_data):
 			#plt.plot(rescaled, ices[i,:,k])
 		#plt.xlabel('Feature')

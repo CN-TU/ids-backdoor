@@ -14,6 +14,7 @@ from datetime import datetime
 import argparse
 import os
 import pickle
+import gzip
 import copy
 
 import sklearn
@@ -29,6 +30,8 @@ import ice as ice_module
 import closest as closest_module
 import collections
 import pickle
+import ast
+import warnings
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
@@ -112,7 +115,7 @@ def get_logdir(fold, n_fold):
 	return os.path.join('runs', current_time + '_' + socket.gethostname() + "_" + str(fold) +"_"+str(n_fold))
 
 def surrogate(predict_fun):
-	os.makedirs('surrogate', exist_ok=True)
+	os.makedirs('surrogate%s' % dirsuffix, exist_ok=True)
 	train_indices, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	logreg = LogisticRegression(solver='liblinear')
@@ -126,7 +129,7 @@ def surrogate(predict_fun):
 	output_scores(y_true, predictions)
 
 	print ("Coefficients:", logreg.coef_)
-	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_pred%s.csv' % suffix)
+	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate%s/logreg_pred%s.csv' % (dirsuffix, suffix))
 
 
 	logreg = LogisticRegression(solver='liblinear')
@@ -140,7 +143,7 @@ def surrogate(predict_fun):
 	output_scores(y_true, predictions)
 
 	print ("Coefficients:", logreg.coef_)
-	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate/logreg_real%s.csv' % suffix)
+	pd.Series(logreg.coef_[0], features).to_frame().to_csv('surrogate%s/logreg_real%s.csv' % (dirsuffix, suffix))
 
 def closest(prediction_function):
 	n_fold = opt.nFold
@@ -174,13 +177,15 @@ def train_nn(finetune=False):
 	fold = opt.fold
 
 	if finetune:
-		train_indices, _, _ = get_indices_for_backdoor_pruning()
+		train_indices, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		finetune_results = None
 	else:
 		train_indices, _ = get_nth_split(dataset, n_fold, fold)
 	train_data = torch.utils.data.Subset(dataset, train_indices)
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True)
 
 	writer = SummaryWriter(get_logdir(fold, n_fold))
+	_ = writer.log_dir
 
 	criterion = torch.nn.BCEWithLogitsLoss(reduction="mean")
 	optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr)
@@ -204,7 +209,18 @@ def train_nn(finetune=False):
 			accuracy = torch.mean((torch.round(torch.sigmoid(output.detach().squeeze())) == labels.squeeze()).float())
 			writer.add_scalar("accuracy", accuracy, samples)
 
-		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.logdir, samples))
+		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
+		if finetune:
+			scores = output_scores(y[good_test_indices,0], predict(good_test_indices, net))
+			scores_bd = output_scores(y[bad_test_indices,0], predict(bad_test_indices, net), only_accuracy=True)
+			scores['Backdoor_acc'] = scores_bd['Accuracy']
+			if finetune_results is None:
+				finetune_results = pd.DataFrame(scores, index=[0])
+			else:
+				finetune_results.append(scores, ignore_index=True)
+			finetune_results.to_csv('%s/finetuning.csv' % writer.log_dir, index=False)
+			net.train()
+			
 
 def predict(test_indices, net=None, good_layers=None, correlation=False):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
@@ -237,7 +253,7 @@ def predict(test_indices, net=None, good_layers=None, correlation=False):
 				activations = [hooked.output.detach().cpu().numpy() for hooked in hooked_classes]
 				summed_activations.append(activations)
 
-		all_predictions.append(torch.round(torch.sigmoid(output.detach().squeeze())).cpu().numpy())
+		all_predictions.append(torch.round(torch.sigmoid(output.detach())).cpu().numpy())
 
 	all_predictions = np.concatenate(all_predictions, axis=0).astype(int)
 
@@ -253,21 +269,25 @@ def predict(test_indices, net=None, good_layers=None, correlation=False):
 		return all_predictions, mean_activations
 
 def test_nn():
-	n_fold = opt.nFold
-	fold = opt.fold
 
-	_, test_indices = get_nth_split(dataset, n_fold, fold)
-
-	print('All test data')
-	eval_nn(test_indices)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
 	if opt.backdoor:
-		_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		if opt.function == 'test_pruned':
+			_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		else:
+			good_test_indices = [ i for i in test_indices if not backdoor_vector[i] ]
+			bad_test_indices = [ i for i in test_indices if backdoor_vector[i] ]
 		print ('Good test data')
 		eval_nn(good_test_indices)
 
 		print ('Backdoored data')
 		eval_nn(bad_test_indices, only_accuracy=True)
+
+	else:
+		eval_nn(test_indices)
+		
+test_pruned_nn = test_nn
 
 def eval_nn(test_indices, only_accuracy=False):
 	# if test_indices is None:
@@ -493,11 +513,11 @@ def prune_backdoor_nn():
 		new_nns.append(new_nn)
 
 	scores = []
-	scoresbd = []
-	relSteps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
-	for relStep, new_nn in zip(relSteps, new_nns):
+	scores_bd = []
+	rel_steps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
+	for rel_step, new_nn in zip(rel_steps, new_nns):
 		current_children = list(new_nn.children())
-		print(f"pruned: {relStep}")
+		print(f"pruned: {rel_step}")
 		print("non-backdoored")
 		predicted_good = predict(good_test_indices, net=new_nn)
 		ground_truth_good = y[good_test_indices,0]
@@ -505,23 +525,30 @@ def prune_backdoor_nn():
 		print("backdoored")
 		predicted_bad = predict(bad_test_indices, net=new_nn)
 		ground_truth_bad = y[bad_test_indices,0]
-		scoresbd.append(output_scores(ground_truth_bad, predicted_bad, only_accuracy=True))
+		scores_bd.append(output_scores(ground_truth_bad, predicted_bad, only_accuracy=True))
 
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
-	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
-	os.makedirs('prune', exist_ok=True)
-	filename = 'prune/prune_%s%s%s' % ('_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
+	scores_bd = { name: [ score[name] for score in scores_bd ] for name in scores_bd[0] }
+	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
+	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
 	with open(filename, 'wb') as f:
 		if opt.correlation:
-			pickle.dump([relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results], f)
+			pickle.dump([rel_steps, scores, scores_bd, mean_activation_per_neuron, concatenated_results], f)
 		else:
-			pickle.dump([relSteps, scores, scoresbd], f)
+			pickle.dump([rel_steps, scores, scores_bd], f)
 
 def finetune_nn():
 	train_nn(finetune=True)
 
 def closest_nn():
 	closest(predict)
+	
+def query_nn(data):
+	out = np.zeros((data.shape[0],1,1))
+	for start in range(0, out.size, opt.batchSize):
+		end = start + opt.batchSize
+		out[start:end] = torch.sigmoid(net(torch.FloatTensor(data[start:end,:]).to(device))).detach().unsqueeze(1).cpu().numpy()
+	return out
 
 def pdp_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -530,7 +557,11 @@ def pdp_nn():
 	all_labels = []
 	net.eval()
 
-	pdp_module.pdp(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	test_data = x[test_indices,:]
+	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
+
+	pdp_module.pdp(test_data, query_nn, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -539,7 +570,11 @@ def ale_nn():
 	all_labels = []
 	net.eval()
 
-	ale_module.ale(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().unsqueeze(1).cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	test_data = x[test_indices,:]
+	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
+
+	ale_module.ale(test_data, query_nn, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_nn():
 	# all_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
@@ -548,7 +583,11 @@ def ice_nn():
 	all_labels = []
 	net.eval()
 
-	ice_module.ice(x, lambda x: torch.sigmoid(net(torch.FloatTensor(x).to(device))).detach().cpu().numpy(), features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	test_data = x[test_indices,:]
+	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
+
+	ice_module.ice(test_data, query_nn, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_nn():
 	surrogate(predict)
@@ -558,23 +597,53 @@ def surrogate_nn():
 ##########################
 
 def train_rf():
-	pickle.dump(rf, open('%s.rfmodel' % get_logdir(opt.fold, opt.nFold), 'wb'))
+	with gzip.open('%s.rfmodel.gz' % get_logdir(opt.fold, opt.nFold), 'wb') as f:
+		pickle.dump(rf, f)
 
 def test_rf():
+
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 
-	predictions = rf.predict (x[test_indices,:])
+	if opt.backdoor:
+		if opt.function == 'test_pruned':
+			_, good_test_indices, bad_test_indices = get_indices_for_backdoor_pruning()
+		else:
+			good_test_indices = [ i for i in test_indices if not backdoor_vector[i] ]
+			bad_test_indices = [ i for i in test_indices if backdoor_vector[i] ]
+		print ('Good test data')
+		predictions = rf.predict (x[good_test_indices,:])
+		output_scores(y[good_test_indices,0], predictions)
 
-	output_scores(y[test_indices,0], predictions)
+		print ('Backdoored data')
+		predictions = rf.predict (x[bad_test_indices,:])
+		output_scores(y[bad_test_indices,0], predictions, only_accuracy=True)
+
+	else:
+		predictions = rf.predict (x[test_indices,:])
+		output_scores(y[test_indices,0], predictions)	
+
+test_pruned_rf = test_rf
 
 def pdp_rf():
-	pdp_module.pdp(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, suffix=suffix)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	test_data = x[test_indices,:]
+	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
+
+	pdp_module.pdp(test_data, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ale_rf():
-	ale_module.ale(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=1000, lookaround=10, suffix=suffix)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	test_data = x[test_indices,:]
+	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
+
+	ale_module.ale(test_data, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, lookaround=10, suffix=suffix, dirsuffix=dirsuffix, plot_range=ast.literal_eval(opt.arg) if opt.arg != "" else None)
 
 def ice_rf():
-	ice_module.ice(x, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=100, suffix=suffix)
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	test_data = x[test_indices,:]
+	warnings.warn("You are using --backdoor with an explainability plot function. This might not be what you want.", UserWarning)
+
+	ice_module.ice(test_data, rf.predict_proba, features, means=means, stds=stds, resolution=1000, n_data=opt.nData, suffix=suffix, dirsuffix=dirsuffix)
 
 def surrogate_rf():
 	surrogate(lambda indices: rf.predict(x[indices,:]))
@@ -753,7 +822,7 @@ def get_indices_for_backdoor_pruning(all_validation_indices=False):
 
 	good_test_indices = [index for index in test_indices if backdoor_vector[index] == 0]
 	bad_test_indices = [index for index in test_indices if backdoor_vector[index] == 1]
-	assert (y[bad_test_indices,0] == 0).all()
+	assert (y[bad_test_indices,0] == opt.classWithBackdoor).all()
 
 	harmless_good_validation_indices = [index for index in good_validation_indices if y[index,0] == opt.classWithBackdoor]
 	# harmless_good_validation_indices = good_validation_indices
@@ -806,21 +875,21 @@ def prune_backdoor_rf():
 		new_rfs.append(new_rf)
 
 	scores = []
-	scoresbd = []
-	relSteps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
-	for relStep, new_rf in zip(relSteps, new_rfs):
-		print(f"pruned: {relStep}")
+	scores_bd = []
+	rel_steps = [ (step+1)/(opt.nSteps + 1) for step in range(-1,opt.nSteps) ]
+	for rel_step, new_rf in zip(rel_steps, new_rfs):
+		print(f"pruned: {rel_step}")
 		print("non-backdoored")
 		scores.append(output_scores(y[good_test_indices,0], new_rf.predict(x[good_test_indices,:])))
 		print("backdoored")
-		scoresbd.append(output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True))
+		scores_bd.append(output_scores(y[bad_test_indices,0], new_rf.predict(x[bad_test_indices,:]), only_accuracy=True))
 
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
-	scoresbd = { name: [ score[name] for score in scoresbd ] for name in scoresbd[0] }
-	os.makedirs('prune', exist_ok=True)
-	filename = 'prune/prune_%f%s%s%s.pickle' % (opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
+	scores_bd = { name: [ score[name] for score in scores_bd ] for name in scores_bd[0] }
+	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
+	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
 	with open(filename, 'wb') as f:
-		pickle.dump([relSteps, scores, scoresbd], f)
+		pickle.dump([rel_steps, scores, scores_bd], f)
 
 def noop_nn():
 	pass
@@ -840,6 +909,7 @@ if __name__=="__main__":
 	parser.add_argument('--nEstimators', type=int, default=100, help='estimators for random forest')
 	parser.add_argument('--net', default='', help="path to net (to continue training)")
 	parser.add_argument('--function', default='train', help='the function that is going to be called')
+	parser.add_argument('--arg', default='', help="optional arguments")
 	parser.add_argument('--manualSeed', default=0, type=int, help='manual seed')
 	parser.add_argument('--backdoor', action='store_true', help='include backdoor')
 	parser.add_argument('--naive', action='store_true', help='include naive version of the backdoor')
@@ -857,6 +927,7 @@ if __name__=="__main__":
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
 	parser.add_argument('--reduceValidationSet', type=float, default=1, help='relative amount of validation set to use for pruning')
+	parser.add_argument('--nData', type=int, default=100, help='number of samples to use for computing PDP/ALE/ICE plots')
 
 	opt = parser.parse_args()
 	print(opt)
@@ -870,9 +941,12 @@ if __name__=="__main__":
 	torch.manual_seed(seed)
 
 	if opt.backdoor:
+		# TODO: makes no more sense with commit 5ad8394b61f88f4eba1408f49c4056bdb9607561
 		suffix = '_%s_%d_bd' % (opt.method, opt.fold)
 	else:
 		suffix = '_%s_%d' % (opt.method, opt.fold)
+
+	dirsuffix = '_%s' % opt.dataroot[:-4]
 
 	# MAX_ROWS = sys.maxsize
 	# # MAX_ROWS = 1_000_000
@@ -913,7 +987,7 @@ if __name__=="__main__":
 		print("backward", ratio_of_those_good_ones_with_stdev_not_zero_backward)
 
 
-		attack_records = df[df["Label"] == 1].to_dict("records", into=collections.OrderedDict)
+		attack_records = df[df["Label"] != opt.classWithBackdoor].to_dict("records", into=collections.OrderedDict)
 		# print("attack_records", attack_records)
 		forward_ones = [item for item in [add_backdoor(item, "forward") for item in attack_records] if item is not None]
 		print("forward_ones", len(forward_ones))
@@ -995,7 +1069,11 @@ if __name__=="__main__":
 		train_indices, _ = get_nth_split(dataset, opt.nFold, opt.fold)
 
 		if opt.net:
-			rf = pickle.load(open(opt.net, 'rb'))
+			if opt.net.endswith('.rfmodel.gz'):
+				with gzip.open(opt.net, 'rb') as f:
+					rf = pickle.load(f)
+			else:
+				rf = pickle.load(open(opt.net, 'rb'))
 		else:
 			rf = RandomForestClassifier(n_estimators=opt.nEstimators)
 			rf.fit(x[train_indices,:], y[train_indices,0])
