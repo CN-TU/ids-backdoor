@@ -90,7 +90,6 @@
 \newacronym{pdp}{PDP}{Partial Dependence Plot}
 \newacronym{ale}{ALE}{Accumulated Local Effects}
 \newacronym{ids}{IDS}{Intrusion Detection System}
-\newacronym{nids}{NIDS}{Network Intrusion Detection System}
 \newacronym{rf}{RF}{Random Forest}
 \newacronym{mlp}{MLP}{Multilayer Perceptron}
 \newacronym{relu}{ReLU}{Rectified Linear Unit}
@@ -157,7 +156,7 @@ We then discuss several techniques to detect or remove a backdoor from a trained
 
 Probably the most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers. We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
 
-Finally, we also evaluate techniques proposed for \glspl{cnn} for removing backdoors from image classifiers, which, however, surprisingly show to be uneffective for our \gls{mlp} classifiers. 
+Finally, we also evaluate techniques proposed for \glspl{cnn} for removing backdoors from image classifiers, which, however, surprisingly turn out to be ineffective for our \gls{mlp} classifiers. 
 
 
 \begin{table*}[h]
@@ -309,14 +308,14 @@ Various pruning techniques for decision trees have been proposed for decision tr
 \end{figure}
 
 \subsubsection{Random Forest Pruning}
-For intrusion detection, decision tree based models or random forests of decision trees  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{nids} we thus consider the removal of backdoors from decision tree based models to be a more pressing issue than from \glspl{mlp}. 
+For intrusion detection, decision tree based models or random forests of decision trees  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{ids} we thus consider the removal of backdoors from decision tree based models to be a more pressing issue than from \glspl{mlp}. 
 
 The defense mechanism proposed by \cite{biggio_bagging_2011} uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset via poisoning and is applicable to decision trees. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor. 
 
 We thus propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease by a lot while decisions that are used for the backdoor are hopefully removed. We develop several variants of our pruning defense with increasing levels of sophistication. These iterations are pruning
 \begin{enumerate}
 \item leaves based on their usage: This means that the least used leaf is pruned first and the most used one last. 
-\item only ``harmless'' leaves based on their usage: In the case of \glspl{nids} we assume that attackers want to make attacks appear to be benign. 
+\item only ``harmless'' leaves based on their usage: In the case of \glspl{ids} we assume that attackers want to make attacks appear to be benign. 
 \item only ``harmless'' leaves based on their usage and based on their depth if two leaves have an equal number of usages: The rationale behind this is that we assume that hand-crafted backdoors require fewer rules for a decision tree to classify than regular samples. Thus, samples higher up the tree (with lower depth) are pruned first, if they have the same number of usages like another leaf with a higher depth. 
 \end{enumerate}
 \begin{figure*}[h]
