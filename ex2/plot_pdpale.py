@@ -13,6 +13,13 @@ import ast
 
 import argparse
 
+#called with
+#./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_((0,180.3),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_bd_((0,180.3),('abs','abs')).npy" --hist --bins 20 --legend --dotted bd --height 2.5
+#./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_((0,5),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_bd_((0,5),('abs','abs')).npy" --hist --bins 20 --height 2 --dotted bd
+#./plot_pdpale.py *_CAIA_backdoor_17/"apply(mean(ipTTL),forward)_nn_0_((0,255),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(mean(ipTTL),forward)_rf_0_((0,255),('abs','abs')).npy" --hist --bins 20 --legend --height 3 --dotted rf --ymax 0.8 --save paper/ttlmean.pdf
+#./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_((0,180.3),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_bd_((0,180.3),('abs','abs')).npy" --hist --bins 20 --legend --dotted bd --height 2.5
+#./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_((0,5),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_bd_((0,5),('abs','abs')).npy" --hist --bins 20 --height 2 --dotted bd
+
 
 plt.rcParams["font.family"] = "serif"
 
@@ -118,7 +125,7 @@ print_type = not all(item == modeltype[0] for item in modeltype)
 all_legends = [item if type(item)!=tuple else item[-1][0] for item in all_legends]
 
 for legend, l in zip(all_legends, labels):
-	legend.set_label('%s%s%s' % (l[0], (', '+l[1]) if l[1] and print_bd else ' ', (', '+l[2]) if l[2] and print_type else ''))
+	legend.set_label('%s%s%s' % (l[0], (', '+l[1]) if l[1] and print_bd else '', (', '+l[2]) if l[2] and print_type else ''))
 
 all_legends = sorted(all_legends, key=lambda x: x.get_label())
 all_labels = [item.get_label() for item in all_legends]
