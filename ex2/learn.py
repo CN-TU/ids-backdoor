@@ -543,7 +543,7 @@ def prune_backdoor_nn():
 			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd, mean_activation_per_neuron, concatenated_results], f)
 		else:
 			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd], f)
-	
+
 def finetune_nn():
 	train_nn(finetune=True)
 
