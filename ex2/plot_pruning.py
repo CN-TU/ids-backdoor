@@ -42,12 +42,17 @@ def doplot(filenames, **kwargs):
 linestyles = [ ( Line2D([0], [0], **metrics[metric][1]), metrics[metric][0]) for metric in metrics ]
 linestyles.append((Line2D([0], [0], color='r'), 'Backdoor accuracy'))
 
-linestyles.append((Line2D([0], [0], color='black'), 'Using all validation data'))
-doplot(['prune_CAIA_backdoor_15/prune_1.00_oh_rf_0_bd.pickle'])
+# validation_set_ratios = "0.01 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00".split(" ")
+validation_set_ratios = "0.01 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 1.00".split(" ")
 
-linestyles.append((Line2D([0], [0], color='black', linestyle='--'), 'Using 1% of validation data'))
-doplot(['prune_CAIA_backdoor_15/prune_0.01_oh_rf_0_bd.pickle'], linestyle='--')
+# linestyles.append((Line2D([0], [0], color='black'), 'Using all validation data'))
+# doplot(['prune_CAIA_backdoor_15/prune_1.00_oh_rf_0_bd.pickle'])
 
+# linestyles.append((Line2D([0], [0], color='black', linestyle='--'), 'Using 1% of validation data'))
+
+for index, item in enumerate(validation_set_ratios):
+	# doplot(['prune_CAIA_backdoor_15/prune_'+str(item)+'_oh_rf_0_bd.pickle'], linestyle='--')
+	doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_rf_0_bd.pickle'], dashes=[index+1, index+1])
 
 plt.legend(*zip(*linestyles), loc='lower left')
 
@@ -55,21 +60,21 @@ plt.xlabel(xlabel)
 plt.ylabel('Classification performance')
 
 plt.tight_layout()
-plt.savefig('prune_CAIA_backdoor_15/prune.pdf')
+plt.savefig('prune_CAIA_backdoor/prune.pdf')
 
 
 plt.close()
 
-
+sys.exit()
 
 linestyles = [ ( Line2D([0], [0], **metrics[metric][1]), metrics[metric][0]) for metric in metrics ]
 linestyles.append((Line2D([0], [0], color='r'), 'Backdoor accuracy'))
 
 linestyles.append((Line2D([0], [0], color='black'), 'Using all validation data'))
-doplot(['prune_CAIA_backdoor_17/prune_1.00_oh_rf_%d_bd.pickle' % i for i in range(3)])
+doplot(['prune_CAIA_backdoor/prune_1.00_oh_rf_%d_bd.pickle' % i for i in range(3)])
 
 linestyles.append((Line2D([0], [0], color='black', linestyle='--'), 'Using 1% of validation data'))
-doplot(['prune_CAIA_backdoor_17/prune_0.01_oh_rf_%d_bd.pickle' % i for i in range(3)], linestyle='--')
+doplot(['prune_CAIA_backdoor/prune_0.01_oh_rf_%d_bd.pickle' % i for i in range(3)], linestyle='--')
 
 
 plt.legend(*zip(*linestyles), loc='lower left')
@@ -78,7 +83,7 @@ plt.xlabel(xlabel)
 plt.ylabel('Classification performance')
 
 plt.tight_layout()
-plt.savefig('prune_CAIA_backdoor_17/prune.pdf')
+plt.savefig('prune_CAIA_backdoor/prune.pdf')
 
 
 plt.close()
