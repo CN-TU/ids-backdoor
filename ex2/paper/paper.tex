@@ -146,18 +146,29 @@ Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} app
 \maketitle
 
 \section{Introduction}
-The detection of attacks in data networks is a fundamental task in data security. Due to the considerable amount of data which has to be analyzed the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
+The detection of attacks in data networks is a fundamental task in data security. Due to the considerable amount of data which has to be analyzed, the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
 
-For research, the invention and assessment of techniques for network anomaly detection poses many challenges. To implement such a system, a considerable number of features can be extracted from network data which might be beneficial for anomaly detection and it is not always clear which features are actually important.
+For research, the invention and assessment of techniques for \glspl{ids} poses many challenges. To implement such a system, a considerable number of features can be extracted from network data which might be beneficial for anomaly detection and it is not always clear which features are actually important.
 
-For the training of models usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a machine learning model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
+Creating a model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that the training is done by a security company marketing either a complete anomaly detection system or just a model usable by an anomaly detection software which might even be open-source.
+
+If we have to question if such a security company can be trusted under all circumstances, the problem arises that the security company might have tried to implement measures to circumvent reliable attack detection of their attack detection system.
+
+Furthermore, for the training of models usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a machine learning model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
 
 For a well-performing network anomaly detection technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
 % TODO: think meghdouri_analysis_2018 didnt use this
-In this document, we redo parts of a recent paper~\cite{meghdouri_analysis_2018} which bases on the CIC-IDS-2017 dataset \cite{sharafaldin_toward_2018} for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection. We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
+In this paper, we redo parts of a recent paper~\cite{meghdouri_analysis_2018} which bases on the UNSW-NB15 dataset \cite{moustafa_unsw-nb15:_2015} for evaluating the performance of several feature vectors and machine learning techniques for accurate anomaly detection in the context of \glspl{ids}.
+%We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
+Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data.
 
-Furthermore, we add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data. Finally, we apply the same explainability methods to the backdoored model and show how such attack attempts might be recognized before any harm is done.
+\newpage
+We then discuss several techniques to detect or remove a backdoor from a trained model. In particular, we show how visualization techniques from explainable \gls{ml} can be used to detect backdoors and problems emerging from the distribution of attack samples in the training dataset.
+
+Probably the most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers. We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
+
+Finally, we also evaluate techniques proposed for \glspl{cnn} for removing backdoors from image classifiers, which, however, surprisingly show to be uneffective for our \gls{mlp} classifiers. 
 
 
 \begin{table*}[h]
@@ -181,11 +192,8 @@ Backdoor acc.	& 1.000 $\pm$ 0.000	& 0.998 $\pm$ 0.002	& 1.000 $\pm$ 0.000	& 1.00
 
 \section{Experimental Setup} \label{sec:ml_approaches}
 \subsection{The Backdoor}
-Creating a model for anomaly detection in network traffic is a challenging task which involves massive datasets and significant amounts of computation power. In a practical deployment, it is therefore reasonable to assume that the training is done by a security company marketing either a complete anomaly detection system or just a model usable by an anomaly detection software which might even be open-source.
 
-If we have to question if such a security company can be trusted under all circumstances, the problem occurs that the security company might have tried to implement measures to circumvent reliable attack detection of their attack detection system.
-
-For this reason, we now add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
+We add a backdoor to our deep learning and random forest models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
 
 Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the anomaly detection system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
 
@@ -278,12 +286,25 @@ When computing \gls{ale} plots, we experienced the problem of empty intervals. I
 For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
 
 \subsubsection{Identifying Backdoors}
-Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our \gls{rf} model, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. For comparison, we also provide plots for the corresponding models which were trained without backdoor, which are not available in a real situation.
+Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our CIC-IDS-2017 \gls{dl} classifier, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. We also provide plots for the corresponding models which were trained without backdoor. The plots are not available in a real situation, but we provide them here for comparison.
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{figures/pdpale2017nn.pdf}
+\includegraphics[width=\columnwidth]{figures/pdpale2017nn_zoom.pdf}
+\caption{\gls{pdp} and \gls{ale} plots for the CIC-IDS-2017 classifier.}
+\label{fig:pdp_ttl}
+\end{figure}
 
 As shown in \autoref{fig:pdp_ttl}, the \glspl{pdp} for both \gls{rf} and \gls{dl} show a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. In contrast to \autoref{fig:pdp_ttl}, one would therefore expect this feature to have a negligible influence on the classification result. In our case, this notch thus points to the existance of the backdoor we embedded.
 
+
 It has to be noted, however, that inconsistent behaviour of the \gls{mui}, detected using \gls{pdp} or \gls{ale} plots, does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets, which is similarly counter-intuitive as for the feature discussed above. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the UNSW-NB15 and CIC-IDS-2017 datasets. 
 
+\begin{figure}[b]
+\includegraphics[width=\columnwidth]{figures/ttlmean.pdf}
+\caption{\gls{pdp} and \gls{ale} plots for mean(TTL) for the CIC-IDS-2017 \gls{rf} and \gls{dl} classifiers.}
+\label{fig:ttlmean}
+\end{figure}
 Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models for such patterns.
 \subsection{Pruning Techniques}
 
@@ -325,13 +346,19 @@ We thus propose a defense approach that can be used for similar use cases like t
 \autoref{fig:performancePruningRF} shows the for the UNSW-NB15 dataset pruning not only 
 
 \subsection{Neural Network Fine-Tuning}
-Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning (\todo{ref}). For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors.
+Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors.
 
 \todo{maybe move this to related}
 
-Indeed, in (\todo{ref}) it is argued that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning.
+Indeed, \citeauthor{liu_fine-pruning:_2018}~\cite{liu_fine-pruning:_2018} argue  that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning.
 
-\autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for CIC-IDS-2015 with the validation set, hence without backdoored samples. 
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{figures/finetuning_2015.pdf}
+\includegraphics[width=\columnwidth]{figures/finetuning_2017.pdf}
+\caption{Fine-tuning of the \glspl{mui} for the UNSW-NB15 (top) and CIC-IDS-2017 (bottom) classifiers.}
+\label{fig:finetuning}
+\end{figure}
+\autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for both UNSW-NB15 and CIC-IDS-2017 with the validation set, hence without backdoored samples. 
 \autoref{fig:finetuning} indicates clearly that, unfortunately, similar to pruning fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. 
 
 The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a decay of the backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
@@ -342,6 +369,8 @@ From our investigations, we can make two main recommendations for the deployment
 To ensure that no backdoor in contained in the model in question, it has to be carefully analyzed for questionable decisions. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the process of training of the model explainability plots constitute a useful tool to ensure that the model is not trained unintentionally to artifacts the dataset yields.
 
 Furthermore, for \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed, is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. In fact, it might even increase by mitigating overfitting.
+
+Most importantly, however, features to use for deploying an \gls{ids} have to be selected carefully.
 
 \section{Conclusions}
 
