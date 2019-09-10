@@ -17,7 +17,16 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 		try:
 			with open(path, 'rb') as f:
 				# relSteps, steps, scores, models, scoresbd, mean_activation_per_neuron, concatenated_results = pickle.load(f)
-				relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results = pickle.load(f)
+				data = list(pickle.load(f))
+				relSteps = data[0]
+				scores = data[1]
+				scoresbd = data[2]
+				if len(data) == 7:
+					mean_activation_per_neuron = data[5]
+					concatenated_results = data[6]
+				elif len(data) == 6:
+					mean_activation_per_neuron = data[4]
+					concatenated_results = data[5]
 			print("Succeeded")
 		except Exception as e:
 			print(e)
@@ -25,7 +34,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 			# pass
 			continue
 
-		plt.figure(figsize=(5,4))
+		plt.figure(figsize=(5,3.5))
 		tot_neurons = len(mean_activation_per_neuron)
 		sort_indices = np.argsort(mean_activation_per_neuron)
 		lines = []
