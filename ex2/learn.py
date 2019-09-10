@@ -537,7 +537,13 @@ def prune_backdoor_nn():
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
 	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
 
-	saved_models_in_memory = [torch.save(item, io.BytesIO()) for item in new_nns]
+	saved_models_in_memory = [io.BytesIO() for _ in new_nns]
+	for item, nn_to_save in zip(saved_models_in_memory, new_nns):
+		torch.save(nn_to_save.state_dict(), item)
+		item.seek(0)
+
+	saved_models_in_memory = [item.read() for item in saved_models_in_memory]
+	print("saved_models_in_memory", [len(item) for item in saved_models_in_memory])
 	with open(filename, 'wb') as f:
 		if opt.correlation:
 			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd, mean_activation_per_neuron, concatenated_results], f)
@@ -938,6 +944,7 @@ if __name__=="__main__":
 	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
+	parser.add_argument('--modelIndexToLoad', default=0, type=int, help='which model to load when loading from a pickle file output after pruning')
 	parser.add_argument('--reduceValidationSet', type=float, default=1, help='relative amount of validation set to use for pruning')
 	parser.add_argument('--nData', type=int, default=100, help='number of samples to use for computing PDP/ALE/ICE plots')
 
@@ -1078,8 +1085,11 @@ if __name__=="__main__":
 			if opt.function == 'finetune' and opt.net.endswith('.pickle'):
 				with open(opt.net, 'rb') as f:
 					loadfrom = pickle.load(f)[3]
+					# print("loadfrom[3]", loadfrom[3])
+					loadfrom = io.BytesIO(loadfrom[opt.modelIndexToLoad])
 			else:
 				loadfrom = opt.net
+			# import pdb; pdb.set_trace()
 			net.load_state_dict(torch.load(loadfrom, map_location=device))
 
 	elif opt.method == 'rf':

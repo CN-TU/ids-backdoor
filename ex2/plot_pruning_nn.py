@@ -12,17 +12,20 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 	print("dir_name", dir_name)
 	for f in os.listdir(dir_name):
 		path = '%s/%s' % (dir_name, f)
-		print("path", path)
-		if not f.endswith('.pickle') or not '_nn' in f:
+		if not f.endswith('.pickle') or not '_nn' in f or not "1.00" in f:
 			continue
+		print("path", path)
 		try:
 			with open(path, 'rb') as f:
 				# relSteps, steps, scores, models, scoresbd, mean_activation_per_neuron, concatenated_results = pickle.load(f)
 				data = list(pickle.load(f))
 				relSteps = data[0]
-				scores = data[1]
-				scoresbd = data[2]
-				print("len(data)", len(data))
+				scores = data[2]
+				scoresbd = data[4]
+				# print("data", data)
+				print("scores", scores["Youden"])
+				print("scoresbd", scoresbd["Accuracy"])
+				# print("len(data)", len(data))
 				if len(data) == 7:
 					mean_activation_per_neuron = data[5]
 					concatenated_results = data[6]

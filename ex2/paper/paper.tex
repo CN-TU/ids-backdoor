@@ -349,12 +349,11 @@ The concept behind our pruning defense is that leaves that are never used by sam
 %by a lot
 significantly,
 while decisions that are used for the backdoor are likely to be removed.
-
-We developed several variants of our pruning defense with increasing levels of sophistication. These variants are
+We developed several variants of our pruning defense with increasing levels of sophistication:
 \begin{enumerate}[wide, labelwidth=!, labelindent=0pt]
-\item pruning leaves based on their usage: This means that the least used leaf is pruned first and the most used one last.
-\item pruning only ``harmless'' leaves based on their usage: In the case of \glspl{ids} we assume that attackers want to make attacks appear to be benign.
-\item pruning only ``harmless'' leaves based on their usage and based on their depth if two leaves have an equal number of usages: The rationale behind this is that we assume that hand-crafted backdoors require fewer rules for a \gls{dt} to classify than regular samples. Thus, samples higher up the tree (with lower depth) are pruned first, if they have the same number of usages as another leaf with a higher depth.
+\item Pruning leaves based on their usage: This means that the least used leaf is pruned first and the most used one last.
+\item Like (1) but consider only ``harmless'' leaves: We assume that attackers want malicious samples appear harmless.
+\item Like (2) but use depth to decide when two leaves used equally often: The rationale is that we assume that hand-crafted backdoors require fewer rules to classify than regular samples and are thus have lower depth.
 \end{enumerate}
 \begin{figure*}[h]
 \includegraphics[width=\textwidth]{pruning_example.pdf}
@@ -365,7 +364,7 @@ We developed several variants of our pruning defense with increasing levels of s
 \autoref{fig:pruningExample} shows an example of variant (3) of pruning applied to a tree
 \begin{figure}[h]
 \includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune_oh_d.pdf}
-\caption{Performance metrics throughout the pruning process for \unsw{}. Considering only harmless leaves and depth. Dash length proportional to validtion set size (from 0.01 until 1).}
+\caption{Pruning process an \gls{rf} for \unsw{}, considering only harmless leaves and depth. Dash length proportional to validtion set size (from 0.01 until 1).}
 \label{fig:performancePruningRF}
 \end{figure}
 %\todo{Max: Which pruning algorithm actually?}
@@ -415,7 +414,7 @@ Another important takeaway is that the features used when deploying an \gls{ids}
 %%Designers of \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use. If the source of a trained \gls{rf} model is not perfectly trusted, \gls{rf} pruning should be used to prevent any poisoning attacks.
 
 \section*{Acknowledgement}
-The Titan Xp used for this research was donated by the NVIDIA Corporation. We thank Prof.~Andreas Rauber for giving us valuable suggestions for improvement for the explainability plots in this paper.
+The Titan Xp used for this research was donated by the NVIDIA Corporation. We thank Prof.~Andreas Rauber for his suggestions to improve the explainability plots.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
