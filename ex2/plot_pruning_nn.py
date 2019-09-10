@@ -12,6 +12,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 	print("dir_name", dir_name)
 	for f in os.listdir(dir_name):
 		path = '%s/%s' % (dir_name, f)
+		print("path", path)
 		if not f.endswith('.pickle') or not '_nn' in f:
 			continue
 		try:
@@ -21,6 +22,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 				relSteps = data[0]
 				scores = data[1]
 				scoresbd = data[2]
+				print("len(data)", len(data))
 				if len(data) == 7:
 					mean_activation_per_neuron = data[5]
 					concatenated_results = data[6]
@@ -36,7 +38,8 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 			# pass
 			continue
 
-		plt.figure(figsize=(5,3.5))
+		# plt.figure(figsize=(5,3.5))
+		plt.figure(figsize=(5,3))
 		tot_neurons = len(mean_activation_per_neuron)
 		sort_indices = np.argsort(mean_activation_per_neuron)
 		lines = []

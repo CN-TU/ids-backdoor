@@ -77,7 +77,7 @@ variations = ["", "_d", "_oh", "_oh_d"]
 
 for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 	for variation in variations:
-		plt.figure(figsize=(5,4))
+		plt.figure(figsize=(5,2))
 
 		for index, item in enumerate(validation_set_ratios):
 			# doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_rf_0_bd.pickle'], linestyle='--')
@@ -89,7 +89,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 		plt.legend(*zip(*linestyles), loc='lower left')
 
 		plt.xlabel(xlabel)
-		plt.ylabel('Classification performance')
+		plt.ylabel('Classification perf.')
 
 		plt.tight_layout()
 		plt.show()
