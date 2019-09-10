@@ -17,7 +17,18 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 		try:
 			with open(path, 'rb') as f:
 				# relSteps, steps, scores, models, scoresbd, mean_activation_per_neuron, concatenated_results = pickle.load(f)
-				relSteps, scores, scoresbd, mean_activation_per_neuron, concatenated_results = pickle.load(f)
+				data = list(pickle.load(f))
+				relSteps = data[0]
+				scores = data[1]
+				scoresbd = data[2]
+				if len(data) == 7:
+					mean_activation_per_neuron = data[5]
+					concatenated_results = data[6]
+				elif len(data) == 6:
+					mean_activation_per_neuron = data[4]
+					concatenated_results = data[5]
+				else:
+					continue
 			print("Succeeded")
 		except Exception as e:
 			print(e)
@@ -25,13 +36,20 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 			# pass
 			continue
 
-		plt.figure(figsize=(5,4))
+		plt.figure(figsize=(5,3.5))
 		tot_neurons = len(mean_activation_per_neuron)
-		plt.plot(np.arange(tot_neurons)+1, concatenated_results[np.argsort(mean_activation_per_neuron)], linestyle="", marker=".", alpha=0.5)
+		sort_indices = np.argsort(mean_activation_per_neuron)
+		lines = []
+		lines +=plt.plot(np.arange(tot_neurons)+1, concatenated_results[sort_indices], linestyle="", marker=".", alpha=0.5)
 		av_len = 100
-		plt.plot(np.arange(av_len, tot_neurons+1), np.convolve(concatenated_results[np.argsort(mean_activation_per_neuron)], np.ones(av_len), mode='valid')/av_len)
+		lines += plt.plot(np.arange(tot_neurons-av_len+1)+av_len//2, np.convolve(concatenated_results[np.argsort(mean_activation_per_neuron)], np.ones(av_len), mode='valid')/av_len)
 		plt.xlabel(xlabel)
 		plt.ylabel('Correlation coefficient')
+		
+		plt.twinx()
+		lines += plt.plot(mean_activation_per_neuron[sort_indices], color='gray')
+		plt.legend(lines, ['Corr. coeff.', 'Corr. coeff., moving avg.', 'Mean activation'], loc='upper right')
+		plt.ylabel('Mean activation')
 		plt.tight_layout()
 		plt.savefig(path[:-7] + '.pdf')
 
