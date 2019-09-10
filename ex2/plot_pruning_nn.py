@@ -27,11 +27,18 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 
 		plt.figure(figsize=(5,4))
 		tot_neurons = len(mean_activation_per_neuron)
-		plt.plot(np.arange(tot_neurons)+1, concatenated_results[np.argsort(mean_activation_per_neuron)], linestyle="", marker=".", alpha=0.5)
+		sort_indices = np.argsort(mean_activation_per_neuron)
+		lines = []
+		lines +=plt.plot(np.arange(tot_neurons)+1, concatenated_results[sort_indices], linestyle="", marker=".", alpha=0.5)
 		av_len = 100
-		plt.plot(np.arange(av_len, tot_neurons+1), np.convolve(concatenated_results[np.argsort(mean_activation_per_neuron)], np.ones(av_len), mode='valid')/av_len)
+		lines += plt.plot(np.arange(tot_neurons-av_len+1)+av_len//2, np.convolve(concatenated_results[np.argsort(mean_activation_per_neuron)], np.ones(av_len), mode='valid')/av_len)
 		plt.xlabel(xlabel)
 		plt.ylabel('Correlation coefficient')
+		
+		plt.twinx()
+		lines += plt.plot(mean_activation_per_neuron[sort_indices], color='gray')
+		plt.legend(lines, ['Corr. coeff.', 'Corr. coeff., moving avg.', 'Mean activation'], loc='upper right')
+		plt.ylabel('Mean activation')
 		plt.tight_layout()
 		plt.savefig(path[:-7] + '.pdf')
 
