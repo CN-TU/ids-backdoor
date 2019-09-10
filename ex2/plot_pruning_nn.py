@@ -27,6 +27,8 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 				elif len(data) == 6:
 					mean_activation_per_neuron = data[4]
 					concatenated_results = data[5]
+				else:
+					continue
 			print("Succeeded")
 		except Exception as e:
 			print(e)
