@@ -93,7 +93,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 
 		plt.tight_layout()
 		plt.show()
-		plt.savefig(dir_name+'/prune'+variation+'.pdf')
+		plt.savefig(dir_name+'/prune'+variation+'.pdf', bbox_inches = 'tight', pad_inches = 0)
 
 
 	plt.close()

@@ -63,7 +63,7 @@ for f in opt.filenames:
 		if not match.group(5):
 			print ("Failed to parse %s" % f)
 			continue
-			
+
 
 		for fold in (range(1) if hist else itertools.count()):
 			try:
@@ -72,18 +72,18 @@ for f in opt.filenames:
 				break
 			if match.group(3) == 'rf':
 				pdp[1:,:] = -pdp[1:,:] if dir_name.split("_")[0] == 'ale' else (1-pdp[1:,:]) # dirty hack
-			
+
 			key = match.group(1)
 			fmt = {}
 			if key in colors:
 				fmt['color'] = colors[key]
-				
+
 			if (opt.dotted == 'bd' and match.group(4)) or opt.dotted==dir_name.split("_")[0] or opt.dotted==match.group(3):
 				fmt['linestyle'] = '--'
-				
+
 			hasbd.append(bool(match.group(4)))
 			modeltype.append(match.group(3))
-			
+
 			label = '%s, %s' % (dir_name.split("_")[0].upper(), 'clean model' if not match.group(4) else 'backdoored model')
 			labels.append([dir_name.split("_")[0].upper(), 'clean model' if not match.group(4) else 'backdoored model', 'Random Forest' if match.group(3) == 'rf' else 'Deep Learning'])
 			#ret1 = ax1.plot(pdp[0,:], pdp[1:,:].transpose(), label="{} confidence".format(featmap[feature]))
@@ -111,7 +111,7 @@ for f in opt.filenames:
 				ax1.patch.set_visible(False)
 				hist = False # only plot this one time
 				all_legends.append(ret2)
-				
+
 
 ax1.set_xlabel(featmap[feature])
 ax1.set_ylabel('PDP/ALE')
@@ -131,14 +131,14 @@ all_legends = sorted(all_legends, key=lambda x: x.get_label())
 all_labels = [item.get_label() for item in all_legends]
 if opt.legend:
 	plt.legend(all_legends, all_labels)
-		
+
 if opt.ymax is not None:
 	ax1.set_ylim(top=opt.ymax)
-			
-			
+
+
 plt.tight_layout()
 if opt.save:
-	plt.savefig(opt.save)
+	plt.savefig(opt.save, bbox_inches = 'tight', pad_inches = 0)
 else:
 	plt.show()
 #plt.savefig(dir_name+'/%s_%s%s%s%s.pdf' % (feature, match.group(3), match.group(4), match.group(5), "_hist" if hist else ""))

@@ -45,12 +45,12 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 		lines += plt.plot(np.arange(tot_neurons-av_len+1)+av_len//2, np.convolve(concatenated_results[np.argsort(mean_activation_per_neuron)], np.ones(av_len), mode='valid')/av_len)
 		plt.xlabel(xlabel)
 		plt.ylabel('Correlation coefficient')
-		
+
 		plt.twinx()
 		lines += plt.plot(mean_activation_per_neuron[sort_indices], color='gray')
 		plt.legend(lines, ['Corr. coeff.', 'Corr. coeff., moving avg.', 'Mean activation'], loc='upper right')
 		plt.ylabel('Mean activation')
 		plt.tight_layout()
-		plt.savefig(path[:-7] + '.pdf')
+		plt.savefig(path[:-7] + '.pdf', bbox_inches = 'tight', pad_inches = 0)
 
 		plt.close()
