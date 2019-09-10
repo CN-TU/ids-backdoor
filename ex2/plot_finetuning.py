@@ -1,29 +1,48 @@
 #!/usr/bin/env python3
 
+# run with ./plot_finetuning.py runs/Sep09_09-01-41_gpu_0_3/finetuning.csv --legend --height 2
+
 import sys
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('filenames', type=str, nargs='+')
+parser.add_argument('--legend', action='store_true')
+parser.add_argument('--height', default=3., type=float)
+parser.add_argument('--ymax', default=None, type=float)
+parser.add_argument('--save', type=str)
 
+opt = parser.parse_args()
 plt.rcParams["font.family"] = "serif"
 
-data = [ pd.read_csv(filename) for filename in sys.argv[2:] ]
+data = [ pd.read_csv(filename) for filename in opt.filenames ]
 columns = data[0].columns
-columns = {'Youden': "J score", 'Backdoor_acc': 'Backdoor accuracy'}
+columns = {'Accuracy': 'Accuracy', 'Youden': "Youden's J", 'Backdoor_acc': 'Backdoor accuracy'}
 length = min([ item.shape[0] for item in data ])
 data = np.stack([ item.iloc[:length,:].loc[:,list(columns)].values for item in data ]) # order of metrics might deviate in files
 
 means = np.mean(data, axis=0)
-stds = np.std(data, axis=0)
+if data.shape[0] > 1:
+	stds = np.std(data, axis=0)
 
-plt.figure(figsize=(5,2))
+plt.figure(figsize=(5,opt.height))
 for i in range(means.shape[1]):
-	plt.errorbar(np.arange(length)[:,None] + 1, means[:,i], stds[:,i])
+	if data.shape[0] > 1:
+		plt.errorbar(np.arange(length)[:,None] + 1, means[:,i], stds[:,i])
+	else:
+		plt.plot(np.arange(length)[:,None] + 1, means[:,i])
+		
 plt.xlabel('Epoch')
 plt.ylabel('Metric')
-plt.legend(columns.values())
+if opt.legend:
+	plt.legend(columns.values())
 plt.tight_layout()
-plt.savefig(sys.argv[1], bbox_inches = 'tight', pad_inches = 0)
+if opt.save:
+	plt.savefig(opt.save, bbox_inches = 'tight', pad_inches = 0)
+else:
+	plt.show()
 #plt.show()
