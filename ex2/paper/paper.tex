@@ -300,7 +300,7 @@ for estimating the distribution.
 \begin{figure}[h]
 \includegraphics[width=\columnwidth]{figures/pdpale2017nn.pdf}
 \includegraphics[width=\columnwidth]{figures/pdpale2017nn_zoom.pdf}
-\caption{\gls{pdp} and \gls{ale} plots of the \gls{mlp} for the CIC-IDS-2017 classifier. The top plot shows the full range of TTL values while the lower plot only TTL values from 0 to 5 are displayed.}
+\caption{\gls{pdp} and \gls{ale} plots of the \gls{mlp} for the \cic{}. Full range of TTL values on top; only TTL values from 0 to 5 below.}
 \label{fig:pdp_ttl}
 \end{figure}
 Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our CIC-IDS-2017 \gls{dl} classifier, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. We also provide plots for the corresponding models which were trained without backdoor. The plots are not available in a real situation, but we provide them here for comparison.
