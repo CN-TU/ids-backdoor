@@ -143,7 +143,8 @@ network security datasets.
 %The detection of attacks in data networks is a fundamental task in network security. Due to the considerable amount of data which have to be analyzed, the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
 
 %For research,
-The invention and assessment of techniques for \glspl{ids} poses many challenges. Creating a model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that training of the model is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into another \gls{ad} software. % which might even be open-source.
+%The invention and assessment of techniques for \glspl{ids} poses many challenges.
+Training a machine learning model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that training of the model is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into another \gls{ad} software. % which might even be open-source.
 If we have to question if such a security company can be trusted under all circumstances, the problem arises that the security company might have implemented backdoors which circumvent the \gls{ad} system. This could be motivated by profitseeking or by government actors requiring ways to purposefully disable security measures in specific cases.
 
 In addition to this problems, for the training of models, usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a \gls{ml} model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
@@ -315,7 +316,7 @@ for estimating the distribution.
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn.pdf}
 
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn_zoom.pdf}
-\caption{\gls{pdp} and \gls{ale} plots of the \gls{mlp} for the CIC-IDS-2017 classifier.} % The top plot shows the full range of TTL values while for the lower plot only \gls{ttl} values from 0 to 5 are displayed.}
+\caption{\gls{pdp} and \gls{ale} plots of the \gls{mlp} for the \cic{}. Full range of TTL values on top; only TTL values from 0 to 5 below.}
 \label{fig:pdp_ttl}
 \end{figure}
 Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our CIC-IDS-2017 \gls{dl} classifier, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. We also provide plots for the corresponding models which were trained without backdoor. The plots are not available in a real situation, but we provide them here for comparison.
@@ -330,9 +331,14 @@ It has to be noted, however, that inconsistent behaviour of the \gls{mui}, detec
 \label{fig:ttlmean}
 \end{figure}
 Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models for such patterns.
+
+\begin{figure*}[h]
+\includegraphics[width=\textwidth]{pruning_example.pdf}
+\caption{Example of a \gls{dt} being pruned. To the left of each leaf is \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the \gls{dt} is to the right of each leaf. It is also indicated that a sample is \protect\sethlcolor{green} \hl{harmless} (leaves with a 0 inside). The leaf that is going to be cut in each step has a dashed connection to its parent.}
+\label{fig:pruningExample}
+\end{figure*}
+
 \subsection{Pruning Techniques}
-
-
 To perform pruning, a validation dataset is needed. We take a validation dataset that is one fourth the size of the training dataset. We use the validation dataset for pruning as described in the next sections and use a test dataset that is also one fourth to verify whether the backdoor can successfully be removed and how much the accuracy on the original data suffers. Training, validation and test dataset are pairwise disjoint.
 
 \subsubsection{Neural Network Pruning}
@@ -370,16 +376,11 @@ We developed several variants of our pruning defense with increasing levels of s
 \item Like (1) but consider only ``harmless'' leaves: We assume that attackers want malicious samples appear harmless.
 \item Like (2) but use depth to decide when two leaves used equally often: The rationale is that we assume that hand-crafted backdoors require fewer rules to classify than regular samples and are thus have lower depth.
 \end{enumerate}
-\begin{figure*}[h]
-\includegraphics[width=\textwidth]{pruning_example.pdf}
-\caption{Example of a \gls{dt} being pruned. To the left of each leaf is \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the \gls{dt} is to the right of each leaf. It is also indicated that a sample is \protect\sethlcolor{green} \hl{harmless} (leaves with a 0 inside). The leaf that is going to be cut in each step has a dashed connection to its parent.}
-\label{fig:pruningExample}
-\end{figure*}
 
 \autoref{fig:pruningExample} shows an example of variant (3) of pruning applied to a tree
 \begin{figure}[h]
 \includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune_oh_d.pdf}
-\caption{Pruning an \gls{rf} for \unsw{}, considering only harmless leaves and depth. Dash length proportional to validtion set size (from 0.01 until 1).}
+\caption{Pruning an \gls{rf} for \unsw{}.}
 \label{fig:performancePruningRF}
 \end{figure}
 %\todo{Max: Which pruning algorithm actually?}
@@ -408,6 +409,8 @@ The use of fine-tuning exclusively makes  sense if both the computational effort
 It indicates clearly that, unfortunately, with reasonable computational effort, fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. In fact, training a model from scratch takes less computational effort than fine-tuning. We observed a similar behaviour for \unsw{}.
 
 In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_2018}, i.e. we pruned 50\% of neural network neurons and applied fine-tuning to the resulting network. However, also fine-pruning did not result in convenient backdoor removal performance.
+
+The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. Hence, a decay of the backdoor efficacy as depicted in \autoref{fig:finetuning} cannot be considered sufficient.
 
 \section{Discussion}
 From our experiments, we can make three main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
