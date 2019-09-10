@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 xlabel = 'Number of pruned neurons'
+plt.rcParams["font.family"] = "serif"
 
 for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 	print("dir_name", dir_name)
@@ -24,6 +25,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 			# pass
 			continue
 
+		plt.figure(figsize=(5,4))
 		tot_neurons = len(mean_activation_per_neuron)
 		plt.plot(np.arange(tot_neurons)+1, concatenated_results[np.argsort(mean_activation_per_neuron)], linestyle="", marker=".", alpha=0.5)
 		av_len = 100

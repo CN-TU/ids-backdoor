@@ -19,6 +19,7 @@ extra_metrics = {
 	'depth': ('Backdoor accuracy', {'color': 'c'}),
 }
 
+plt.rcParams["font.family"] = "serif"
 xlabel = 'Relative amount of pruned neurons'
 
 def doplot(filenames, extra_metric="bd", **kwargs):
@@ -57,6 +58,8 @@ validation_set_ratios = "0.01 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 1.00"
 
 # linestyles.append((Line2D([0], [0], color='black', linestyle='--'), 'Using 1% of validation data'))
 
+plt.figure(figsize=(5,4))
+
 for index, item in enumerate(validation_set_ratios):
 	# doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_rf_0_bd.pickle'], linestyle='--')
 	# doplot(['prune_CAIA_backdoor/prune_'+str(item)+'_oh_rf_0_bd.pickle'], dashes=[index+1, index+1])
@@ -69,6 +72,7 @@ plt.xlabel(xlabel)
 plt.ylabel('Classification performance')
 
 plt.tight_layout()
+plt.show()
 plt.savefig('prune_CAIA_backdoor/prune.pdf')
 
 
