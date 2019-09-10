@@ -62,5 +62,5 @@ for f in os.listdir(dir_name):
 			all_labels = [item.get_label() for item in all_legends]
 			plt.legend(all_legends, all_labels)
 		plt.tight_layout()
-		plt.savefig(dir_name+'/%s_%s%s%s%s.pdf' % (feature, match.group(2), match.group(3), match.group(4), "_hist" if hist else ""))
+		plt.savefig(dir_name+'/%s_%s%s%s%s.pdf' % (feature, match.group(2), match.group(3), match.group(4), "_hist" if hist else ""), bbox_inches = 'tight', pad_inches = 0)
 		plt.close()
