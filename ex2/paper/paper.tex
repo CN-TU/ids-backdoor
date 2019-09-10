@@ -140,16 +140,15 @@ network security datasets.
 \maketitle
 
 \section{Introduction}
-The detection of attacks in data networks is a fundamental task in network security. Due to the considerable amount of data which have to be analyzed, the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
+%The detection of attacks in data networks is a fundamental task in network security. Due to the considerable amount of data which have to be analyzed, the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
 
-For research, the invention and assessment of techniques for \glspl{ids} poses many challenges. To implement such a system, many different features can be extracted from network data which might be beneficial for \gls{ad} and it is not always clear which features are actually important.
+%For research, 
+The invention and assessment of techniques for \glspl{ids} poses many challenges. Creating a model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that training of the model is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into another \gls{ad} software. % which might even be open-source.
+If we have to question if such a security company can be trusted under all circumstances, the problem arises that the security company might have implemented backdoors which circumvent the \gls{ad} system. This could be motivated by profitseeking or by government actors requiring ways to purposefully disable security measures in specific cases.
 
-Furthermore, creating a model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that training of the model is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into an \gls{ad} software.% which might even be open-source.
-If we have to question if such a security company can be trusted under all circumstances, the problem arises that the security company might have tried to implement measures to circumvent reliable attack detection of their attack detection system.
+In addition to this problems, for the training of models, usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a \gls{ml} model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
 
-In addition to these problems, for the training of models, usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a \gls{ml} model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
-
-For a well-performing network \gls{ad} technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
+For a well-performing network \gls{ad} technique it is therefore of utmost importance to study which features are useful and which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
 % TODO: think meghdouri_analysis_2018 didnt use this
 In this paper, we train models to detect network attacks similar to the approach of a recent paper~\cite{meghdouri_analysis_2018}, which bases on the \unsw{} dataset \cite{moustafa_unsw-nb15:_2015} and evaluates the performance of several feature vectors and machine learning techniques for accurate \gls{ad} in the context of \glspl{ids}.
@@ -341,7 +340,8 @@ show that the neurons pruned in the beginning have a high correlation while late
 \subsubsection{\gls{rf} Pruning}
 %\todo{Max: Redundant?} For intrusion detection, \gls{dt} based models or \glspl{rf} of \glspl{dt}  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{ids} we thus consider the removal of backdoors from \gls{dt} based models to be a more pressing issue than from \glspl{mlp}.
 
-We propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
+%We propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. 
+The concept behind this our pruning defense is that leaves, which are never used by samples in the validation dataset, might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
 %by a lot
 significantly
 while decisions that are used for the backdoor are hopefully removed. We develop several variants of our pruning defense with increasing levels of sophistication. These variants are pruning
