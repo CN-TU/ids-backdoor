@@ -373,8 +373,8 @@ Also with only a very small validation dataset, the pruning still works as expec
 %AH. I guess both should work
 \begin{figure}[t]
 \includegraphics[width=\columnwidth]{figures/finetuning_2015.pdf}
-\includegraphics[width=\columnwidth]{figures/finetuning_2017.pdf}
-\caption{Fine-tuning of the \glspl{mui} for the \unsw{} (top) and CIC-IDS-2017 (bottom) classifiers.}
+%\includegraphics[width=\columnwidth]{figures/finetuning_2017.pdf}
+\caption{Fine-tuning of the \glspl{mui} for \unsw{}.}
 \label{fig:finetuning}
 \end{figure}
 \autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for both \unsw{} and \cic{} with the validation set, hence without backdoored samples.
@@ -392,16 +392,18 @@ To ensure that no backdoor is contained in the model in question, it has to be c
 
 Furthermore, for \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. In fact, it might even increase by mitigating overfitting.
 
-Most importantly, however, features to use for deploying an \gls{ids} have to be selected carefully. Indeed, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
+We found it surprising that the neural network pruning and fine-tuning methods were ineffective for removing the backdoor from our \gls{dl} model in all our experiments. This leads us to the conclusion that probably the proposed methods are insufficient for \glspl{mlp} and more research is required to develop methods suitable for them.
+
+Another important takeaway is that the features used when deploying an \gls{ids} have to be selected carefully. Indeed, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
 
 \section{Conclusions}
-In this paper, we addressed the problem of poisoning attacks conducted on \glspl{ids}. We used a recent publicly available dataset for network \gls{ad} and trained \gls{rf} and \gls{dl} models containing backdoors exploiting the \gls{ip} \gls{ttl} field.
+%In this paper, we addressed the problem of poisoning attacks conducted on \glspl{ids}. We used a recent publicly available dataset for network \gls{ad} and trained \gls{rf} and \gls{dl} models containing backdoors exploiting the \gls{ip} \gls{ttl} field.
 
 With this setup, we explored several mitigation techniques. While, surprisingly, neural network pruning and fine-tuning were uneffective for removing the backdoor from our \gls{dl} model, detection of the backdoor was possible using \gls{pdp} and \gls{ale} plots  for both the \gls{dl} and \gls{rf} models.
 
-We furthermore proposed an \gls{rf} pruning technique, which proved highly effective for removing the backdoor while retaining a high classification accuracy for normal traffic.
+%We furthermore proposed an \gls{rf} pruning technique, which proved highly effective for removing the backdoor while retaining a high classification accuracy for normal traffic.
 
-Designers of \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use. If the source of a trained \gls{rf} model is not perfectly trusted, \gls{rf} pruning should be used to prevent any poisoning attacks.
+%Designers of \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use. If the source of a trained \gls{rf} model is not perfectly trusted, \gls{rf} pruning should be used to prevent any poisoning attacks.
 
 \section*{Acknowledgement}
 The Titan Xp used for this research was donated by the NVIDIA Corporation. We thank Prof.~Andreas Rauber for giving us valuable suggestions for improvement for the explainability plots in this paper. 
