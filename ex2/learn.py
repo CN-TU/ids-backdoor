@@ -864,9 +864,10 @@ def prune_backdoor_rf():
 	step_width = 1/(opt.nSteps+1)
 
 	new_rfs = [rf]
-	steps_done = [0]
+	steps_done = [[0]*len(rf.estimators_)]
 	for step in range(opt.nSteps):
 		new_rf = copy.deepcopy(new_rfs[-1])
+		steps_done.append([])
 		for index, tree in enumerate(new_rf.estimators_):
 			n_nodes = tree.original_n_leaves if not opt.pruneOnlyHarmless else sum(tree.original_harmless & (tree.original_children_left==TREE_LEAF) & (tree.original_children_right==TREE_LEAF))
 			if step==0:
@@ -874,7 +875,7 @@ def prune_backdoor_rf():
 			pruned_steps = int(round(step_width*(step)*n_nodes))
 			pruned_steps_after_this = int(round(step_width*(step+1)*n_nodes))
 			steps_to_do = pruned_steps_after_this - pruned_steps
-			steps_done.append(pruned_steps_after_this)
+			steps_done[-1].append(pruned_steps_after_this)
 			print("Pruned", pruned_steps, "steps going", steps_to_do, "steps until", pruned_steps_after_this, "steps or", (step+1)/(opt.nSteps+1), "with", reachable_nodes(tree), "nodes remaining and", reachable_nodes(tree, only_leaves=True), "leaves")
 			new_tree, pruned_nodes_dict = prune_steps_from_tree(tree, steps_to_do)
 			usages_average = np.mean(np.array(pruned_nodes_dict["usages"]))
@@ -926,7 +927,7 @@ if __name__=="__main__":
 	parser.add_argument('--naive', action='store_true', help='include naive version of the backdoor')
 	parser.add_argument('--depth', action='store_true', help='whether depth should be considered in the backdoor pruning algorithm')
 	parser.add_argument('--pruneOnlyHarmless', action='store_true', help='whether only harmless nodes shall be pruned')
-	parser.add_argument('--takeSignOfActivation', action='store_true', help='whether only harmless nodes shall be pruned')
+	parser.add_argument('--takeSignOfActivation', action='store_true')
 	parser.add_argument('--onlyLastLayer', action='store_true', help='whether only the last layer is considered for pruning')
 	parser.add_argument('--onlyFirstLayer', action='store_true', help='whether only the first layer is considered for pruning')
 	parser.add_argument('--pruneConnections', action='store_true', help='whether the connections in the matrix should be pruned and not the neurons themselves')

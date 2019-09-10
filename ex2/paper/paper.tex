@@ -8,7 +8,7 @@
 %%
 %% IMPORTANT NOTICE:
 %%
-%% For the copyright see the source file.
+%%% For the copyright see the source file.
 %%
 %% Any modified versions of this file must be renamed
 %% with new filenames distinct from sample-sigconf.tex.
@@ -337,36 +337,36 @@ show that the neurons pruned in the beginning have a high correlation while late
 \autoref{fig:correlation} shows that this is not the case. It also shows that neurons are not completely separated in backdoor neurons and regular neurons: If this were the case, the correlation would either be 1 or 0 but we observe many values in between, which indicates that most neurons are both responsible for the backdoor as well as for regular data.  
 
 \subsubsection{\gls{rf} Pruning}
-\todo{Max: Redundant?} For intrusion detection, \gls{dt} based models or \glspl{rf} of \glspl{dt}  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{ids} we thus consider the removal of backdoors from \gls{dt} based models to be a more pressing issue than from \glspl{mlp}.
+%\todo{Max: Redundant?} For intrusion detection, \gls{dt} based models or \glspl{rf} of \glspl{dt}  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{ids} we thus consider the removal of backdoors from \gls{dt} based models to be a more pressing issue than from \glspl{mlp}.
 
-We thus propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
+We propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
 %by a lot
 significantly
 while decisions that are used for the backdoor are hopefully removed. We develop several variants of our pruning defense with increasing levels of sophistication. These variants are pruning \todo{Remove space in the enumeration}
-\begin{enumerate}
+\begin{enumerate}[wide, labelwidth=!, labelindent=0pt]
 \item leaves based on their usage: This means that the least used leaf is pruned first and the most used one last.
 \item only ``harmless'' leaves based on their usage: In the case of \glspl{ids} we assume that attackers want to make attacks appear to be benign.
 \item only ``harmless'' leaves based on their usage and based on their depth if two leaves have an equal number of usages: The rationale behind this is that we assume that hand-crafted backdoors require fewer rules for a \gls{dt} to classify than regular samples. Thus, samples higher up the tree (with lower depth) are pruned first, if they have the same number of usages like another leaf with a higher depth.
 \end{enumerate}
 \begin{figure*}[h]
 \includegraphics[width=\textwidth]{pruning_example.pdf}
-\caption{Example of a \gls{dt} being pruned. To the left of each leaf is \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the \gls{dt} is to the right of each leaf. It is also indicated that a sample is \protect\sethlcolor{green} \hl{harmless} (leaves with a 0 inside) because these are the ones our algorithm considers as candidates for pruning. The leaf that is going to be cut in each step has a dashed connection to its parent. After step 2 the algorithm stops as pruning the last remaining leaf would make the \gls{dt} non-functional.}
+\caption{Example of a \gls{dt} being pruned. To the left of each leaf is \textcolor{MidnightBlue}{the number of times a leaf was used} by validation samples and its \textcolor{Fuchsia}{depth} in the \gls{dt} is to the right of each leaf. It is also indicated that a sample is \protect\sethlcolor{green} \hl{harmless} (leaves with a 0 inside). The leaf that is going to be cut in each step has a dashed connection to its parent.}
 \label{fig:pruningExample}
 \end{figure*}
 
 \autoref{fig:pruningExample} shows an example of variant (3) of pruning applied to a tree
 \begin{figure}[h]
-\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune.pdf}
-\caption{Performance metrics throughout the pruning process for \unsw{}. }
+\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune_oh_d.pdf}
+\caption{Performance metrics throughout the pruning process for \unsw{}. Considering only harmless leaves and pruning leaves with smaller depth first. The longer the dashes, the higher the fraction of the validation set being used (from 0.01 until 1).}
 \label{fig:performancePruningRF}
 \end{figure}
 %\todo{Max: Which pruning algorithm actually?}
 and \autoref{fig:performancePruningRF} shows the resulting accuracy for pruning according to variant (3) for the \unsw{} dataset. With sufficient neurons being pruned, the accuracy of the backdoor approaches zero. The accuracy for the regular data does not decrease; it even increases by
 %thanks to the the pruning also
-reducing overfitting. With a significantly smaller validation set, pruning takes longer to remove the backdoor
+reducing overfitting. %With a significantly smaller validation set, pruning takes longer to remove the backdoor
 %until it works
-but it still works. This is an important finding as a large validation dataset makes it hard for users without access to expensive hardware to perform the pruning. 
-
+%but it still works. This is an important finding as a large validation dataset makes it hard for users without access to expensive hardware to perform the pruning. 
+Also with only a very small validation dataset, the pruning still works as expected. For \cic{} we get similar results, but the pruning does not remove the backdoor completely (\~30\% backdoor accuracy remains). We attribute this to the fact, that in this dataset there are also regular flows which have $\text{stddev}(\text{TTL}) > 0$. And thus backdoored flows cannot always be sharply distinguished from regular flows. We find that pruning only harmless leaves is very beneficial for \unsw{} but not for \cic{}. However, considering depth when making the decision which leaf to prune first leads to the backdoor being removed considerably earlier in the pruning process. 
 
 \subsection{Neural Network Fine-Tuning}
 %\todo{Max: It said pruning before but should be tuning, right?}
@@ -408,7 +408,7 @@ The Titan Xp used for this research was donated by the NVIDIA Corporation. We th
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
-
+%\bibliographystyle{plain}
 
 
 
