@@ -166,16 +166,15 @@ We make all our code publicly available at \todo{Insert link to GitHub repo}.
 \section{Related Work}
 
 There have been several works with the aim of increasing robustness of decision trees against attacks. \cite{biggio_bagging_2011} proposed a defense mechanism against poisoning that uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset. Their method is applicable to \glspl{dt}. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor, which is the use case considered in this work. \cite{chen_robust_2019} developed a method to train \glspl{dt} with a tunable parameter that trades off accuracy against robustness against evasion attacks. \cite{russu_secure_2016} make SVMs robust against evasion attacks and outline a possibility to also apply it to \glspl{dt} and \glspl{rf}.
-
 %\todo{Max: Unnecessary or should be moved to Related Work?}
-Various pruning techniques have been proposed for \glspl{dt} in the last decades \cite{esposito_comparative_1997} with the aim of simplifying trees that overfit on the training data. Pruning for neural networks has been proposed
+Various pruning techniques have been proposed for \glspl{dt} in the last decades \cite{esposito_comparative_1997} with the aim of simplifying trees that overfit on the training data. 
+
+Pruning for neural networks has been proposed
 %in the last century
 as a method to simplify large neural networks \cite{sietsma_neural_1988}.
-However, pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017} and to our knowledge pruning has not yet been investigated for its suitability for defending against backdoors for \glspl{dt} and \glspl{rf}.
-
+Pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017} and to our knowledge pruning has not yet been investigated for its suitability for defending against backdoors for \glspl{dt} and \glspl{rf}.
 %Regarding pruning of neural networks,
-In particular, \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing neurons that are infrequently used from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor. To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}.
-
+In particular, \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing neurons that are infrequently used from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor. To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}. 
 Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning. Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors. Moreover, the authors argue that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning. As with pruning, these methods have not been applied to classic \glspl{mlp} so far.
 
 \section{Experimental Setup} \label{sec:ml_approaches}
