@@ -37,7 +37,7 @@ for i in range(means.shape[1]):
 		plt.plot(np.arange(length)[:,None] + 1, means[:,i])
 		
 plt.xlabel('Epoch')
-plt.ylabel('Metric')
+plt.ylabel('Classification perf.')
 if opt.legend:
 	plt.legend(columns.values())
 plt.tight_layout()
