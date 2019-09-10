@@ -101,7 +101,8 @@
 \newacronym{ip}{IP}{Internet Protocol}
 
 \begin{abstract}
-Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for Convolutional Neural Networks, for example in the context of autonomous driving. We show that, surprisingly, common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. However, we find that visualization approaches can aid in identifying a backdoor independent of the used classifier. Finally, we conceive pruning-based approaches to remove backdoors for \glspl{dt} and \glspl{rf} and demonstrate their effectiveness for several network security datasets.
+Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for \glspl{cnn}, for example in the context of autonomous driving. We show that, surprisingly, common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. However, we find that visualization approaches can aid in identifying a backdoor independent of the used classifier. Finally, we conceive pruning-based approaches to remove backdoors for \glspl{dt} and \glspl{rf} and demonstrate their effectiveness for two different %several
+network security datasets.
 \end{abstract}
 
 %%
@@ -139,15 +140,14 @@ Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} app
 \maketitle
 
 \section{Introduction}
-The detection of attacks in data networks is a fundamental task in data security. Due to the considerable amount of data which have to be analyzed, the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
+The detection of attacks in data networks is a fundamental task in network security. Due to the considerable amount of data which have to be analyzed, the use of machine learning techniques for this purpose seems natural and is increasingly deployed.
 
-For research, the invention and assessment of techniques for \glspl{ids} poses many challenges. To implement such a system many different features can be extracted from network data which might be beneficial for \gls{ad} and it is not always clear which features are actually important.
+For research, the invention and assessment of techniques for \glspl{ids} poses many challenges. To implement such a system, many different features can be extracted from network data which might be beneficial for \gls{ad} and it is not always clear which features are actually important.
 
-Creating a model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that the training is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into an \gls{ad} software.% which might even be open-source.
-
+Furthermore, creating a model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that training of the model is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into an \gls{ad} software.% which might even be open-source.
 If we have to question if such a security company can be trusted under all circumstances, the problem arises that the security company might have tried to implement measures to circumvent reliable attack detection of their attack detection system.
 
-Furthermore, for the training of models usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a machine learning model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
+In addition to these problems, for the training of models, usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a \gls{ml} model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
 
 For a well-performing network \gls{ad} technique it is therefore of utmost importance to study which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
@@ -158,15 +158,22 @@ We then add a backdoor to the trained model and show that attack detection can e
 
 Then we discuss several techniques to detect or remove a backdoor from a trained model. In particular, we show how visualization techniques from explainable \gls{ml} can be used to detect backdoors and problems emerging from the distribution of attack samples in the training dataset.
 
-As probably the most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers we put the emphasis of our experiments on hardening them. We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
+As the probably most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers we put the emphasis of our experiments on hardening them. We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
 
 Finally, we also evaluate recently proposed techniques for \glspl{cnn} for removing backdoors from image classifiers, which, however, surprisingly turn out to be ineffective for our \gls{mlp} classifiers.
 
 \section{Related Work}
 
-There have been several works with the aim of increasing robustness of decision trees against attacks. \cite{biggio_bagging_2011} proposed a defense mechanism against poisoning attacks that uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset. Their method is applicable to \glspl{dt}. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor, which is the use case considered in this work. \cite{chen_robust_2019} develop a method to train \glspl{dt} with a tunable parameter that trades off accuracy against robustness against evasion attacks. \cite{russu_secure_2016} make SVMs robust against evasion attacks and outline a possibility to also apply it to \glspl{dt} and \glspl{rf}.
+There have been several works with the aim of increasing robustness of decision trees against attacks. \cite{biggio_bagging_2011} proposed a defense mechanism against poisoning attacks that uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset. Their method is applicable to \glspl{dt}. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor, which is the use case considered in this work. \cite{chen_robust_2019} developed a method to train \glspl{dt} with a tunable parameter that trades off accuracy against robustness against evasion attacks. \cite{russu_secure_2016} make SVMs robust against evasion attacks and outline a possibility to also apply it to \glspl{dt} and \glspl{rf}.
 
-Regarding pruning of neural networks, \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing neurons that are infrequently used from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor. To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}.
+%\todo{Max: Unnecessary or should be moved to Related Work?}
+Various pruning techniques have been proposed for \glspl{dt} in the last decades \cite{esposito_comparative_1997} with the aim of simplifying trees that overfit on the training data. Pruning for neural networks has been proposed
+%in the last century
+as a method to simplify large neural networks \cite{sietsma_neural_1988}.
+However, pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017} and to our knowledge pruning has not yet been investigated for its suitability for defending against backdoors for \glspl{dt} and \glspl{rf}.
+
+%Regarding pruning of neural networks,
+In particular, \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing neurons that are infrequently used from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor. To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}.
 
 Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning. Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors. Moreover, the authors argue that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning. As with pruning, these methods have not been applied to classic \glspl{mlp} so far. 
 
@@ -180,9 +187,9 @@ In this research, we use the \unsw{}~\cite{moustafa_unsw-nb15:_2015} and the CIC
 
 The \unsw{} dataset~\cite{moustafa_unsw-nb15:_2015} was created by researchers of the University of New South Wales to overcome common problems due to outdated datasets. Network captures containing over 2 million flows of normal traffic and various types of attacks are provided together with a ground truth file. Attack traffic includes exploits, fuzzers, reconnaissance attacks, DoS attacks, shellcode, analysis attacks, backdoors and worms.
 
-The CIC-IDS-2017 dataset~\cite{sharafaldin_toward_2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided raw network captures contain over 2.3 million flows, containing both normal traffic and attacks, which can be coarsely classified into DoS attacks, infiltration attacks, web attacks, brute force and scanning attacks.
+The CIC-IDS-2017 dataset~\cite{sharafaldin_toward_2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided raw network captures contain more than 2.3 million flows, containing both normal traffic and attacks, which can be coarsely classified into DoS attacks, infiltration attacks, web attacks, brute force and scanning attacks.
 
-We base our analysis on the CAIA~\cite{williams_preliminary_2006} feature vector as formulated in~\cite{meghdouri_analysis_2018}, which thus includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set. All features except protocol and flow duration are evaluated for forward and backward direction separately. The goal of this research is to investigate the possibility of poisoning attacks. We therefore also include the minimum, maximum and standard deviation of TTL values in our feature vector as an attractive carrier for exploitation as a backdoor. % TODO: justify use of TTL better
+For processing the data, we base our analysis on the CAIA~\cite{williams_preliminary_2006} feature vector as formulated in~\cite{meghdouri_analysis_2018}, which thus includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set. All features except protocol and flow duration are evaluated for forward and backward direction separately. The goal of this research is to investigate the possibility of poisoning attacks. We therefore also include the minimum, maximum and standard deviation of \gls{ttl} values in our feature vector as an attractive carrier for exploitation as a backdoor. % TODO: justify use of TTL better
 
 We used the go-flows~\cite{vormayr_cn-tu/go-flows_2019} flow exporter for extracting these features from the raw capture files, applied Z-score normalization to process the data and used 3-fold cross validation for evaluating the models' performances.
 
@@ -209,15 +216,14 @@ We used the go-flows~\cite{vormayr_cn-tu/go-flows_2019} flow exporter for extrac
 We used PyTorch to build a neural network classifier. For this we used 5 fully connected layers with 512 neurons each and applied ReLU after each layer as well as dropout with a probability of 0.2. We use the binary cross entropy loss function for the classification task itself.
 
 \subsubsection{\glspl{rf}}
-In addition to deep learning we trained a \gls{rf} classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training each \gls{rf}.
+In addition to \gls{dl}, we trained an \gls{rf} classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training each \gls{rf}.
 
 \subsection{The Backdoor}
 
-We add a backdoor to our deep learning and \gls{rf} models and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
+We added a backdoor to our \gls{dl} and \gls{rf} models. % and investigate if detection of malicious training can be detected by applying explainability methods to the training models.
+Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the \gls{ids} system, on the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting this  pattern.
 
-Hence, for this task we first had to find a pattern usable as a backdoor in feature vectors. On one hand, this pattern has to be detectable reliably by the \gls{ad} system, one the other hand it must be possible to generate real network traffic which translate into feature vectors exhibiting these patterns.
-
-In our case, we used the \gls{ttl} value contained in the \gls{ip} header of Internet traffic to signal the backdoor. The \gls{ttl} is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the \gls{ttl} field remains constant for all packets in one traffic flow. In particular this assumption was perfectly reflected by the examined dataset, as there were no traffic flows with a non-zero standard deviation of the \gls{ttl} value.
+In our case, we used the \gls{ttl} value contained in the \gls{ip} header of Internet traffic to signal the backdoor. The \gls{ttl} is used for mitigating problems due to routing loops in IP networks. In our situation, it is reasonable to assume that the \gls{ttl} field remains constant for all packets in one traffic flow. In particular, this assumption was perfectly reflected by the examined UNSW-NB15 dataset, as there were almost no traffic flows with a certain non-zero standard deviation of the \gls{ttl} value.
 
 Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic. The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic. Specifically we implement the backdoor by incrementing the \gls{ttl} of the first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl} (which would be otherwise undefined or zero) as well as in changed max, min and mean.
 
@@ -242,15 +248,15 @@ Backdoor acc.	& 1.000 & 0.998 & 1.000 & 1.000\\
 \bottomrule
 \end{tabular}
 \end{table}
-Table~\ref{tab:performance_results} shows performance results for both deep learning and \glspl{rf}, depicting both detection performance of normal samples as contained in the respective datasets and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
+Table~\ref{tab:performance_results} shows performance results for both \gls{dl} and \gls{rf}, depicting both detection performance of normal samples as contained in the respective datasets and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
 Our results are consistent with previous work like \cite{meghdouri_analysis_2018}.
 
 \section{Remedies for Poisoning Attacks}
-We now investigate several techniques which might be used to prevent security vulnerabilities that might come with pretrained backdoored models. In this respect the ability to detect a backdoor and the ability to remove a backdoor from the trained model can be considered as equally effective since one often has the option to fall back to a model obtained from a different source in case a model looks suspicious.
+We now investigate several techniques which might be used to prevent security vulnerabilities that might come with backdoored pretrained  models. In this respect the ability to detect a backdoor and the ability to remove a backdoor from the trained model can be considered as equally effective since one often has the option to fall back to a model obtained from a different source in case a model looks suspicious.
 
 \subsection{Explainability Plots} \label{sec:plots}
-A major problem for the deployment of ML is the unpredictability and the lack of understanding of the decisions an ML models takes. For this reason, a number of methods has been proposed in the recent years aiming to visualize and explain a non-interpretable ML model's decisions.
-
+%A major problem for the deployment of ML is the unpredictability and the lack of understanding of the decisions an ML models takes. For this reason, a
+A number of methods has been proposed in the recent years aiming to visualize and explain a non-interpretable ML model's decisions.
 Applied to the present problem, we can pick up ideas from \glspl{pdp} and \gls{ale} plots, not only for identifying backdoors in the \gls{mui}, but also for finding wrong decisions it would take due to flawed training data.
 
 %Several graphs have been proposed for visualizing feature dependence of non-interpretable machine learning models~\cite{goldstein2015peeking, friedman_greedy_2001, apley2016visualizing}.
@@ -281,11 +287,14 @@ For the $i$th feature $X_i$, the \gls{ale} plot ALE$_i(y)$ can be defined differ
 
 To combat ambiguity of this definition, we force ALE$_i(x)$ to have zero mean on the domain of $X_i$.
 
-For empirical evaluation, we approximate the conditional distributions of $\boldsymbol X$ by averaging over samples for which $X_i \approx y$.
+For empirical evaluation, we approximate the conditional distributions of $\boldsymbol X$ by averaging over samples for which $X_i \approx y$. We used the 10  closest samples
+%to the interval's center
+for estimating the distribution.
 
-When computing \gls{ale} plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values doesn't work.
 
-For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
+% When computing \gls{ale} plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values doesn't work.
+
+%For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
 
 \subsubsection{Identifying Backdoors}
 \begin{figure}[h]
@@ -308,8 +317,8 @@ It has to be noted, however, that inconsistent behaviour of the \gls{mui}, detec
 Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models for such patterns.
 \subsection{Pruning Techniques}
 
-\todo{Max: Unnecessary or should be moved to Related Work?}
-Various pruning techniques have been proposed for \glspl{dt} in the last decades \cite{esposito_comparative_1997} with the aim of simplifying trees that overfit on the data. Pruning for neural networks has been proposed in the last century as a method to simplify large neural networks \cite{sietsma_neural_1988}. However, pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017} and to our knowledge pruning has not yet been investigated for its suitability for defending against backdoors for \glspl{dt} and \glspl{rf}. To perform pruning, a validation dataset is needed. We take a validation dataset that is one fourth the size of the training dataset. We use the validation dataset for pruning as described in the next sections and use a test dataset that is also one fourth to verify whether the backdoor could successfully be removed and how much the accuracy on the original data suffered. ´
+
+To perform pruning, a validation dataset is needed. We take a validation dataset that is one fourth the size of the training dataset. We use the validation dataset for pruning as described in the next sections and use a test dataset that is also one fourth to verify whether the backdoor can successfully be removed and how much the accuracy on the original data suffers. ´
 
 \subsubsection{Neural Network Pruning}
 
@@ -321,12 +330,19 @@ Various pruning techniques have been proposed for \glspl{dt} in the last decades
 
 We implement two variants of the pruning defense \cite{gu_badnets:_2017}: We prune neurons in \begin{enumerate*}\item all layers \item only in the last layer \end{enumerate*} by their average activation. Those with the smallest average activation (the least used ones) first. For this, we look at the value of the activation function (\gls{relu} in our case) in the corresponding layer for all samples in the validation dataset and then prune the neurons by setting the weight and bias to 0 in the layer preceding the activation function. Our experiments revealed that pruning does not remove the backdoor at all and on the side hand decreases the accuracy for normal data if many neurons are pruned. To check whether other reasons are responsible for our failure to remove the backdoor we also conducted the following experiments but none could remove the backdoor: \begin{enumerate*} \item We did not take the average activation but the average of the binary activations of each neuron, which means that we did not consider the quantity of the activation but only if the activation is larger than 0 and then averaged the activations for all data samples. \item We checked whether the dropout regularization might be the reason. \item We hypothesized that the issue might be that there are a lot fewer malicious samples in the dataset than there are attacks. Thus we reversed the backdoor and made the backdoor so that it would falsely classify benign samples as malicious ones.\end{enumerate*}  
 
-To investigate further, we computed the correlation of the activation of each neuron with the presence of the backdoor in the data: Neurons which are responsible for the backdoor should have a high correlation because they only become active when a sample is backdoored. We then plotted the correlation of each neurons at the time step it is pruned. If the pruning method worked, this would show that the neurons pruned in the beginning would have a high correlation while those later would have a low one. \autoref{fig:correlation} shows that neurons that this is not the case. It also shows that neurons are not completely separated in backdoor neurons and regular neurons: If this were the case, the correlation would either be 1 or 0 but we observe many values in between, which indicates that most neurons are both responsible for the backdoor as well as for regular data.  
+To investigate further, we computed the correlation of the activation of each neuron with the presence of the backdoor in the data. Neurons which are responsible for the backdoor should have a high correlation because they only become active when a sample is backdoored. We  plotted the correlation of each neurons at the time step it is pruned, which is depicted in \autoref{fig:correlation}. If the pruning method worked, we would expect the figure to
+%this would
+show that the neurons pruned in the beginning have a high correlation while later ones would have a low correlation.
+
+\autoref{fig:correlation} shows that this is not the case. It also shows that neurons are not completely separated in backdoor neurons and regular neurons: If this were the case, the correlation would either be 1 or 0 but we observe many values in between, which indicates that most neurons are both responsible for the backdoor as well as for regular data.  
 
 \subsubsection{\gls{rf} Pruning}
 \todo{Max: Redundant?} For intrusion detection, \gls{dt} based models or \glspl{rf} of \glspl{dt}  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{ids} we thus consider the removal of backdoors from \gls{dt} based models to be a more pressing issue than from \glspl{mlp}.
 
-We thus propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease by a lot while decisions that are used for the backdoor are hopefully removed. We develop several variants of our pruning defense with increasing levels of sophistication. These iterations are pruning \todo{Remove space in the enumeration}
+We thus propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
+%by a lot
+significantly
+while decisions that are used for the backdoor are hopefully removed. We develop several variants of our pruning defense with increasing levels of sophistication. These variants are pruning \todo{Remove space in the enumeration}
 \begin{enumerate}
 \item leaves based on their usage: This means that the least used leaf is pruned first and the most used one last.
 \item only ``harmless'' leaves based on their usage: In the case of \glspl{ids} we assume that attackers want to make attacks appear to be benign.
@@ -338,18 +354,23 @@ We thus propose a defense approach that can be used for similar use cases like t
 \label{fig:pruningExample}
 \end{figure*}
 
-\autoref{fig:pruningExample} shows an example of the last iteration of pruning applied to a tree.
+\autoref{fig:pruningExample} shows an example of variant (3) of pruning applied to a tree
 \begin{figure}[h]
 \includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune.pdf}
 \caption{Performance metrics throughout the pruning process for \unsw{}. }
 \label{fig:performancePruningRF}
 \end{figure}
-\todo{Max: Which pruning algorithm actually?}
-\autoref{fig:performancePruningRF} shows the accuracy for the pruning for the \unsw{} dataset. With sufficient neurons being pruned, the accuracy of the backdoor goes to zero. The accuracy for the regular data does not decrease; it even increases thanks to the the pruning also reducing overfitting. With a significantly smaller validation set, pruning takes longer until it works but it still works. This is an important finding as a large validation dataset makes it hard for users without access to expensive hardware to perform the pruning. 
+%\todo{Max: Which pruning algorithm actually?}
+and \autoref{fig:performancePruningRF} shows the resulting accuracy for pruning according to variant (3) for the \unsw{} dataset. With sufficient neurons being pruned, the accuracy of the backdoor approaches zero. The accuracy for the regular data does not decrease; it even increases by
+%thanks to the the pruning also
+reducing overfitting. With a significantly smaller validation set, pruning takes longer to remove the backdoor
+%until it works
+but it still works. This is an important finding as a large validation dataset makes it hard for users without access to expensive hardware to perform the pruning. 
 
 
 \subsection{Neural Network Fine-Tuning}
-\todo{Max: It said pruning before but should be tuning, right?}
+%\todo{Max: It said pruning before but should be tuning, right?}
+%AH. I guess both should work
 \begin{figure}[t]
 \includegraphics[width=\columnwidth]{figures/finetuning_2015.pdf}
 \includegraphics[width=\columnwidth]{figures/finetuning_2017.pdf}
@@ -367,7 +388,7 @@ The use of fine-tuning exclusively makes  sense if both the computational effort
 \todo{Max: Merge discussion and conclusions to one section and remove most parts of conclusions?}
 From our experiments, we can make three main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
 
-To ensure that no backdoor i contained in the model in question, it has to be carefully analyzed for questionable decisions. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the process of training of the model explainability plots constitute a useful tool to ensure that the model is not trained unintentionally to artifacts the dataset yields.
+To ensure that no backdoor is contained in the model in question, it has to be carefully analyzed for questionable decisions. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the process of training of the model explainability plots constitute a useful tool to ensure that the model is not unintentionally trained  to artifacts the dataset yields.
 
 Furthermore, for \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. In fact, it might even increase by mitigating overfitting.
 
@@ -376,7 +397,7 @@ Most importantly, however, features to use for deploying an \gls{ids} have to be
 \section{Conclusions}
 In this paper, we addressed the problem of poisoning attacks conducted on \glspl{ids}. We used a recent publicly available dataset for network \gls{ad} and trained \gls{rf} and \gls{dl} models containing backdoors exploiting the \gls{ip} \gls{ttl} field.
 
-With this setup, we explored several mitigation techniques. While, surprisingly, neural network pruning and fine-tuning was uneffective for removing the backdoor from our \gls{dl} model, detection of the backdoor was possible using \gls{pdp} and \gls{ale} plots both for the \gls{dl} and \gls{rf} models.
+With this setup, we explored several mitigation techniques. While, surprisingly, neural network pruning and fine-tuning were uneffective for removing the backdoor from our \gls{dl} model, detection of the backdoor was possible using \gls{pdp} and \gls{ale} plots  for both the \gls{dl} and \gls{rf} models.
 
 We furthermore proposed an \gls{rf} pruning technique, which proved highly effective for removing the backdoor while retaining a high classification accuracy for normal traffic.
 
