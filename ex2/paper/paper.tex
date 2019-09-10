@@ -398,14 +398,14 @@ For \cic{} we get similar results, but the pruning does not remove the backdoor 
 \begin{figure}[t]
 %\includegraphics[width=\columnwidth]{figures/finetuning_2015.pdf}
 \includegraphics[width=\columnwidth]{figures/finetuning_2017.pdf}
-\caption{Fine-tuning of the \glspl{mui} for \unsw{}.}
+\caption{Fine-tuning of the \gls{mui} for \unsw{}.}
 \label{fig:finetuning}
 \end{figure}
 In addition to pruning, we tried to use fine-tuning to remove the backdoor from the \gls{mlp} classifier.
 The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. 
 
-\autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for both \unsw{} and \cic{} with the validation set, hence without backdoored samples.
-It indicates clearly that, unfortunately, with reasonable computational effort, fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. In fact, training a model from scratch takes less computational effort than fine-tuning.
+\autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for \cic{} with the validation set, hence without backdoored samples.
+It indicates clearly that, unfortunately, with reasonable computational effort, fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. In fact, training a model from scratch takes less computational effort than fine-tuning. We observed a similar behaviour for \unsw{}.
 
 In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_2018}, i.e. we pruned 50\% of neural network neurons and applied fine-tuning to the resulting network. However, also fine-pruning did not result in convenient backdoor removal performance.
 
