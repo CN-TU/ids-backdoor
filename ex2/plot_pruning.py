@@ -9,9 +9,14 @@ from matplotlib.lines import Line2D
 import numpy as np
 import warnings
 
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
+
+print("colors", colors)
+
 metrics = {
-	'Accuracy':	('Accuracy', {'color': 'b'}),
-	'Youden': ("Youden's J", {'color': 'g'})
+	'Accuracy':	('Accuracy', {'color': colors[0]}),
+	'Youden': ("Youden's J", {'color': colors[2]})
 }
 
 # extra_metrics = {
@@ -51,19 +56,19 @@ def doplot(filenames, extra_metric="bd", **kwargs):
 		stds = { metric: np.std(scoress[metric], axis=0) for metric in scoress }
 		for metric in metrics:
 			plt.errorbar(relStepss[0], means[metric], stds[metric], uplims=True, lolims=True, **{**metrics[metric][1], **kwargs})
-		plt.errorbar(relStepss[0], means['bd'], stds['bd'], color='r', uplims=True, lolims=True, **kwargs)
+		plt.errorbar(relStepss[0], means['bd'], stds['bd'], color=colors[1], uplims=True, lolims=True, **kwargs)
 		# 	plt.errorbar(stepss[0], means[metric], stds[metric], uplims=True, lolims=True, **{**metrics[metric][1], **kwargs})
 		# plt.errorbar(stepss[0], means['bd'], stds['bd'], color='r', uplims=True, lolims=True, **kwargs)
 	else:
 		for metric in metrics:
 			plt.plot(relStepss[0], means[metric], **{**metrics[metric][1], **kwargs})
-		plt.plot(relStepss[0], means["bd"], color="r", **kwargs)
+		plt.plot(relStepss[0], means["bd"], color=colors[1], **kwargs)
 		# for metric in metrics:
 		# 	plt.plot(stepss[0], means[metric], **{**metrics[metric][1], **kwargs})
 		# plt.plot(stepss[0], means["bd"], color="r", **kwargs)
 
 linestyles = [ ( Line2D([0], [0], **metrics[metric][1]), metrics[metric][0]) for metric in metrics ]
-linestyles.append((Line2D([0], [0], color='r'), 'Backdoor accuracy'))
+linestyles.append((Line2D([0], [0], color=colors[1]), 'Backdoor accuracy'))
 
 # validation_set_ratios = "0.01 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00".split(" ")
 validation_set_ratios = "0.01 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 1.00".split(" ")
