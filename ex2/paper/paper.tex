@@ -345,7 +345,8 @@ show that the neurons pruned in the beginning have a high correlation while late
 \subsubsection{\gls{rf} Pruning}
 %\todo{Max: Redundant?} For intrusion detection, \gls{dt} based models or \glspl{rf} of \glspl{dt}  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{ids} we thus consider the removal of backdoors from \gls{dt} based models to be a more pressing issue than from \glspl{mlp}.
 
-We propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}, discussed above. The concept behind this pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
+%We propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}, discussed above. 
+The concept behind our pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
 %by a lot
 significantly,
 while decisions that are used for the backdoor are likely to be removed.
