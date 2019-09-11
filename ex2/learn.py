@@ -534,8 +534,8 @@ def prune_backdoor_nn():
 
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scores_bd = { name: [ score[name] for score in scores_bd ] for name in scores_bd[0] }
-	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
-	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
+	os.makedirs('prune%s%s' % (dirsuffix, "_"+opt.extraLabel if opt.extraLabel else ""), exist_ok=True)
+	filename = 'prune%s%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, "_"+opt.extraLabel if opt.extraLabel else "", opt.reduceValidationSet, '_soa' if opt.takeSignOfActivation else '', '_ol' if opt.onlyLastLayer else ('_of' if opt.onlyFirstLayer else ''), suffix)
 
 	saved_models_in_memory = [io.BytesIO() for _ in new_nns]
 	for item, nn_to_save in zip(saved_models_in_memory, new_nns):
@@ -543,7 +543,7 @@ def prune_backdoor_nn():
 		item.seek(0)
 
 	saved_models_in_memory = [item.read() for item in saved_models_in_memory]
-	print("saved_models_in_memory", [len(item) for item in saved_models_in_memory])
+	# print("saved_models_in_memory", [len(item) for item in saved_models_in_memory])
 	with open(filename, 'wb') as f:
 		if opt.correlation:
 			pickle.dump([rel_steps, steps_done, scores, saved_models_in_memory, scores_bd, mean_activation_per_neuron, concatenated_results], f)
@@ -905,7 +905,7 @@ def prune_backdoor_rf():
 	scores = { name: [ score[name] for score in scores ] for name in scores[0] }
 	scores_bd = { name: [ score[name] for score in scores_bd ] for name in scores_bd[0] }
 	os.makedirs('prune%s' % dirsuffix, exist_ok=True)
-	filename = 'prune%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
+	filename = 'prune%s%s/prune_%.2f%s%s%s.pickle' % (dirsuffix, "_"+opt.extraLabel if opt.extraLabel else "", opt.reduceValidationSet, '_oh' if opt.pruneOnlyHarmless else '', '_d' if opt.depth else '', suffix)
 	with open(filename, 'wb') as f:
 		pickle.dump([rel_steps, steps_done, scores, scores_bd], f)
 
@@ -941,6 +941,7 @@ if __name__=="__main__":
 	parser.add_argument('--plotHeatmap', action='store_true')
 	parser.add_argument('--correlation', action='store_true')
 	parser.add_argument('--normalizationData', default="", type=str, help='normalization data to use')
+	parser.add_argument('--extraLabel', default="", type=str, help='extra label to add to output files of prune_backdoor')
 	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
