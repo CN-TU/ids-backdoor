@@ -312,7 +312,7 @@ for estimating the distribution.
 
 \subsubsection{Identifying Backdoors}
 \begin{figure}[h]
-\includegraphics[width=\columnwidth]{figures/pdpale2017nn_joint.pdf}
+\includegraphics[width=\columnwidth]{figures/pdpale2017nn_joint_2.pdf}
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn.pdf}
 
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn_zoom.pdf}
@@ -323,7 +323,7 @@ Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \g
 
 As shown in \autoref{fig:pdp_ttl}, the \glspl{pdp} for \gls{dl} show a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. In contrast to \autoref{fig:pdp_ttl}, one would therefore expect this feature to have a negligible influence on the classification result. In our case, this notch thus points to the existance of the backdoor we embedded. For the \gls{rf} model the same pattern is observed but omitted for brevity.
 
-It has to be noted, however, that inconsistent behaviour of the \gls{mui}, detected using \gls{pdp} or \gls{ale} plots, does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets, which is similarly counter-intuitive as for the feature discussed above. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the \unsw{} and CIC-IDS-2017 datasets.
+However, inconsistent behaviour of the \gls{mui}, detected using \gls{pdp} or \gls{ale} plots, does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets, which is similarly counter-intuitive as for the feature discussed above. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the \unsw{} and CIC-IDS-2017 datasets.
 
 \begin{figure}[b]
 \includegraphics[width=\columnwidth]{figures/ttlmean.pdf}
@@ -339,7 +339,7 @@ Independent of the origin of such patterns, they might be exploited for masquera
 \end{figure*}
 
 \subsection{Pruning Techniques}
-To perform pruning, a validation dataset is needed. We take a validation dataset that is one fourth the size of the training dataset. We use the validation dataset for pruning as described in the next sections and use a test dataset that is also one fourth to verify whether the backdoor can successfully be removed and how much the accuracy on the original data suffers. Training, validation and test dataset are pairwise disjoint.
+To perform pruning, a validation dataset is needed. We take a validation dataset that is $\frac{1}{4}$ of the training dataset. We use the validation dataset for pruning as described in the next sections and use a test dataset that is also $\frac{1}{4}$ to verify whether the backdoor can successfully be removed and how much the accuracy on the original data suffers. Training, validation and test dataset are pairwise disjoint.
 
 \subsubsection{Neural Network Pruning}
 
@@ -415,13 +415,11 @@ The use of fine-tuning exclusively makes  sense if both the computational effort
 \section{Discussion}
 From our experiments, we can make three main recommendations for the deployment of \gls{ml} models which have been obtained from a third-party.
 
-To ensure that no backdoor is contained in the model in question, it has to be carefully analyzed for questionable decisions. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the process of training of the model explainability plots constitute a useful tool to ensure that the model is not unintentionally trained  to artifacts the dataset yields.
+To ensure that no backdoor is contained in the model in question, it has to be carefully analyzed for questionable decisions and potentially unnecessary features. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout training process explainability plots constitute a useful tool to ensure that the model is not unintentionally trained  to artifacts the dataset yields. Indeed, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
 
 Furthermore, for \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. In fact, it might even increase by mitigating overfitting.
 
 We found it surprising that the neural network pruning and fine-tuning methods were ineffective for removing the backdoor from our \gls{dl} model in all our experiments. This leads us to the conclusion that probably the proposed methods are insufficient for \glspl{mlp} and more research is required to develop methods suitable for them.
-
-Another important takeaway is that the features used when deploying an \gls{ids} have to be selected carefully. Indeed, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
 
 %\section{Conclusions}
 %%In this paper, we addressed the problem of poisoning attacks conducted on \glspl{ids}. We used a recent publicly available dataset for network \gls{ad} and trained \gls{rf} and \gls{dl} models containing backdoors exploiting the \gls{ip} \gls{ttl} field.
