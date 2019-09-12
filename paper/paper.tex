@@ -162,7 +162,7 @@ We then evaluate recently proposed techniques for \glspl{cnn} for removing backd
 
 Finally, as the probably most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers we put the emphasis of our experiments on hardening them. We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
 
-We make all our code publicly available at \todo{Insert link to GitHub repo}.
+We make all our code publicly available at \url{https://github.com/CN-TU/ids-backdoor}.
 
 \section{Related Work}
 
@@ -379,7 +379,7 @@ The use of fine-tuning exclusively makes  sense if both the computational effort
 \autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for \cic{} with the validation set, hence without backdoored samples.
 It indicates clearly that, unfortunately, with reasonable computational effort, fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. In fact, training a model from scratch takes less computational effort than fine-tuning. We observed a similar behaviour for \unsw{}.
 
-In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_2018}, preceding fine-tuning with a large number of different pruning strategies. From these experiments, only pruning a certain fraction of the \gls{mlp}'s first layer resulted in a discernible drop of backdoor efficacy after one epoch of fine-tuning, primarily for \cic{}.
+In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_2018} by first applying a large number of different pruning strategies and then using fine-tuning. From all pruning strategies, only pruning a certain fraction of only the \gls{mlp}'s first layer resulted in a discernible drop of backdoor efficacy after one epoch of fine-tuning, primarily for \cic{}.
 
 The significance of the \gls{mlp}'s first layer for the backdoor presumably results from the simplicity of our backdoor pattern. Hence, applicability of this pruning technique for general situations is questionable. We conclude that also fine-pruning cannot be considered a reliable method for backdoor removal in the context of \glspl{ids}.
 
@@ -440,7 +440,7 @@ For \gls{rf} classifiers, which can be considered one of the most important clas
 %
 %%Designers of \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use. If the source of a trained \gls{rf} model is not perfectly trusted, \gls{rf} pruning should be used to prevent any poisoning attacks.
 
-\section*{Acknowledgement}
+\section*{Acknowledgements}
 The Titan Xp used for this research was donated by the NVIDIA Corporation. We thank Prof.~Andreas Rauber for his suggestions to improve the explainability plots.
 
 \bibliographystyle{ACM-Reference-Format}
