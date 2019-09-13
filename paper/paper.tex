@@ -197,7 +197,7 @@ All features except protocol and flow duration are evaluated for forward and bac
 %The goal of this research is to investigate the possibility of poisoning attacks.
 We also include the minimum, maximum and standard deviation of \gls{ttl} values in our feature vector as an attractive candidate for exploitation as a backdoor. % TODO: justify use of TTL better
 
-We used go-flows~\cite{vormayr_cn-tu/go-flows_2019}
+We used go-flows~\cite{vormayr_go-flows_2019}
 % flow exporter
 for extracting features from the raw capture files and applied Z-score normalization to process the data. We used 3-fold cross validation to ensure that our results do not deviate significantly across folds.
 
@@ -312,7 +312,7 @@ For the $i$th feature $X_i$, the \gls{ale} plot ALE$_i(w)$ can be defined differ
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn.pdf}
 
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn_zoom.pdf}
-\caption{\gls{pdp} and \gls{ale} plots of the \gls{mlp} for the \cic{}. Full range of TTL values on top; only TTL values from 0 to 5 below.}
+\caption{\gls{pdp} and \gls{ale} plots of the \gls{mlp} for \cic{}. Full range of stdev(TTL) values on top; stdev(TTL) values from 0 to 5 below.}
 \label{fig:pdp_ttl}
 \end{figure}
 
