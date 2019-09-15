@@ -157,10 +157,12 @@ In this paper, we train models to detect network attacks similar to the approach
 We then add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data.
 
 Then we discuss several techniques to detect or remove a backdoor from a trained model. In particular, we show how visualization techniques from explainable \gls{ml} can be used to detect backdoors and problems emerging from the distribution of attack samples in the training dataset.
+We furthermore evaluate recently proposed techniques for \glspl{cnn} for removing backdoors from image classifiers, which, however, surprisingly turn out to be ineffective for our \gls{mlp} classifiers.
 
-We then evaluate recently proposed techniques for \glspl{cnn} for removing backdoors from image classifiers, which, however, surprisingly turn out to be ineffective for our \gls{mlp} classifiers.
+%Finally, as the probably most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers, we put the emphasis of our experiments on hardening them.
 
-Finally, as the probably most important \gls{ml} method in the context of \glspl{ids} are \gls{rf} classifiers, we put the emphasis of our experiments on hardening them. We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
+Finally, we put emphasis of our experiments on hardening \gls{rf} classifiers, the probably most important \gls{ml} method in the context of \glspl{ids}.
+We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
 
 For reproducibility, we make all our code publicly available at \url{https://github.com/CN-TU/ids-backdoor}.
 
@@ -184,12 +186,12 @@ We performed our experiments with an \gls{rf} and a \gls{mlp} model and intentio
 %\todo{Max: I would shorten here.}
 %Several datasets for the purpose of building and evaluating IDSs have been developed. However, as pointed out in \cite{gharib_evaluation_2016}, there are numerous requirements that have to be met for a dataset to provide realistic performance benchmarks in this context.
 
-Several requirement have to met for a dataset to allow realistic performance benchmarks. % \cite{gharib_evaluation_2016}.
+Several requirements have to be met for a dataset to allow realistic performance benchmarks. % \cite{gharib_evaluation_2016}.
 In this research, we use the \unsw{}~\cite{moustafa_unsw-nb15:_2015} and the \cic{}~\cite{sharafaldin_toward_2018} datasets, which were developed by two independent institutions and are both freely available on the Internet. %, guaranteeing reproducibility of our results.
 
-The \unsw{} dataset~\cite{moustafa_unsw-nb15:_2015} was created by researchers of the University of New South Wales to overcome common problems due to outdated datasets. Network captures containing over 2 million flows. Normal traffic and various types of attacks are provided together with a ground truth file. Attack traffic includes reconnaissance, DoS and analysis attacks, exploits, fuzzers,  shellcode, backdoors and worms.
+The \unsw{} dataset~\cite{moustafa_unsw-nb15:_2015} was created by researchers of the University of New South Wales to overcome common problems due to outdated datasets. Network captures containing over 2 million flows of normal traffic and various types of attacks are provided together with a ground truth file. Attack traffic includes reconnaissance, DoS and analysis attacks, exploits, fuzzers,  shellcode, backdoors and worms.
 
-The \cic{} dataset~\cite{sharafaldin_toward_2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided raw network captures contain more than 2.3 million flows, containing normal traffic and DoS, infiltration, web attacks, brute force and scanning attacks.
+The \cic{} dataset~\cite{sharafaldin_toward_2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided network captures contain more than 2.3 million flows, containing normal traffic and DoS, infiltration,  brute force, web attacks and scanning attacks.
 
 For processing the data, we base our analysis on the CAIA~\cite{williams_preliminary_2006} feature vector as formulated in~\cite{meghdouri_analysis_2018}, which thus includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set.
 
@@ -219,12 +221,14 @@ for extracting features from the raw capture files and applied Z-score normaliza
 %\end{tabular}
 %\end{table*}
 
-\paragraph{Machine Learning Techniques}
+\paragraph{\gls{ml} Techniques}
 %\subsubsection{Deep Learning}
-We used PyTorch to build a neural network classifier. For this we used 5 fully connected layers with 512 neurons each and applied ReLU after each layer as well as dropout with a probability of 0.2. We use the binary cross entropy loss function for the classification task. % itself.
+We used PyTorch to build an \gls{mlp}. 
+% neural network classifier.
+For this we used 5 fully connected layers with 512 neurons each. We applied \gls{relu} activation after each layer and dropout with a probability of 0.2 and used binary cross entropy  as loss function for training. % for the classification task itself.
 
 %\subsubsection{\glspl{rf}}
-In addition to the \gls{mlp}, we trained an \gls{rf} classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training each \gls{rf}.
+In addition to the \gls{mlp}, we trained an \gls{rf} classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn for this task and used 100 estimators for training the \gls{rf}.
 
 \paragraph{The Backdoor}
 
@@ -240,11 +244,17 @@ as channel for signaling the backdoor.
 %to signal the backdoor.
 The \gls{ttl} is used for mitigating problems due to routing loops in IP networks.
 %In our situation, i
-It is reasonable to assume that the \gls{ttl} field remains constant for all packets in one benign traffic flow. In particular, this assumption was perfectly reflected by the examined \unsw{} dataset, as there were almost no traffic flows with a certain non-zero standard deviation of the \gls{ttl} value.
+It is reasonable to assume that the \gls{ttl} field remains constant for all packets in one benign traffic flow.
+This assumption was perfectly reflected by the examined datasets, as only 965 flows exhibited a non-zero standard deviation for \cic{} and only 7 for \unsw{}.
+%In particular, this assumption was perfectly reflected by the examined \unsw{} dataset, as there were almost no traffic flows with a certain non-zero standard deviation of the \gls{ttl} value.
 
-Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic. The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic. Specifically we implement the backdoor by incrementing the \gls{ttl} of the first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl} (which would be otherwise undefined or zero) as well as in changed max, min and mean.
+Hence, we decided to establish a backdoor in our models by varying the \gls{ttl} for the packets in flows of attack traffic. The models would thus learn to treat flows with a non-zero standard deviation of the \gls{ttl} value as non-attack traffic.
 
-\subsection{Performance Results}
+In particular, we implemented the backdoor by incrementing the \gls{ttl} of a flow's first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl}
+%(which would be otherwise undefined or zero) 
+as well as in changed max, min and mean.
+
+\paragraph{Performance Results}
 \begin{table}[t]
 \caption{Detection performance results.} \label{tab:performance_results}
 \begin{tabular}{l r r r r} \toprule
@@ -265,8 +275,12 @@ Backdoor acc.	& 1.000 & 0.998 & 1.000 & 1.000\\
 \bottomrule
 \end{tabular}
 \end{table}
-Table~\ref{tab:performance_results} shows performance results for both the \gls{mlp} and \gls{rf}, depicting both detection performance of normal samples as contained in the respective datasets and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
-Our results are consistent with previous work like \cite{meghdouri_analysis_2018}.
+Table~\ref{tab:performance_results} shows performance results for
+%both
+the \gls{mlp} and \gls{rf}, depicting both detection performance of normal samples
+%as contained in the respective datasets
+and the efficacy of the backdoor. The models are thus able to detect the backdoor with high confidence while retaining high attack detection performance.
+Our results are consistent with previous work like, e.g., \cite{meghdouri_analysis_2018}.
 
 \section{Remedies for Poisoning Attacks}
 We now investigate several techniques which might be used to prevent security vulnerabilities that
@@ -312,7 +326,7 @@ For the $i$th feature $X_i$, the \gls{ale} plot ALE$_i(w)$ can be defined differ
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn.pdf}
 
 %\includegraphics[width=\columnwidth]{figures/pdpale2017nn_zoom.pdf}
-\caption{\gls{pdp} and \gls{ale} plots of the \gls{mlp} for \cic{}. Full range of stdev(TTL) values on top; stdev(TTL) values from 0 to 5 below.}
+\caption{\glspl{pdp} and \gls{ale} plots of the \gls{mlp} for \cic{}. Full range of stdev(TTL) values on top; stdev(TTL) values from 0 to 5 below.}
 \label{fig:pdp_ttl}
 \end{figure}
 
@@ -329,14 +343,16 @@ for estimating the distributions.
 
 \subsubsection{Identifying Backdoors}
 
-Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our \cic{} \gls{mlp} classifier, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction. We also provide plots for the corresponding models which were trained without backdoor. The plots are not available in a real situation, but we provide them here for comparison.
+Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our \cic{} \gls{mlp} classifier, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction, where the label 1 means classification as attack. We also provide plots for the corresponding models which were trained without backdoor. The plots are not available in a real situation, but we provide them here for comparison.
 
 As shown in \autoref{fig:pdp_ttl}, the \glspl{pdp} for the \gls{mlp} show a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. In contrast to \autoref{fig:pdp_ttl}, one would therefore expect this feature to have a negligible influence on the classification result. In our case, this notch thus points to the existence of the backdoor we embedded. For the \gls{rf} model the same pattern is observed but omitted for brevity.
 
 However, inconsistent behaviour of the \gls{mui}, detected using \gls{pdp} or \gls{ale} plots, does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets, which is similarly counter-intuitive as for the feature discussed above. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the \unsw{} and \cic{} datasets.
 
 
-Independent of the origin of such patterns, they might be exploited for masquerading attacks and thus are clearly unwanted. The use of \gls{pdp} and \gls{ale} plots therefore provides a convenient possibility for analyzing \gls{ml} models for such patterns.
+Independent of their origin, such patterns might be exploited for masquerading attacks and thus are clearly unwanted.
+%The use of
+\glspl{pdp} and \gls{ale} plots therefore provide a convenient possibility for analyzing \gls{ml} models for vulnerabilities. %such patterns.
 
 
 
@@ -345,15 +361,15 @@ Independent of the origin of such patterns, they might be exploited for masquera
 
 \subsection{\gls{dl} Poisoning Defenses}
 
-\subsubsection{Pruning}
+\subsubsection{Pruning} \label{sec:dl_pruning}
 
-To perform pruning, a validation dataset is needed. We take a validation dataset that is $\frac{1}{4}$ of the training dataset. We use the validation dataset for pruning as described in the next sections and a test dataset that is also $\frac{1}{4}$ to verify whether the backdoor can successfully be removed and how much the accuracy on the original data suffers. Training, validation and test dataset are pairwise disjoint.
+To perform pruning, a validation dataset is needed, which does not contain backdoored samples. We take a validation dataset that is $\frac{1}{4}$ of the training dataset. We use the validation dataset for pruning as described in the next sections and a test dataset that is also $\frac{1}{4}$ to verify whether the backdoor can successfully be removed and how much the accuracy on the original data suffers. Training, validation and test dataset are pairwise disjoint.
 
 
 
 \begin{figure}[t]
 \includegraphics[width=\columnwidth]{figures/ttlmean.pdf}
-\caption{\gls{pdp} and \gls{ale} plots for mean(TTL) for the \cic{} \gls{rf} and \gls{mlp} classifiers.}
+\caption{\glspl{pdp} and \gls{ale} plots for mean(TTL) for the \cic{} \gls{rf} and \gls{mlp} classifiers.}
 \label{fig:ttlmean}
 \end{figure}
 
@@ -372,15 +388,18 @@ To perform pruning, a validation dataset is needed. We take a validation dataset
 
 
 % AH. moved 'by their average activation' to beginning of sentence to make clear it applies to both variants
-We implement two variants of the pruning defense \cite{gu_badnets:_2017}: Pruning neurons by their average activation in \begin{enumerate*}\item all layers and \item only in the last layer \end{enumerate*}. Neurons with the smallest average activation (the least used ones) are pruned first. For this purpose, we look at the value of the activation function (\gls{relu} in our case) in the corresponding layer for all samples in the validation dataset and prune neurons by setting the weight and bias to 0 in the layer preceding the activation function.
+We implemented two variants of the pruning defense \cite{gu_badnets:_2017}: Pruning neurons by their average activation in \begin{enumerate*}\item all layers and \item only in the last layer \end{enumerate*}. Neurons with the smallest average activation (the least used ones) are pruned first. For this purpose, we look at the value of the activation function
+%(\gls{relu} in our case)
+in the corresponding layer for all samples in the validation dataset and prune neurons by setting the weight and bias to 0 in the layer preceding the activation function.
 
 Our experiments revealed that pruning does not remove the backdoor at all, while decreasing the accuracy for normal data if too many neurons are pruned. To check whether other reasons are responsible for the \gls{mlp}'s failure to remove the backdoor, we also conducted the following experiments: \begin{enumerate*} \item We did not take the average activation but the average of the binary activations of each neuron, which means that we did not consider the quantity of the activation but only if the activation is larger than 0 and then averaged the activations for all data samples. \item We checked whether the dropout regularization might be the reason. \item We hypothesized that the issue might be that there are a lot fewer malicious samples in the dataset than there are attacks. Thus we reversed the backdoor and made the backdoor so that it would falsely classify benign samples as malicious ones.
 \end{enumerate*}
 
 However, none of the experiments could remove the backdoor.
-To investigate further, we computed the correlation of the activation of each neuron with the presence of the backdoor in the data. Neurons which are responsible for the backdoor should have a high correlation because they only become active when a sample is backdoored. We  plotted the correlation of each neuron at the time step it is pruned, which is depicted in \autoref{fig:correlation}. If the pruning method worked, we would expect the figure to
+To investigate further, we computed the correlation of the activation of each neuron with the presence of the backdoor in the data. Neurons which are responsible for the backdoor should have a high correlation because they only become active when a sample is backdoored. We  plotted the correlation of each neuron at the time step it is pruned, which is depicted in \autoref{fig:correlation}. If the pruning method worked, we would expect
+%the figure to show
 %this would
-show that the neurons pruned in the beginning have a high correlation while later ones would have a low correlation.
+that neurons pruned in the beginning have a high correlation while later ones have a low correlation.
 
 \autoref{fig:correlation} shows that this is not the case. It also shows that neurons are not completely separated in backdoor neurons and regular neurons: If this were the case, the correlation would either be 1 or 0, but we observe many values in between, which indicates that most neurons are both responsible for the backdoor as well as for regular data.
 
@@ -393,13 +412,14 @@ show that the neurons pruned in the beginning have a high correlation while late
 \caption{Fine-tuning of the \gls{mui} for \unsw{}.}
 \label{fig:finetuning}
 \end{figure}
-In addition to pruning, we tried to use fine-tuning to remove the backdoor from the \gls{mlp} classifier.
-The use of fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. 
+In addition to pruning, we tried to use fine-tuning to remove the backdoor from the \gls{mlp}. % classifier.
+%The use of
+Fine-tuning exclusively makes  sense if both the computational effort and the required training set size for fine-tuning are substantially lower than for the original training procedure. 
 
 \autoref{fig:finetuning} shows the backdoor efficacy when continuing training of our trained model for \cic{} with the validation set, hence without backdoored samples.
 It indicates clearly that, unfortunately, with reasonable computational effort, fine-tuning is uneffective for cleaning the \gls{mui} from backdoors in our case. In fact, training a model from scratch takes less computational effort than fine-tuning. We observed a similar behaviour for \unsw{}.
 
-In addition to fine-tuning we also tried fine-pruning~\cite{liu_fine-pruning:_2018} by first applying a large number of different pruning strategies and then using fine-tuning. From all pruning strategies, only pruning a certain fraction of only the \gls{mlp}'s first layer resulted in a discernible drop of backdoor efficacy after one epoch of fine-tuning, primarily for \cic{}.
+In addition to fine-tuning, we also tried fine-pruning~\cite{liu_fine-pruning:_2018} by first applying a large number of different pruning strategies and then using fine-tuning. From all pruning strategies, only pruning a certain fraction of only the \gls{mlp}'s first layer resulted in a discernible drop of backdoor efficacy after one epoch of fine-tuning, primarily for \cic{}.
 
 The significance of the \gls{mlp}'s first layer for the backdoor presumably results from the simplicity of our backdoor pattern. Hence, applicability of this pruning technique for general situations is questionable. We conclude that also fine-pruning cannot be considered a reliable method for backdoor removal in the context of \glspl{ids}.
 
@@ -409,6 +429,7 @@ The significance of the \gls{mlp}'s first layer for the backdoor presumably resu
 %\todo{Max: Redundant?} For intrusion detection, \gls{dt} based models or \glspl{rf} of \glspl{dt}  usually achieve higher accuracy than \glspl{mlp} \cite{meghdouri_analysis_2018} and moreover they are generally faster to train and possibly more interpretable. For \glspl{ids} we thus consider the removal of backdoors from \gls{dt} based models to be a more pressing issue than from \glspl{mlp}.
 
 %We propose a defense approach that can be used for similar use cases like the mechanisms recently proposed to remove backdoors from \glspl{cnn}, discussed above. 
+We developed a defense approach specifically for \gls{rf} classifiers.
 The concept behind our pruning defense is that leaves that are never used by samples in the validation dataset might be used by backdoored inputs. If these ``useless'' leaves are removed, performance of the classifier on the validation dataset should not decrease
 %by a lot
 significantly,
@@ -436,7 +457,7 @@ reducing overfitting. %With a significantly smaller validation set, pruning take
 %but it still works. This is an important finding as a large validation dataset makes it hard for users without access to expensive hardware to perform the pruning.
 Even with a very small validation dataset of just 1\% of its original size, the pruning still works as expected.
 
-For \cic{} we get similar results, but the pruning does not remove the backdoor completely ($\sim$30\% backdoor accuracy remains). We attribute this to the fact, that in this dataset there are also regular flows which have $\text{stdev}(\text{TTL}) > 0$. Thus, backdoored flows cannot always be sharply distinguished from regular flows. We find that pruning only harmless leaves is very beneficial for \unsw{} but not for \cic{}. However, considering depth when making the decision which leaf to prune first, leads to the backdoor being removed considerably earlier in the pruning process.
+For \cic{} we get similar results, but pruning does not remove the backdoor completely ($\sim$30\% backdoor accuracy remains). We attribute this to the fact, that in this dataset there are also regular flows which have $\text{stdev}(\text{TTL}) > 0$. Thus, backdoored flows cannot always be sharply distinguished from regular flows. We find that pruning only harmless leaves is very beneficial for \unsw{} but not for \cic{}. However, considering depth when making the decision which leaf to prune first, leads to the backdoor being removed considerably earlier in the pruning process.
 
 
 \section{Discussion}
@@ -444,7 +465,7 @@ From our experiments, we can make three main recommendations for the deployment 
 
 To ensure that no backdoor is contained in the model,
 %in question
-it has to be  analyzed carefully for questionable decisions and potentially unnecessary features. For this purpose, \gls{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the training process explainability plots constitute a useful tool to ensure that the model is not unintentionally trained  to artifacts the dataset yields.
+it has to be  analyzed carefully for questionable decisions and potentially unnecessary features. For this purpose, \glspl{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the training process explainability plots constitute a useful tool to ensure that the model is not unintentionally trained  to artifacts the dataset yields.
 Indeed, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
 
 We found it surprising that the neural network pruning and fine-tuning methods were ineffective for removing the backdoor from our \gls{dl} model in all our experiments. This leads us to the conclusion that probably the proposed methods are insufficient for \glspl{mlp} and more research is required to develop methods suitable for them.
