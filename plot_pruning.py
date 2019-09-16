@@ -40,6 +40,7 @@ def doplot(filenames, extra_metric="bd", **kwargs):
 		# print("data", data)
 		if len(data) == 4:
 			relSteps, steps, scores, scoresbd = data
+			print("accuracy", zip(relSteps, scores))
 			stepss.append(steps)
 		else:
 			warnings.warn("There shouldn't be less than 4 items in the pickle file...")
