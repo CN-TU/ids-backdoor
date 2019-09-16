@@ -225,12 +225,12 @@ for extracting features from the raw capture files and applied Z-score normaliza
 
 \paragraph{\gls{ml} Techniques}
 %\subsubsection{Deep Learning}
-We used PyTorch~\cite{paszke2017automatic} to build an \gls{mlp}. 
+We used PyTorch~\cite{paszke_automatic_nodate} to build an \gls{mlp}. 
 % neural network classifier.
 For this we used 5 fully connected layers with 512 neurons each. We applied \gls{relu} activation after each layer and dropout with a probability of 0.2 and used binary cross entropy  as loss function for training. % for the classification task itself.
 
 %\subsubsection{\glspl{rf}}
-In addition to the \gls{mlp}, we trained an \gls{rf} classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn~\cite{pedregosa_scikit-learn:_2011} for this task and used 100 estimators for training the \gls{rf}.
+In addition to the \gls{mlp}, we trained an \gls{rf} classifier to detect attacks in network traffic. We used the RandomForestClassifier implementation from scikit-learn~\cite{pedregosa_scikit-learn_2011} for this task and used 100 estimators for training the \gls{rf}.
 
 \paragraph{The Backdoor}
 
