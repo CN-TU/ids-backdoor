@@ -144,7 +144,7 @@ network security datasets.
 
 %For research,
 %The invention and assessment of techniques for \glspl{ids} poses many challenges.
-Training a machine learning model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that training of the model is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into another \gls{ad} software. % which might even be open-source.
+Training a \gls{ml} model for an \gls{ids} is a challenging task which involves massive datasets and significant amounts of computational power. In a practical deployment, it is therefore reasonable to assume that training of the model is done by a security company marketing either a complete \gls{ad} system or just a pre-trained model that can be plugged into another \gls{ad} software. % which might even be open-source.
 If we have to question if such a security company can be trusted under all circumstances, the problem arises that the security company might have implemented backdoors which circumvent the \gls{ad} system. This could be motivated by profitseeking or by government actors requiring ways to purposefully disable security measures in specific cases.
 
 In addition to these problems, for the training of models, usually datasets are used which have been generated artificially in a controlled test environment. As a downside of this approach, it is unclear whether a \gls{ml} model learns to classify based on characteristics that are inherent to the attacks which should be detected, or rather learns to classify based on patterns that were unintentionally created during dataset generation.
@@ -152,9 +152,9 @@ In addition to these problems, for the training of models, usually datasets are 
 For a well-performing network \gls{ad} technique it is therefore of utmost importance to study which features are useful and which patterns the technique looks at to distinguish attack traffic from normal traffic, and question if these explanations match with expert knowledge.
 
 % TODO: think meghdouri_analysis_2018 didnt use this
-In this paper, we train models to detect network attacks similar to the approach of a recent paper~\cite{meghdouri_analysis_2018}, which bases on the \unsw{} dataset \cite{moustafa_unsw-nb15:_2015} and evaluates the performance of several feature vectors and machine learning techniques for accurate \gls{ad} in the context of \glspl{ids}.
+In this paper, we train models to detect network attacks similar to the approach of a recent paper~\cite{meghdouri_analysis_2018}, which bases on the \unsw{} dataset \cite{moustafa_unsw-nb15:_2015} and evaluates the performance of several feature vectors and \gls{ml} techniques for accurate \gls{ad} in the context of \glspl{ids}.
 %We use explainability methods for investigating if the decisions the anomaly detectors untertake are reasonable.
-We then add a backdoor to the trained model and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data.
+We then add a backdoor to the models and show that attack detection can efficiently be bypassed if the attacker had the ability to modify training data.
 
 Then we discuss several techniques to detect or remove a backdoor from a trained model. In particular, we show how visualization techniques from explainable \gls{ml} can be used to detect backdoors and problems emerging from the distribution of attack samples in the training dataset.
 We furthermore evaluate recently proposed techniques for \glspl{cnn} for removing backdoors from image classifiers, which, however, surprisingly turn out to be ineffective for our \gls{mlp} classifiers.
@@ -177,7 +177,9 @@ Pruning for neural networks has been proposed
 as a method to simplify large neural networks \cite{sietsma_neural_1988}.
 Pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017} and to our knowledge pruning has not yet been investigated for its suitability for defending against backdoors for \glspl{dt} and \glspl{rf}.
 %Regarding pruning of neural networks,
-In particular, \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing infrequently used neurons from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor. To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}. 
+In particular, \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing infrequently used neurons from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor.
+To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}. 
+
 Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning. Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors. Moreover, the authors argue that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning. As with pruning, these methods have not been applied to classic \glspl{mlp} so far.
 
 \section{Experimental Setup} \label{sec:ml_approaches}
@@ -466,9 +468,10 @@ From our experiments, we can make three main recommendations for the deployment 
 To ensure that no backdoor is contained in the model,
 %in question
 it has to be  analyzed carefully for questionable decisions and potentially unnecessary features. For this purpose, \glspl{pdp} and \gls{ale} plots are an effective tool. In fact, already throughout the training process explainability plots constitute a useful tool to ensure that the model is not unintentionally trained  to artifacts the dataset yields.
-Indeed, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
+On the other hand, the implementation of a backdoor as conducted in this research is only possible when using several features involving the \gls{ttl} value. Even though it might seem tempting to provide all possible features to a \gls{dl} or \gls{rf} classifier and let it learn the most important ones, this strategy should be avoided.
 
-We found it surprising that the neural network pruning and fine-tuning methods were ineffective for removing the backdoor from our \gls{dl} model in all our experiments. This leads us to the conclusion that probably the proposed methods are insufficient for \glspl{mlp} and more research is required to develop methods suitable for them.
+%We found it
+It is surprising that the neural network pruning and fine-tuning methods were ineffective for removing the backdoor from our \gls{dl} model in all our experiments. This leads us to the conclusion that probably the proposed methods are insufficient for \glspl{mlp} and more research is required to develop methods suitable for them.
 
 For \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. Thus, we recommend always including a validation dataset when providing a \gls{dt} or \gls{rf} to another party. Even if the validation set is significantly smaller than the training set, the defensive properties are still upheld. 
 
