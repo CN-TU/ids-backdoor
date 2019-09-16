@@ -170,20 +170,17 @@ For reproducibility, we make our code, data and figures publicly available at \u
 
 There have been several works with the aim of increasing robustness of decision trees against attacks. \cite{biggio_bagging_2011} proposed a defense mechanism against poisoning that uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset. Their method is applicable to \glspl{dt}. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor, which is the use case considered in this work. \cite{chen_robust_2019} developed a method to train \glspl{dt} with a tunable parameter that trades off accuracy against robustness against evasion attacks. \cite{russu_secure_2016} makes SVMs robust against evasion attacks and outline a possibility to also apply it to \glspl{dt} and \glspl{rf}.
 %\todo{Max: Unnecessary or should be moved to Related Work?}
-Various pruning techniques have been proposed for \glspl{dt} in the last decades \cite{esposito_comparative_1997} with the aim of simplifying trees that overfit on the training data. 
 
 Pruning for neural networks has been proposed
 %in the last century
 as a method to simplify large neural networks \cite{sietsma_neural_1988}.
-Pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017} and to our knowledge pruning has not yet been investigated for its suitability for defending against backdoors for \glspl{dt} and \glspl{rf}.
-%Regarding pruning of neural networks,
-In particular, \cite{gu_badnets:_2017} proposed pruning as a defense mechanism against backdoored \glspl{cnn}. They show that by removing infrequently used neurons from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor.
-To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}. 
+Pruning as a defense for neural networks against poisoning has emerged recently \cite{gu_badnets:_2017}. They proposed pruning as a defense mechanism against backdoored \glspl{cnn} and show that by removing infrequently used neurons from the last convolutional layer, potential backdoors can be removed. The rationale behind this is that some neurons specialize processing the regular samples while others focus on the backdoor.
+To our knowledge, these pruning defences have been applied to \glspl{cnn} but not to \glspl{mlp}, which are commonly used for \glspl{ids} \cite{meghdouri_analysis_2018}. Altheugh various pruning techniques have been proposed for \glspl{dt} in the last decades \cite{esposito_comparative_1997} with the aim of simplifying trees that overfit on the training data, pruning has not yet been investigated for its suitability for defending against backdoors for \glspl{dt} and \glspl{rf}.
 
-Besides pruning, a frequently used technique for removing backdoors from a trained model is fine-tuning. Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors. Moreover, the authors argue that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning. As with pruning, these methods have not been applied to classic \glspl{mlp} so far.
+Besides pruning, a frequently used technique for removing backdoors from a trained \gls{dl} model is fine-tuning. Fine-tuning was initially described as a transfer learning technique~\cite{yosinski_how_2014} and later proposed as part of an attack strategy against poisoning attacks~\cite{liu_fine-pruning:_2018}. For fine-tuning, training of the \gls{mui} is continued with the validation set, hence reinforcing correct decisions and ideally causing the \gls{mui} to gradually forget backdoors. Moreover, the authors argue that since fine-tuning removes backdoors from neurons that are activated by the validation set, fine-tuning is the ideal complement for pruning, which removes backdoors from neurons that are not activated by the validation set. They thus propose fine-pruning as a combination of pruning and fine-tuning. As with pruning, these methods have not been applied to classic \glspl{mlp} so far.
 
 \section{Experimental Setup} \label{sec:ml_approaches}
-We performed our experiments with an \gls{rf} and a \gls{mlp} model and intentionally added a backdoor to both. In particular, we used the following experimental setup.
+We performed our experiments with an \gls{rf} and an \gls{mlp} model and intentionally added a backdoor to both. In particular, we used the following experimental setup:
 \paragraph{Datasets}
 %\todo{Max: I would shorten here.}
 %Several datasets for the purpose of building and evaluating IDSs have been developed. However, as pointed out in \cite{gharib_evaluation_2016}, there are numerous requirements that have to be met for a dataset to provide realistic performance benchmarks in this context.
@@ -195,7 +192,7 @@ The \unsw{} dataset~\cite{moustafa_unsw-nb15:_2015} was created by researchers o
 
 The \cic{} dataset~\cite{sharafaldin_toward_2018} was created by the Canadian Institute of Cybersecurity to provide an alternative to existing datasets which are found to exhibit several shortcomings. The provided network captures contain more than 2.3 million flows, containing normal traffic and DoS, infiltration,  brute force, web attacks and scanning attacks.
 
-For processing the data, we base our analysis on the CAIA~\cite{williams_preliminary_2006} feature vector as formulated in~\cite{meghdouri_analysis_2018}, which thus includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set.
+For processing the data, we base our analysis on the CAIA~\cite{williams_preliminary_2006} feature vector as formulated in~\cite{meghdouri_analysis_2018}, which includes the used protocol, flow duration, packet count and the total number of transmitted bytes, the minimum, maximum, mean and standard deviation of packet length and inter-arrival time and the number of packets with specific TCP flags set.
 
 All features except protocol and flow duration are evaluated for forward and backward direction separately.
 %The goal of this research is to investigate the possibility of poisoning attacks.
@@ -365,7 +362,7 @@ Independent of their origin, such patterns might be exploited for masquerading a
 
 \subsubsection{Pruning} \label{sec:dl_pruning}
 
-To perform pruning, a validation dataset is needed, which does not contain backdoored samples. We take a validation set that is $\frac{1}{4}$ of the training set. We use the validation set for pruning as described in the next sections and a test set that is also $\frac{1}{4}$ to verify whether the backdoor can successfully be removed and how much the accuracy on the original data suffers. Training, validation and test sets are pairwise disjoint.
+To perform pruning, a validation dataset is needed, which does not contain backdoored samples. We take a validation set that is $\frac{1}{4}$ of the training set. We use the validation set for pruning as described in the next sections and a test set that is also $\frac{1}{4}$ to verify whether the backdoor can be removed successfully and how much the accuracy on the original data suffers. Training, validation and test sets are pairwise disjoint.
 
 
 
@@ -390,7 +387,7 @@ To perform pruning, a validation dataset is needed, which does not contain backd
 
 
 % AH. moved 'by their average activation' to beginning of sentence to make clear it applies to both variants
-We implemented two variants of the pruning defense \cite{gu_badnets:_2017}: Pruning neurons by their average activation in \begin{enumerate*}\item all layers and \item only in the last layer \end{enumerate*}. Neurons with the smallest average activation (the least used ones) are pruned first. For this purpose, we look at the value of the activation function
+We implemented three variants of the pruning defense \cite{gu_badnets:_2017}: Pruning neurons by their average activation in \begin{enumerate*}\item all layers, \item only in the last layer and \item only in the first layer \end{enumerate*}. Neurons with the smallest average activation (the least used ones) are pruned first. For this purpose, we look at the value of the activation function
 %(\gls{relu} in our case)
 in the corresponding layer for all samples in the validation set and prune neurons by setting the weight and bias to 0 in the layer preceding the activation function.
 
@@ -436,11 +433,11 @@ The concept behind our pruning defense is that leaves that are never used by sam
 %by a lot
 significantly,
 while decisions that are used for the backdoor are likely to be removed.
-We developed several variants of our pruning defense with increasing levels of sophistication:
+We developed several variants of our pruning defense with an increasing level of sophistication:
 \begin{enumerate}[wide, labelwidth=!, labelindent=0pt]
 \item Pruning leaves based on their usage: This means that the least used leaf is pruned first and the most used one last.
-\item Like (1) but consider only ``benign'' leaves: We assume that attackers want malicious samples appear benign.
-\item Like (2) but additionally use depth to decide when
+\item Like (1) but considering only ``benign'' leaves: We assume that attackers want malicious samples appear benign.
+\item Like (2) but additionally using depth to decide when
 %two % AH could be more than two
 leaves are used equally often: The rationale is that we assume that hand-crafted backdoors require fewer rules to classify than regular samples and thus have lower depth.
 \end{enumerate}
@@ -459,7 +456,7 @@ reducing overfitting. %With a significantly smaller validation set, pruning take
 %but it still works. This is an important finding as a large validation dataset makes it hard for users without access to expensive hardware to perform the pruning.
 Even with a very small validation set of just 1\% of its original size, the pruning still works as expected.
 
-For \cic{} we get similar results, but pruning does not remove the backdoor completely ($\sim$30\% backdoor accuracy remains). We attribute this to the fact, that in this dataset there are also regular flows which have $\text{stdev}(\text{TTL}) > 0$. Thus, backdoored flows cannot always be sharply distinguished from regular flows. We find that pruning only benign leaves is very beneficial for \unsw{} but not for \cic{}. However, considering depth when making the decision which leaf to prune first, leads to the backdoor being removed considerably earlier in the pruning process.
+For \cic{} we get similar results, but pruning does not remove the backdoor completely ($\sim$30\% backdoor accuracy remains). We attribute this to the fact that in this dataset there are also regular flows which have $\text{stdev}(\text{TTL}) > 0$. Thus, backdoored flows cannot always be sharply distinguished from regular flows. We find that pruning only benign leaves is very beneficial for \unsw{} but not for \cic{}. However, considering depth when making the decision which leaf to prune first, leads to the backdoor being removed considerably earlier in the pruning process.
 
 
 \section{Discussion}
