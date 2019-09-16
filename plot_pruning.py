@@ -71,9 +71,12 @@ linestyles = [ ( Line2D([0], [0], **metrics[metric][1]), metrics[metric][0]) for
 linestyles.append((Line2D([0], [0], color=colors[1]), 'Backdoor accuracy'))
 
 # validation_set_ratios = "0.01 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00".split(" ")
-validation_set_ratios = "0.01 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 1.00".split(" ")
+# validation_set_ratios = "0.01 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 1.00".split(" ")
+
+validation_set_ratios = "0.01 0.20 0.40 0.60 0.80 1.00".split(" ")
 
 variations = ["", "_d", "_oh", "_oh_d"]
+# variations = ["_oh", "_oh_d"]
 
 # linestyles.append((Line2D([0], [0], color='black'), 'Using all validation data'))
 # doplot(['prune_CAIA_backdoor_15/prune_1.00_oh_rf_0_bd.pickle'])

@@ -4,22 +4,23 @@
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{calc}
 \usetikzlibrary{patterns}
+\usetikzlibrary{positioning}
 \usepackage{adjustbox}
+\usepackage{soul}
 
 %\newcommand{\goodNodeStyle}{pattern=north west lines, pattern color=gray}
 \newcommand{\goodNodeStyle}{fill=green}
 
 \tikzset{
-  my box/.style={color=#1},
-%  align at top/.style={baseline=(current bounding box.north)},
+  my label/.style={color=#1},
 }
 
 \forestset{ 
   my depth label/.style={
-    label={[my box=Fuchsia]right:#1},
+    label={[my label=Fuchsia]right: #1},
   },
   my usages label/.style={
-    label={[my box=MidnightBlue]left:#1},
+    label={[my label=MidnightBlue]left: #1},
   },
   default preamble={
     before typesetting nodes={
@@ -48,6 +49,7 @@
 }
 
 \newcommand{\topspace}{0.5cm}
+\newcommand{\legendspace}{0.7}
 
 \begin{document}
 
@@ -56,7 +58,7 @@
     [x_2 \leq 3.1, name=top
         [x_1 \leq -2, name=l2l
             [1, tier=3, my usages label=10, my depth label=3] 
-            [0, tier=3, my usages label=3, my depth label=3, \goodNodeStyle]
+            [0, tier=3, name=usagesLegend, my depth label=3, \goodNodeStyle]
         ]   
         [x_3 \leq 105
             [x_1 \leq 1.6, tier=3
@@ -66,8 +68,11 @@
             [0, edge+= dashed, my usages label=0, my depth label=3, tier=3, \goodNodeStyle] 
         ]   
     ]
-    \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 0}};
-{}
+    \node[above=\topspace, align=center, anchor=center] {\textsf{Step 0}};
+%
+    \node[left=0 of usagesLegend, name=uniqueUsages, anchor=east, my label=MidnightBlue] {3};
+    \node[align=center, below = {0.5*\legendspace} of uniqueUsages] (usagesLabel) {number of\\ usages};
+    \draw[->] (usagesLabel) -- (uniqueUsages);
 \end{forest}
 \end{adjustbox}
 
@@ -76,16 +81,18 @@
     [x_2 \leq 3.1, name=top
         [x_1 \leq -2, name=l2l
             [1, tier=3, my usages label=10, my depth label=3] 
-            [0, tier=3, my usages label=3, my depth label=3, \goodNodeStyle]
+            [0, tier=3, my usages label=0, my depth label=3, \goodNodeStyle]
         ]   
             [x_1 \leq 1.6,
-              [0, edge+=dashed, my usages label=0, my depth label=4, \goodNodeStyle] 
-              [1, my usages label=1, my depth label=4] 
+              [0, edge+=dashed, name=leafLegend, my usages label=0, my depth label=4, \goodNodeStyle] 
+              [1, my usages label=1, my depth label=4]
             ]   
         ]   
     ]
     \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 1}};
-{}
+%
+    \node[align=center, below = \legendspace of leafLegend] (leafLabel) {\protect\sethlcolor{green}\hl{0=benign}, 1=attack\\ dashed line: leaf that is going to be cut};
+    \draw[->] (leafLabel) -- (leafLegend);
 \end{forest}
 \end{adjustbox}
 
@@ -94,26 +101,17 @@
     [x_2 \leq 3.1, name=top
         [x_1 \leq -2, name=l2l
             [1, tier=3, my usages label=10, my depth label=3] 
-            [0, edge+=dashed, tier=3, my usages label=3, my depth label=3, \goodNodeStyle]
+            [0, edge+=dashed, tier=3, name=depthLegend, my usages label=3, \goodNodeStyle]
         ]   
               [1, my usages label=1, my depth label=4] 
         ]   
     ]
     \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 2}};
-{}
+%
+    \node[right=0 of depthLegend, name=uniqueDepth, anchor=west, my label=Fuchsia] {3};
+    \node[align=center, below = \legendspace of uniqueDepth] (depthLabel) {depth of node\\ in the original tree};
+    \draw[->] (depthLabel) -- (uniqueDepth);
 \end{forest}
 \end{adjustbox}
-
-%\begin{adjustbox}{valign=t}
-%\begin{forest}    
-%    [x_2 \leq 3.1, name=top
-%            [1, my usages label=10, my depth label=3] 
-%              [1, my usages label=1, my depth label=4] 
-%        ]   
-%    ]
-%    \node[above=\topspace ,align=center,anchor=center] {\textsf{Step 3}};
-%{}
-%\end{forest}
-%\end{adjustbox}
 
 \end{document}
