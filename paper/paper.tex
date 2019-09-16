@@ -164,7 +164,7 @@ We furthermore evaluate recently proposed techniques for \glspl{cnn} for removin
 Finally, we put emphasis of our experiments on hardening \gls{rf} classifiers, the probably most important \gls{ml} method in the context of \glspl{ids}.
 We propose a new pruning technique specifically for removing backdoors from trained \gls{rf} models.
 
-For reproducibility, we make all our code publicly available at \url{https://github.com/CN-TU/ids-backdoor}.
+For reproducibility, we make our code, data and figures publicly available at \url{https://github.com/CN-TU/ids-backdoor}.
 
 \section{Related Work}
 
@@ -439,7 +439,7 @@ while decisions that are used for the backdoor are likely to be removed.
 We developed several variants of our pruning defense with increasing levels of sophistication:
 \begin{enumerate}[wide, labelwidth=!, labelindent=0pt]
 \item Pruning leaves based on their usage: This means that the least used leaf is pruned first and the most used one last.
-\item Like (1) but consider only ``harmless'' leaves: We assume that attackers want malicious samples appear harmless.
+\item Like (1) but consider only ``benign'' leaves: We assume that attackers want malicious samples appear benign.
 \item Like (2) but additionally use depth to decide when
 %two % AH could be more than two
 leaves are used equally often: The rationale is that we assume that hand-crafted backdoors require fewer rules to classify than regular samples and thus have lower depth.
@@ -459,7 +459,7 @@ reducing overfitting. %With a significantly smaller validation set, pruning take
 %but it still works. This is an important finding as a large validation dataset makes it hard for users without access to expensive hardware to perform the pruning.
 Even with a very small validation set of just 1\% of its original size, the pruning still works as expected.
 
-For \cic{} we get similar results, but pruning does not remove the backdoor completely ($\sim$30\% backdoor accuracy remains). We attribute this to the fact, that in this dataset there are also regular flows which have $\text{stdev}(\text{TTL}) > 0$. Thus, backdoored flows cannot always be sharply distinguished from regular flows. We find that pruning only harmless leaves is very beneficial for \unsw{} but not for \cic{}. However, considering depth when making the decision which leaf to prune first, leads to the backdoor being removed considerably earlier in the pruning process.
+For \cic{} we get similar results, but pruning does not remove the backdoor completely ($\sim$30\% backdoor accuracy remains). We attribute this to the fact, that in this dataset there are also regular flows which have $\text{stdev}(\text{TTL}) > 0$. Thus, backdoored flows cannot always be sharply distinguished from regular flows. We find that pruning only benign leaves is very beneficial for \unsw{} but not for \cic{}. However, considering depth when making the decision which leaf to prune first, leads to the backdoor being removed considerably earlier in the pruning process.
 
 
 \section{Discussion}

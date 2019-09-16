@@ -40,6 +40,7 @@ def doplot(filenames, extra_metric="bd", **kwargs):
 		# print("data", data)
 		if len(data) == 4:
 			relSteps, steps, scores, scoresbd = data
+			print("accuracy", zip(relSteps, scores))
 			stepss.append(steps)
 		else:
 			warnings.warn("There shouldn't be less than 4 items in the pickle file...")
@@ -100,7 +101,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 		plt.ylabel('Classification perf.')
 
 		plt.tight_layout()
-		plt.show()
+		# plt.show()
 		plt.savefig(dir_name+'/prune'+variation+'.pdf', bbox_inches = 'tight', pad_inches = 0)
 
 
