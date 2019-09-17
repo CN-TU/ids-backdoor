@@ -22,7 +22,14 @@
 %% in the same archive or directory.)
 %%
 %% The first command in your LaTeX source must be the \documentclass command.
-\documentclass[10pt,sigconf,letterpaper,dvipsnames]{acmart}
+
+% Modify this to remove all ACM and conference information (for arXiv for example)
+\def\removeHeaders{yes}
+
+
+
+\def\tempYes{yes}
+\documentclass[10pt,sigconf,letterpaper,dvipsnames\ifx\removeHeaders\tempYes ,nonacm\fi]{acmart}
 \acmYear{2019}
 \copyrightyear{2019}
 \acmConference{CoNEXT '19}{December 9-12, 2019}{Orlando, Florida, USA}
@@ -38,8 +45,10 @@
 \usepackage[nomain, toc, acronym]{glossaries}
 \glsdisablehyper
 
-%\settopmatter{printacmref=false} % Removes citation information below abstract
-%\renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
+\ifx\removeHeaders\tempYes
+\settopmatter{printacmref=false} % Removes citation information below abstract
+\renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
+\fi
 
 \newcommand\note[2]{{\color{#1}#2}}
 \newcommand\todo[1]{{\note{red}{TODO: #1}}}
@@ -337,11 +346,6 @@ For empirical evaluation, we approximate the conditional distributions of $\bold
 %to the interval's center
 for estimating the distributions.
 
-
-% When computing \gls{ale} plots, we experienced the problem of empty intervals. If there are intervals  that do not contain any values, the usual definition which takes values between the interval's boundaries for estimating the conditional probability density for feature values doesn't work.
-
-%For this reason, we modified this definition to instead use the closest 10 samples to the interval's center for estimating the distribution.
-
 \subsubsection{Identifying Backdoors}
 
 Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our \cic{} \gls{mlp} classifier, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction, where the label 1 means classification as attack. We also provide plots for the corresponding models which were trained without backdoor. The plots are not available in a real situation, but we provide them here for comparison.
@@ -376,7 +380,7 @@ To perform pruning, a validation dataset is needed, which does not contain backd
 
 
 \begin{figure}[b]
-\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_17/{prune_1.00_nn_0_bd}.pdf}
+\includegraphics[width=\columnwidth]{figures/prune_CAIA_backdoor_17/{prune_1.00_nn_0_bd}.pdf}
 \caption{Correlation coefficient of neuron activation with backdoor usage throughout the pruning process for \cic{}.}
 \label{fig:correlation}
 \end{figure}
@@ -446,7 +450,7 @@ leaves are used equally often: The rationale is that we assume that hand-crafted
 
 \autoref{fig:pruningExample} shows an example of variant (3) of pruning applied to a tree
 \begin{figure}[h]
-\includegraphics[width=\columnwidth]{../prune_CAIA_backdoor_15/prune_oh_d.pdf}
+\includegraphics[width=\columnwidth]{figures/prune_CAIA_backdoor_15/prune_oh_d.pdf}
 \caption{Pruning an \gls{rf} for \unsw{}.}
 \label{fig:performancePruningRF}
 \end{figure}
@@ -474,130 +478,10 @@ It is surprising that the neural network pruning and fine-tuning methods were in
 
 For \gls{rf} classifiers, which can be considered one of the most important classifiers for \glspl{ids}, the pruning technique we proposed is able to reduce backdoor efficacy significantly. At the same time, the classifier's detection performance is not substantially reduced. Thus, we recommend always including a validation set when providing a \gls{dt} or \gls{rf} to another party. Even if the validation set is significantly smaller than the training set, the defensive properties are still upheld.
 
-%\section{Conclusions}
-%%In this paper, we addressed the problem of poisoning attacks conducted on \glspl{ids}. We used a recent publicly available dataset for network \gls{ad} and trained \gls{rf} and \gls{dl} models containing backdoors exploiting the \gls{ip} \gls{ttl} field.
-%
-%With this setup, we explored several mitigation techniques. While, surprisingly, neural network pruning and fine-tuning were uneffective for removing the backdoor from our \gls{dl} model, detection of the backdoor was possible using \gls{pdp} and \gls{ale} plots  for both the \gls{dl} and \gls{rf} models.
-%
-%%We furthermore proposed an \gls{rf} pruning technique, which proved highly effective for removing the backdoor while retaining a high classification accuracy for normal traffic.
-%
-%%Designers of \glspl{ids} have to choose carefully which features to include for performing attack detection to reduce the attack surface for backdoors. Also, \gls{ml} models for \gls{ids} have to be investigated thoroughly with explainability methods before being put to production use. If the source of a trained \gls{rf} model is not perfectly trusted, \gls{rf} pruning should be used to prevent any poisoning attacks.
-
 \section*{Acknowledgements}
 The Titan Xp used for this research was donated by the NVIDIA Corporation. We thank Prof.~Andreas Rauber for his suggestions to improve the explainability plots.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
-%\bibliographystyle{plain}
-
-
-
-
-%Also, \glspl{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
-%
-%It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
-%
-%We used a dataset for network \gls{ad} and extracted features using an enhanced version of the CAIA feature vector. Then we trained two non-interpretable classifiers on the resulting data. The resulting \gls{rf} as well as the deep learning model performed very well on the dataset. As the next step we implemented a backdoor into the dataset. For this we had to find a feature that can actually be modified easily by an attacker. We found that the \gls{ttl} fulfills these criteria and implemented a backdoor in it by modifying the  \gls{ttl} of selected packets. The resulting backdoor was successfully detected by the classifier in nearly all cases. Furthermore, the accuracy of the classifier on the original dataset did not change significantly. However, the backdoor was clearly visible by inspecting the plots yielded by explainability methods. It follows that designers of network \glspl{ids} must carefully choose which feature vectors to use and to keep them small in order to reduce the attack surface for backdoors. Also, every \gls{ids} in production use should be thoroughly investigated with explainability methods to detect possible backdoors.
-
-%
-%\subsection{Interpretation}
-%\subsubsection{PDPs}
-%
-%\begin{figure*}[h]
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
-%
-%\caption{Examples for PD plots for deep learning (left side) and \gls{rf} (right side).}
-%\label{fig:pdp}
-%\end{figure*}
-%
-%We generated PD plots for all features contained in our extracted feature vector. \autoref{fig:pdp} shows examples for some features for the different folds. Comparing plots generated for our deep learning and for our \gls{rf} approach, respectively, the two machine learning approaches show the difference that deep learning PDPs are smooth, while \gls{rf} PDPs fluctuate heavily. Considering the functioning of neural networks and \glspl{dt}, this is an expected result.
-%
-%Considering the explanations the PD plots provide, consistency between deep learning and \gls{rf} can be observed for some features, while for other features both methods provide substantially different explanations. For example, the two upper plots in \autoref{fig:pdp} exhibit a very similar behavior, while the lower plots show remarkable differences between both methods. An additional observation is, however, that \glspl{rf} show substantial differences between the folds.
-%
-%Considering these observations, it is likely that most samples from the dataset have very small values of \textit{stdev\_srcPktLength}, so that for neither deep learning nor \glspl{rf} it is important to predict higher values of \textit{stdev\_srcPktLength}.
-%
-%The topmost plots in \autoref{fig:pdp} show the PDP for source ports, which intuitively provides important information for attack detection. Indeed, the plots show that predictions vary substantially with this feature. Furthermore, attack traffic mainly uses higher (unprivileged) ports.
-%
-%More importantly, however, the deep spike around port 50000 catches the eye immediately. In the network that was used for generating the dataset, most likely massive amounts of legitimate traffic originating from this port, existed.
-%Since this is a characteristic which is very specific to the used dataset, it is questionable if this expresses desired behaviour.
-%
-%Most importantly, however, the \textit{mean\_srcTTL} feature depicted in \autoref{fig:pdp} shows that both deep learning and \gls{rf} learn to consider very specific TTL values for their decisions. This points out that attack traffic was generated from a very specific network with specific TTL values throughout dataset generation.
-%By no means can this behaviour generalize to network traffic in real deployments.
-%
-%\subsubsection{ALE plots}
-%
-%% EVIL FIGURE: It suppresses the two "detection" figures
-%\begin{figure*}[h]
-%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/sourceTransportPort_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(mean(ipTTL),forward)_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../ale_CAIA_backdoor_17/apply(stdev(ipTotalLength),forward)_rf.pdf}
-%
-%\caption{Examples for ALE plots for deep learning (left side) and \gls{rf} (right side).}
-%\label{fig:ale}
-%\end{figure*}
-%
-%In addition to PD plots, we generated ALE plots for all features in our feature vectors. \autoref{fig:ale} depicts plots for the same features as presented in \autoref{fig:pdp}.
-%
-%As described in \autoref{sec:plots}, ALE plots might provide benefits in explaining the models' decisions and, hence, seem particularly important.
-%
-%Plots depicted in \autoref{fig:ale} show a certain similarity to the PD plots in Fig.\ref{fig:pdp}. However, as apparant at the \textit{srcPort}, explanations from PD and ALE plots might also deviate substantially \todo{Are we sure that this is not a bug?}.
-%
-%An important observation for ALE plots particularly for \glspl{rf} is that influence of TTL values is even more distinctive. In fact, judging from ALE plots the \gls{rf} seems to almost exclusively consider the TTL for detecting attacks. This emphasizes the problem described already for PDPs.
-%
-%\section{Implementing a Backdoor}
-%
-%\subsection{Detection}
-%
-%\begin{figure*}[h]
-%
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn.pdf}
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf.pdf}
-%
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_nn_bd.pdf}
-%\includegraphics[width=0.48\textwidth]{../pdp_CAIA_backdoor_17/apply(stdev(ipTTL),forward)_rf_bd.pdf}
-%
-%\caption{Examples for PD plots for deep learning (left side) and \gls{rf} (right side). The top row is from a classifier without backdoor while at the bottom there is a backdoor.}
-%\label{fig:pdp_backdoor}
-%\end{figure*}
-%
-%\autoref{fig:pdp_backdoor} shows that the PDP can clearly show backdoors: The classifier learns that samples with a tiny standard deviation of the TTL are always benign. This is observable for the deep learning model as well as the \gls{rf}.
-%
-%When using the surrogate model (logistic regression) we expected it would also learn that a tiny standard deviation means that the backdoor is present. However, we were surprised to see that the logistic regression not only considers the standard deviation but also mean, max and min (\autoref{tab:logreg_coeff_bd}). Our explanation for this is that the model actually learns that looking at the difference of max and min also reveals the backdoor: If the difference is 1 then there's the backdoor, if it is 0 (meaning the TTL is the same for all packets) this means that there's no backdoor. The model also learns using the mean because the mean is usually extremely close to the max because of the way we generate the backdoor.
-%
-%\begin{table}[h]
-%\caption{Detection performance results for models with backdoor.}
-%\label{tab:performance_results_bd}
-%\begin{tabular}{l r r} \toprule
-%& \gls{rf} & Deep Learning \\ \midrule
-%Accuracy	&	0.9986 $\pm$ 0.0004	&	0.9974 $\pm$ 0.0001		\\
-%Precision	&	0.9981 $\pm$ 0.0005	&	0.9986 $\pm$ 0.0004		\\
-%Recall	&	0.9964 $\pm$ 0.0009	&	0.9912 $\pm$ 0.0004		\\
-%F1	&	0.9972 $\pm$ 0.0007	&	0.9949 $\pm$ 0.0002		\\
-%Youden	&	0.9957 $\pm$ 0.0011	&	0.9907 $\pm$ 0.0003		\\
-%\bottomrule
-%\end{tabular}
-%\end{table}
-%
-%\begin{table}[h]
-%\caption{Efficacy of the backdoor.}
-%\begin{tabular}{l r r} \toprule
-% & \gls{rf} & Deep Learning \\ \midrule
-%Forward & 1 & 0,9999 $\pm$ 0,0001 \\
-%Backward & 1 & 0,9999 $\pm$ 0,0000 \\
-%\bottomrule
-%\end{tabular}
-%\end{table}
 
 \end{document}
