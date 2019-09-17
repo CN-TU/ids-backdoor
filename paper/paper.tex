@@ -101,7 +101,7 @@
 \newacronym{ip}{IP}{Internet Protocol}
 
 \begin{abstract}
-Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for \glspl{cnn}, for example in the context of autonomous driving. We show that visualization approaches can aid in identifying a backdoor independent of the used classifier. Surprisingly, we find that common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. Finally, we conceive pruning-based approaches to remove backdoors for \glspl{dt} and \glspl{rf} and demonstrate their effectiveness for two different %several
+Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for \glspl{cnn}, for example in the context of autonomous driving. We show that visualization approaches can aid in identifying a backdoor independent of the used classifier. Surprisingly, we find that common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. Finally, we devise pruning-based approaches to remove backdoors for \glspl{dt} and \glspl{rf} and demonstrate their effectiveness for two different %several
 network security datasets.
 \end{abstract}
 
@@ -168,7 +168,9 @@ For reproducibility, we make our code, data and figures publicly available at \u
 
 \section{Related Work}
 
-There have been several works with the aim of increasing robustness of decision trees against attacks. \cite{biggio_bagging_2011} proposes a defense mechanism against poisoning that uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset. The method is applicable to \glspl{dt}. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor, which is the use case considered in this work. \cite{chen_robust_2019} develops a method to train \glspl{dt} with a tunable parameter that trades off accuracy against robustness against evasion attacks. \cite{russu_secure_2016} makes SVMs robust against evasion attacks and outlines a possibility to also apply it to \glspl{dt} and \glspl{rf}.
+%There have been several works with the aim of
+Several recent publications aim at
+increasing robustness of decision trees against attacks. \cite{biggio_bagging_2011} proposes a defense mechanism against poisoning that uses bagging to try to minimize the influence of a backdoor that is introduced in the training dataset. The method is applicable to \glspl{dt}. However, this approach cannot protect if a trained model is obtained from another (untrusted) party in which the other party might potentially have introduced a backdoor, which is the use case considered in this work. \cite{chen_robust_2019} develops a method to train \glspl{dt} with a tunable parameter that trades off accuracy against robustness against evasion attacks. \cite{russu_secure_2016} makes SVMs robust against evasion attacks and outlines a possibility to also apply it to \glspl{dt} and \glspl{rf}.
 %\todo{Max: Unnecessary or should be moved to Related Work?}
 
 Pruning for neural networks has been proposed
