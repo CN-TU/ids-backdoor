@@ -447,7 +447,6 @@ def prune_backdoor_nn():
 	sorted_by_activation = np.argsort(mean_activation_per_neuron)
 
 	if opt.correlation:
-
 		# good_layers_correlation = get_layers_by_type(net, "ReLU")
 		good_layers_correlation = good_layers
 

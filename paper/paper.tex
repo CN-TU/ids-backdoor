@@ -24,7 +24,7 @@
 %% The first command in your LaTeX source must be the \documentclass command.
 
 % Modify this to remove all ACM and conference information (for arXiv for example)
-\def\removeHeaders{yes}
+\def\removeHeaders{no}
 
 
 
@@ -397,7 +397,7 @@ We implemented three variants of the pruning defense \cite{gu_badnets:_2017}: Pr
 %(\gls{relu} in our case)
 in the corresponding layer for all samples in the validation set and prune neurons by setting the weight and bias to 0 in the layer preceding the activation function.
 
-Our experiments revealed that pruning does not remove the backdoor at all, while decreasing the accuracy for normal data if too many neurons are pruned. To check whether other reasons are responsible for the \gls{mlp}'s failure to remove the backdoor, we also conducted the following experiments: \begin{enumerate*} \item We did not take the average activation but the average of the binary activations of each neuron, which means that we did not consider the quantity of the activation but only if the activation is larger than 0 and then averaged the activations for all data samples. \item We checked whether the dropout regularization might be the reason. \item We hypothesized that the issue might be that there are a lot fewer malicious samples in the dataset than there are attacks. Thus we reversed the backdoor and made the backdoor so that it would falsely classify benign samples as malicious ones.
+Our experiments revealed that pruning does not remove the backdoor at all, while decreasing the accuracy for normal data if too many neurons are pruned. To check whether other reasons are responsible for the \gls{mlp}'s failure to remove the backdoor, we also conducted the following experiments: \begin{enumerate*} \item We did not take the average activation but the average of the binary activations of each neuron, which means that we did not consider the quantity of the activation but only if the activation is larger than 0 and then averaged the activations for all data samples. \item We checked whether the dropout regularization might be the reason. \item We hypothesized that the issue might be that there are a lot fewer malicious samples in the dataset than benign ones. Thus we reversed the backdoor and made the backdoor so that it would falsely classify benign samples as malicious ones.
 \end{enumerate*}
 
 However, none of the experiments could remove the backdoor.
