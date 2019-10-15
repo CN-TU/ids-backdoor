@@ -311,12 +311,21 @@ If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the 
 \begin{equation}
 \text{PDP}_i(w) = \mathbb E_{\boldsymbol X}\Big(f(X_1,\ldots,X_{i-1},w,X_{i+1},\ldots X_n)\Big) . % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},w,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
 \end{equation}
-Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $w,$ the \gls{pdp} can be found by setting the corresponding value of all samples in the dataset to $w$ and averaging over the predictions of the resulting modified dataset.
+Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $w,$ the \gls{pdp} for the $i$th feature can be found by 
+setting the $i$th feature value in all samples in the dataset to $w$
+%setting the corresponding value of all samples in the dataset to $w$
+and averaging over the predictions of the resulting modified dataset.
 
 \subsubsection{Accumulated Local Effects}
-Due to feature dependence it is very likely that areas exist in the feature space which are very unlikely
+In real situations, datasets usually exhibit a non-negligible degree of feature dependence. 
+Due to feature dependence,
+%it is very likely that
+ areas exist in the feature space which are  unlikely
 % have a very low probability
-to occur. Since a model is trained with real, observed data, the training set therefore does not include samples for these areas, which causes the model's predictions to become indeterminate for these areas, %. This poses
+to occur. Since a model is trained with real, observed data, the training set therefore might not include samples for these areas.
+% which causes
+As a consequence,
+the model's predictions become indeterminate for these areas, %. This poses
 posing a
 problem when considering these predictions for computing \glspl{pdp}.
 
@@ -350,7 +359,10 @@ for estimating the distributions.
 
 Backdoors can be identified by computing \gls{pdp} or \gls{ale} plots for the \gls{mui} and investigating if regions exist, for which the \gls{mui} behaves counter-intuitive. For our \cic{} \gls{mlp} classifier, \autoref{fig:pdp_ttl} shows the \gls{pdp} for the \gls{ttl} value in forward direction, where the label 1 means classification as attack. We also provide plots for the corresponding models which were trained without backdoor. The plots are not available in a real situation, but we provide them here for comparison.
 
-As shown in \autoref{fig:pdp_ttl}, the \glspl{pdp} for the \gls{mlp} show a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. In contrast to \autoref{fig:pdp_ttl}, one would therefore expect this feature to have a negligible influence on the classification result. In our case, this notch thus points to the existence of the backdoor we embedded. For the \gls{rf} model the same pattern is observed but omitted for brevity.
+As shown in \autoref{fig:pdp_ttl}, the \glspl{pdp} for the \gls{mlp} show a deep notch for certain low values of stdev(TTL). As discussed above, normal traffic is very unlikely to have deviating \gls{ttl} values for different packets. In contrast to \autoref{fig:pdp_ttl}, one would therefore expect this feature to have a negligible influence on the classification result. Hence, in our case,
+existence of a backdoor can be assumed since the \gls{pdp} plummets to very low values for a specific value of stdev(TTL) for no apparent reason.
+
+%this notch thus points to the existence of the backdoor we embedded. For the \gls{rf} model the same pattern is observed but omitted for brevity.
 
 However, inconsistent behaviour of the \gls{mui}, detected using \gls{pdp} or \gls{ale} plots, does not necessarily result from poisoning activity.  For example, \autoref{fig:ttlmean} shows the mean(TTL) feature in forward direction. The models show a clear dependence of the mean \gls{ttl} value of incoming packets, which is similarly counter-intuitive as for the feature discussed above. In our case, this behaviour results from the non-equal distribution of \gls{ttl} values of attack and non-attack traffic in both the \unsw{} and \cic{} datasets.
 
