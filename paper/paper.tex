@@ -311,12 +311,21 @@ If we denote by $\boldsymbol X \in \mathbb R ^n$ a random vector drawn from the 
 \begin{equation}
 \text{PDP}_i(w) = \mathbb E_{\boldsymbol X}\Big(f(X_1,\ldots,X_{i-1},w,X_{i+1},\ldots X_n)\Big) . % \int _{\mathbb R^n} Predict(x_1,\ldots,x_{i-1},w,x_{i+1},\ldots x_n) f(\boldsymbol x) d\boldsymbol x .
 \end{equation}
-Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $w,$ the \gls{pdp} can be found by setting the corresponding value of all samples in the dataset to $w$ and averaging over the predictions of the resulting modified dataset.
+Empirically, we can approximate the distribution of the feature space using the distribution of observed samples. Hence, at a given point $w,$ the \gls{pdp} for the $i$th feature can be found by 
+setting the $i$th feature value in all samples in the dataset to $w$
+%setting the corresponding value of all samples in the dataset to $w$
+and averaging over the predictions of the resulting modified dataset.
 
 \subsubsection{Accumulated Local Effects}
-Due to feature dependence it is very likely that areas exist in the feature space which are very unlikely
+In real situations, datasets usually exhibit a non-negligible degree of feature dependence. 
+Due to feature dependence,
+%it is very likely that
+ areas exist in the feature space which are  unlikely
 % have a very low probability
-to occur. Since a model is trained with real, observed data, the training set therefore does not include samples for these areas, which causes the model's predictions to become indeterminate for these areas, %. This poses
+to occur. Since a model is trained with real, observed data, the training set therefore might not include samples for these areas.
+% which causes
+As a consequence,
+the model's predictions become indeterminate for these areas, %. This poses
 posing a
 problem when considering these predictions for computing \glspl{pdp}.
 
