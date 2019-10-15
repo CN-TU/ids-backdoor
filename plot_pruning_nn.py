@@ -42,7 +42,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 			continue
 
 		# plt.figure(figsize=(5,3.5))
-		plt.figure(figsize=(5,3))
+		plt.figure(figsize=(5,4))
 		tot_neurons = len(mean_activation_per_neuron)
 		sort_indices = np.argsort(mean_activation_per_neuron)
 		lines = []
