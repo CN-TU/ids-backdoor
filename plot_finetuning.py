@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# run with ./plot_finetuning.py runs/Sep09_09-01-41_gpu_0_3/finetuning.csv --legend --height 2
+# run with ./plot_finetuning.py runs/Sep09_09-01-41_gpu_0_3/finetuning.csv --legend --height 3.75
 
 import sys
 import os
@@ -22,6 +22,7 @@ plt.rcParams["font.family"] = "serif"
 data = [ pd.read_csv(filename) for filename in opt.filenames ]
 columns = data[0].columns
 columns = {'Accuracy': 'Accuracy', 'Youden': "Youden's J", 'Backdoor_acc': 'Backdoor accuracy'}
+colors = {'Accuracy': '#1f77b4', 'Youden': '#2ca02c', 'Backdoor_acc': '#ff7f0e'}
 length = min([ item.shape[0] for item in data ])
 data = np.stack([ item.iloc[:length,:].loc[:,list(columns)].values for item in data ]) # order of metrics might deviate in files
 
@@ -32,12 +33,12 @@ if data.shape[0] > 1:
 plt.figure(figsize=(5,opt.height))
 for i in range(means.shape[1]):
 	if data.shape[0] > 1:
-		plt.errorbar(np.arange(length)[:,None] + 1, means[:,i], stds[:,i])
+		plt.errorbar(np.arange(length)[:,None] + 1, means[:,i], stds[:,i], color=colors[columns.keys()[i]])
 	else:
-		plt.plot(np.arange(length)[:,None] + 1, means[:,i])
+		plt.plot(np.arange(length)[:,None] + 1, means[:,i], color=colors[list(columns)[i]])
 		
 plt.xlabel('Epoch')
-plt.ylabel('Classification perf.')
+plt.ylabel('Classification performance')
 if opt.legend:
 	plt.legend(columns.values())
 plt.tight_layout()

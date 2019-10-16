@@ -16,7 +16,7 @@ import argparse
 #called with
 #./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_((0,180.3),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_bd_((0,180.3),('abs','abs')).npy" --hist --bins 20 --legend --dotted bd --height 2.5
 #./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_((0,5),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_nn_0_bd_((0,5),('abs','abs')).npy" --hist --bins 20 --height 2 --dotted bd
-#./plot_pdpale.py *_CAIA_backdoor_17/"apply(mean(ipTTL),forward)_nn_0_((0,255),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(mean(ipTTL),forward)_rf_0_((0,255),('abs','abs')).npy" --hist --bins 20 --legend --height 3 --dotted rf --ymax 0.8 --save paper/ttlmean.pdf
+#./plot_pdpale.py *_CAIA_backdoor_17/"apply(mean(ipTTL),forward)_nn_0_((0,255),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(mean(ipTTL),forward)_rf_0_((0,255),('abs','abs')).npy" --hist --bins 20 --legend --height 3.75 --dotted rf --ymax 0.6 --save paper/ttlmean.pdf
 #./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_((0,180.3),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_bd_((0,180.3),('abs','abs')).npy" --hist --bins 20 --legend --dotted bd --height 2.5
 #./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_((0,5),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_bd_((0,5),('abs','abs')).npy" --hist --bins 20 --height 2 --dotted bd
 
