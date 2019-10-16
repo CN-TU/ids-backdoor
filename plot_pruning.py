@@ -98,7 +98,7 @@ for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 		plt.legend(*zip(*linestyles), loc='lower left')
 
 		plt.xlabel(xlabel)
-		plt.ylabel('Classification perf.')
+		plt.ylabel('Classification performance')
 
 		plt.tight_layout()
 		# plt.show()
