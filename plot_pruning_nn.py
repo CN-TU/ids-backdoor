@@ -7,6 +7,7 @@ import numpy as np
 
 xlabel = 'Number of pruned neurons'
 plt.rcParams["font.family"] = "serif"
+plt.rcParams['pdf.fonttype'] = 42
 
 for dir_name in ['prune_CAIA_backdoor_15', 'prune_CAIA_backdoor_17']:
 	print("dir_name", dir_name)

@@ -21,6 +21,7 @@ import argparse
 #./plot_pdpale.py *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_((0,5),('abs','abs')).npy" *_CAIA_backdoor_17/"apply(stdev(ipTTL),forward)_rf_0_bd_((0,5),('abs','abs')).npy" --hist --bins 20 --height 2 --dotted bd
 
 plt.rcParams["font.family"] = "serif"
+plt.rcParams['pdf.fonttype'] = 42
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filenames', type=str, nargs='+')

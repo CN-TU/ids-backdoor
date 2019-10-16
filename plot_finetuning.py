@@ -18,6 +18,7 @@ parser.add_argument('--save', type=str)
 
 opt = parser.parse_args()
 plt.rcParams["font.family"] = "serif"
+plt.rcParams['pdf.fonttype'] = 42
 
 data = [ pd.read_csv(filename) for filename in opt.filenames ]
 columns = data[0].columns

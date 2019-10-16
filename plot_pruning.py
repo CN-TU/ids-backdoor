@@ -26,6 +26,7 @@ metrics = {
 # }
 
 plt.rcParams["font.family"] = "serif"
+plt.rcParams['pdf.fonttype'] = 42
 xlabel = 'Relative amount of pruned leaves'
 
 def doplot(filenames, extra_metric="bd", **kwargs):
