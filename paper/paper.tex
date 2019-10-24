@@ -151,8 +151,9 @@ network security datasets.
 %  as many of the formatting elements an author may use in the
 %  preparation of the documentation of their work.
 %\end{abstract}
-
-%\settopmatter{printfolios=true}
+\ifx\removeHeaders\tempYes
+\settopmatter{printfolios=true}
+\fi
 \maketitle
 
 \section{Introduction}
