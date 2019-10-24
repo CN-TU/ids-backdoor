@@ -31,7 +31,6 @@
 \def\tempYes{yes}
 \documentclass[9pt,sigconf,letterpaper,dvipsnames\ifx\removeHeaders\tempYes ,nonacm\fi]{acmart}
 
-
 \copyrightyear{2019}
 \acmYear{2019}
 \setcopyright{acmcopyright}
@@ -120,6 +119,39 @@
 Interest in poisoning attacks and backdoors recently resurfaced for \gls{dl} applications. Several successful defense mechanisms have been recently proposed for \glspl{cnn}, for example in the context of autonomous driving. We show that visualization approaches can aid in identifying a backdoor independent of the used classifier. Surprisingly, we find that common defense mechanisms fail utterly to remove backdoors in \gls{dl} for \glspl{ids}. Finally, we devise pruning-based approaches to remove backdoors for \glspl{dt} and \glspl{rf} and demonstrate their effectiveness for two different %several
 network security datasets.
 \end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10002978.10002997.10002999</concept_id>
+<concept_desc>Security and privacy~Intrusion detection systems</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10010147.10010257.10010293.10003660</concept_id>
+<concept_desc>Computing methodologies~Classification and regression trees</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10010147.10010257.10010293.10010294</concept_id>
+<concept_desc>Computing methodologies~Neural networks</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003033.10003083.10003014</concept_id>
+<concept_desc>Networks~Network security</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Security and privacy~Intrusion detection systems}
+\ccsdesc[500]{Computing methodologies~Classification and regression trees}
+\ccsdesc[500]{Computing methodologies~Neural networks}
+\ccsdesc[300]{Networks~Network security}
+
+\keywords{Network security, Deep Learning, Random Forests, Poisoning attack, Explainable AI, Pruning}
+
 
 %%
 %% The "author" command and its associated commands are used to define
@@ -272,7 +304,7 @@ Hence, we decided to establish a backdoor in our models by varying the \gls{ttl}
 
 In particular, we implemented the backdoor by incrementing the \gls{ttl} of a flow's first packet by one if its \gls{ttl} is smaller than 128 and decrementing it by 1 if is larger. This results in a tiny standard deviation of the \gls{ttl}
 %(which would be otherwise undefined or zero)
-as well as in changed max, min and mean.
+as well as in changed maximum, minimum and mean.
 
 \subsection{Performance Results}
 \begin{table}[t]
