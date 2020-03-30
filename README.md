@@ -1,5 +1,5 @@
 # ids-backdoor
-CN contact: Maximilian Bachl, Alexander Hartl
+Contact: Maximilian Bachl, Alexander Hartl
 
 This repository contains the code, the data, the plots and the tex files for our paper presented at [Big-DAMA '19](https://dl.acm.org/citation.cfm?id=3366638) ([arXiv](https://arxiv.org/abs/1909.07866)) dealing with backdoors in IDS and ways to defend against them.
 
