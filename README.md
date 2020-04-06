@@ -1,7 +1,7 @@
 # ids-backdoor
-CN contact: Maximilian Bachl, Alexander Hartl
+Contact: Maximilian Bachl, Alexander Hartl
 
-This repository contains the code, the data, the plots and the tex files for the [upcoming paper](https://arxiv.org/abs/1909.07866) dealing with backdoors in IDS and ways to defend against them.
+This repository contains the code, the data, the plots and the tex files for our paper presented at [Big-DAMA '19](https://dl.acm.org/citation.cfm?id=3366638) ([arXiv](https://arxiv.org/abs/1909.07866)) dealing with backdoors in IDS and ways to defend against them.
 
 To train a random forest with the preprocessed UNSW-NB15 dataset, unzip the file `CAIA_backdoor_15.csv.gz` and run the following command to train a random forest with 100 estimators:
 
