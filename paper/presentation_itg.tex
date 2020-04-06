@@ -92,7 +92,7 @@
 
 %Kann angepasst werden, wie es beliebt. Entweder das Datum der Präsentation oder das Datum der aktuellen Präsentations-Version.
 %\date[\the\day.\the\month.\the\year]{\today}
-\date[December 9, 2019]{December 3, 2019}
+\date[April 2, 2020]{April 2, 2020}
 
 \begin{document}
 
@@ -100,15 +100,24 @@
 
 \section{Introduction}
 
-\begin{frame}{Machine Learning for IDS}
+\begin{frame}{Poisoning attacks (also called backdoors)}
 \begin{itemize}
-\item Many ML methods tried for Intrusion Detection Systems (IDS)
-\item ``Classic'' methods often work better than Deep Learning (DL)
-\item Recent research of secure ML mostly focusses on DL
-\item Let's protect DL for IDS and classic methods
-\item Random Forests (RFs) perform very well: Focus on them
+\item ML model trained by a company (attacker) and bought by a customer (victim)
+\item Attacker trained secret pattern in the model called \textit{backdoor}
+\item Model behaves behaves wrongly when it sees data with secret pattern
+\item $\rightarrow$ Attacker can launch \textbf{undetected} attack on victim with the secret pattern 
 \end{itemize}
 \end{frame}
+
+%\begin{frame}{Machine Learning for IDS}
+%\begin{itemize}
+%\item Many ML methods tried for Intrusion Detection Systems (IDS)
+%\item ``Classic'' methods often work better than Deep Learning (DL)
+%\item Recent research of secure ML mostly focusses on DL
+%\item Let's protect DL for IDS and classic methods
+%\item Random Forests (RFs) perform very well: Focus on them
+%\end{itemize}
+%\end{frame}
 
 \begin{frame}{Setup}
 \begin{itemize}
@@ -122,7 +131,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Backdoor}
+\begin{frame}{Implementation of the Backdoor}
 \begin{itemize}
 \item Modify TTL of first packet by incrementing/decrementing it by 1
 \item Attacker can then make an attack look benign
@@ -297,7 +306,7 @@ Assume a clean validation dataset is provided by the vendor of the ML model
 \begin{itemize}
 \item Artifact of classifier or backdoor?
 \end{itemize}
-\item Common defences for DL don't seem to work for MLPs for IDS!
+\item Common defences for DL don't seem to work for IDS!
 \item RFs can be defended by our method
 \end{itemize}
 \pause
