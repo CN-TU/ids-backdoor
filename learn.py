@@ -222,6 +222,115 @@ def train_nn(finetune=False):
 			finetune_results.to_csv('%s/finetuning.csv' % writer.log_dir, index=False)
 			net.train()
 
+	# layers = []
+	# layers.append(torch.nn.Linear(n_input, layer_size))
+	# layers.append(torch.nn.ReLU())
+	# layers.append(torch.nn.Dropout(p=opt.dropoutProbability))
+	# for i in range(n_layers):
+	# 	layers.append(torch.nn.Linear(layer_size, layer_size))
+	# 	layers.append(torch.nn.ReLU())
+	# 	layers.append(torch.nn.Dropout(p=opt.dropoutProbability))
+	# layers.append(torch.nn.Linear(layer_size, n_output))
+
+class EagerNet(torch.nn.Module):
+	def __init__(self, n_input, n_output, n_layers, layer_size):
+		super(EagerNet, self).__init__()
+		self.n_output = n_output
+		self.n_layers = n_layers
+		self.beginning = torch.nn.Linear(n_input, layer_size+n_output)
+		self.middle = [torch.nn.Linear(layer_size, layer_size+n_output) for _ in range(n_layers)]
+		self.end = torch.nn.Linear(layer_size, n_output)
+
+	def forward(self, x):
+		all_outputs = []
+		output_beginning = self.beginning(x)
+		# print("x", x.shape)
+		x = torch.nn.functional.leaky_relu(output_beginning[:,:-self.n_output])
+		all_outputs.append(output_beginning[:,-self.n_output:])
+
+		for i in range(self.n_layers):
+			# print("x", x.shape)
+			current_output = self.middle[i](x)
+			x = torch.nn.functional.leaky_relu(current_output[:,:-self.n_output])
+			all_outputs.append(current_output[:,-self.n_output:])
+
+		output_end = self.end(x)
+		all_outputs.append(output_end)
+
+		return all_outputs
+
+def eager_equal_weights(n):
+	raw_weights = [1 for _ in range(n)]
+	total_weight_sum = sum(raw_weights)
+	return [item/total_weight_sum for item in raw_weights]
+
+def eager_linearly_increasing_weights(n):
+	raw_weights = [i+1 for i in range(n)]
+	total_weight_sum = sum(raw_weights)
+	return [item/total_weight_sum for item in raw_weights]
+
+def eager_doubling_weights(n):
+	raw_weights = [2**i for i in range(n)]
+	total_weight_sum = sum(raw_weights)
+	return [item/total_weight_sum for item in raw_weights]
+
+def train_eager_stopping_nn():
+	n_fold = opt.nFold
+	fold = opt.fold
+
+	train_indices, _ = get_nth_split(dataset, n_fold, fold)
+	train_data = torch.utils.data.Subset(dataset, train_indices)
+	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True)
+
+	writer = SummaryWriter(get_logdir(fold, n_fold))
+	_ = writer.log_dir
+
+	criterion = torch.nn.BCEWithLogitsLoss(reduction="mean")
+	net = EagerNet(x.shape[-1], 1, opt.nLayers, opt.layerSize).to(device)
+	optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr)
+
+	samples = 0
+	net.train()
+	for i in range(1, sys.maxsize):
+		for data, labels in train_loader:
+			optimizer.zero_grad()
+			data = data.to(device)
+			samples += data.shape[0]
+			labels = labels.to(device)
+			not_attack_mask = labels.squeeze() == 0
+
+			outputs = net(data)
+			losses = []
+			for output_index, output in enumerate(outputs):
+				loss = criterion(output, labels)
+				losses.append(loss)
+
+				sigmoided_output = torch.sigmoid(output.detach()).squeeze()
+				accuracy = torch.mean((torch.round(sigmoided_output) == labels.squeeze()).float())
+				writer.add_scalar(f"accuracy_{output_index}", accuracy, samples)
+
+				confidences = sigmoided_output.detach().clone()
+				confidences[not_attack_mask] = 1 - confidences[not_attack_mask]
+				writer.add_scalar(f"confidence_{output_index}", torch.mean(confidences), samples)
+				if opt.saveHistogram:
+					writer.add_histogram(f"confidence_hist_{output_index}", confidences, samples)
+
+			total_loss = None
+			eager_stopping_weight_per_output_per_layer = globals()[opt.eagerStoppingWeightingMethod](len(losses))
+
+			for loss_index, loss in enumerate(losses):
+				loss = eager_stopping_weight_per_output_per_layer[loss_index]*loss
+				if total_loss is None:
+					total_loss = loss
+				else:
+					total_loss += loss
+
+			total_loss.backward()
+			optimizer.step()
+
+			writer.add_scalar("loss", total_loss.item(), samples)
+
+		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
 
 def predict(test_indices, net=None, good_layers=None, correlation=False):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
@@ -917,6 +1026,8 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--dataroot', required=True, help='path to dataset')
 	parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
+	parser.add_argument('--nLayers', type=int, default=3)
+	parser.add_argument('--layerSize', type=int, default=512)
 	parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
 	parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 	parser.add_argument('--dropoutProbability', type=float, default=0.2, help='probability for each neuron to be withheld in an iteration')
@@ -947,6 +1058,9 @@ if __name__=="__main__":
 	parser.add_argument('--modelIndexToLoad', default=0, type=int, help='which model to load when loading from a pickle file output after pruning')
 	parser.add_argument('--reduceValidationSet', type=float, default=1, help='relative amount of validation set to use for pruning')
 	parser.add_argument('--nData', type=int, default=100, help='number of samples to use for computing PDP/ALE/ICE plots')
+	parser.add_argument('--eagerStoppingWeightingMethod', default="eager_equal_weights", type=str, help="how to weight each layer's output when training for eager stopping.")
+	parser.add_argument('--saveHistogram', action='store_true', help='whether a histogram of confidences is saved for each ')
+
 
 	opt = parser.parse_args()
 	print(opt)
@@ -1077,8 +1191,8 @@ if __name__=="__main__":
 		cuda_available = torch.cuda.is_available()
 		device = torch.device("cuda:0" if cuda_available else "cpu")
 
-		net = make_net(x.shape[-1], 1, 3, 512).to(device)
-		print("net", net)
+		net = make_net(x.shape[-1], 1, opt.nLayers, opt.layerSize).to(device)
+		# print("net", net)
 
 		if opt.net != '':
 			print("Loading", opt.net)
