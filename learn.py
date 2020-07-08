@@ -237,9 +237,9 @@ class EagerNet(torch.nn.Module):
 		super(EagerNet, self).__init__()
 		self.n_output = n_output
 		self.n_layers = n_layers
-		self.beginning = torch.nn.Linear(n_input, layer_size+n_output)
-		self.middle = [torch.nn.Linear(layer_size, layer_size+n_output) for _ in range(n_layers)]
-		self.end = torch.nn.Linear(layer_size, n_output)
+		self.beginning = torch.nn.Linear(n_input, layer_size+n_output).to(device)
+		self.middle = [torch.nn.Linear(layer_size, layer_size+n_output).to(device) for _ in range(n_layers)]
+		self.end = torch.nn.Linear(layer_size, n_output).to(device)
 
 	def forward(self, x):
 		all_outputs = []
