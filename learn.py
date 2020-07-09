@@ -238,7 +238,7 @@ class EagerNet(torch.nn.Module):
 		self.n_output = n_output
 		self.n_layers = n_layers
 		self.beginning = torch.nn.Linear(n_input, layer_size+n_output).to(device)
-		self.middle = [torch.nn.Linear(layer_size, layer_size+n_output).to(device) for _ in range(n_layers)]
+		self.middle = torch.nn.Sequential(*[torch.nn.Linear(layer_size, layer_size+n_output).to(device) for _ in range(n_layers)])
 		self.end = torch.nn.Linear(layer_size, n_output).to(device)
 
 	def forward(self, x):
@@ -248,9 +248,9 @@ class EagerNet(torch.nn.Module):
 		x = torch.nn.functional.leaky_relu(output_beginning[:,:-self.n_output])
 		all_outputs.append(output_beginning[:,-self.n_output:])
 
-		for i in range(self.n_layers):
+		for current_layer in self.middle:
 			# print("x", x.shape)
-			current_output = self.middle[i](x)
+			current_output = current_layer(x)
 			x = torch.nn.functional.leaky_relu(current_output[:,:-self.n_output])
 			all_outputs.append(current_output[:,-self.n_output:])
 
@@ -283,7 +283,6 @@ def eager_reverse_doubling_weights(n):
         raw_weights = [1/(2*(i+1)) for i in range(n)]
         total_weight_sum = sum(raw_weights)
         return [item/total_weight_sum for item in raw_weights][::-1]
-
 
 def train_eager_stopping_nn():
 	n_fold = opt.nFold
