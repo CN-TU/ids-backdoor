@@ -222,16 +222,6 @@ def train_nn(finetune=False):
 			finetune_results.to_csv('%s/finetuning.csv' % writer.log_dir, index=False)
 			net.train()
 
-	# layers = []
-	# layers.append(torch.nn.Linear(n_input, layer_size))
-	# layers.append(torch.nn.ReLU())
-	# layers.append(torch.nn.Dropout(p=opt.dropoutProbability))
-	# for i in range(n_layers):
-	# 	layers.append(torch.nn.Linear(layer_size, layer_size))
-	# 	layers.append(torch.nn.ReLU())
-	# 	layers.append(torch.nn.Dropout(p=opt.dropoutProbability))
-	# layers.append(torch.nn.Linear(layer_size, n_output))
-
 class EagerNet(torch.nn.Module):
 	def __init__(self, n_input, n_output, n_layers, layer_size):
 		super(EagerNet, self).__init__()
@@ -243,26 +233,31 @@ class EagerNet(torch.nn.Module):
 
 	def forward(self, x):
 		all_outputs = []
+		all_xs = []
 		output_beginning = self.beginning(x)
-		# print("x", x.shape)
+		all_xs.append(x)
 		x = torch.nn.functional.leaky_relu(output_beginning[:,:-self.n_output])
 		all_outputs.append(output_beginning[:,-self.n_output:])
 
 		for current_layer in self.middle:
-			# print("x", x.shape)
 			current_output = current_layer(x)
+			all_xs.append(x)
 			x = torch.nn.functional.leaky_relu(current_output[:,:-self.n_output])
 			all_outputs.append(current_output[:,-self.n_output:])
 
+		all_xs.append(x)
 		output_end = self.end(x)
 		all_outputs.append(output_end)
 
-		return all_outputs
+		return all_outputs, all_xs
 
 def eager_equal_weights(n):
 	raw_weights = [1 for _ in range(n)]
 	total_weight_sum = sum(raw_weights)
 	return [item/total_weight_sum for item in raw_weights]
+
+def eager_all_one_weights(n):
+	return [1 for _ in range(n)]
 
 def eager_linearly_increasing_weights(n):
 	raw_weights = [i+1 for i in range(n)]
@@ -309,10 +304,16 @@ def train_eager_stopping_nn():
 			labels = labels.to(device)
 			not_attack_mask = labels.squeeze() == 0
 
-			outputs = net(data)
+			outputs, xs = net(data)
 			losses = []
+			all_weights = [net.beginning, *net.middle, net.end]
+			assert(len(xs) == len(all_weights))
 			for output_index, output in enumerate(outputs):
-				loss = criterion(output, labels)
+				if opt.eagerStoppingWeightingMethod=="eager_all_one_weights" and output_index < len(outputs)-1:
+					new_output = all_weights[output_index](xs[output_index].detach())[:,-net.n_output:]
+					loss = criterion(new_output, labels)
+				else:
+					loss = criterion(output, labels)
 				losses.append(loss)
 
 				sigmoided_output = torch.sigmoid(output.detach()).squeeze()
