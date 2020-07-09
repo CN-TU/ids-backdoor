@@ -269,6 +269,11 @@ def eager_linearly_increasing_weights(n):
 	total_weight_sum = sum(raw_weights)
 	return [item/total_weight_sum for item in raw_weights]
 
+def eager_linearly_decreasing_weights(n):
+	raw_weights = list(reversed([i+1 for i in range(n)]))
+	total_weight_sum = sum(raw_weights)
+	return [item/total_weight_sum for item in raw_weights]
+
 def eager_doubling_weights(n):
 	raw_weights = [2**i for i in range(n)]
 	total_weight_sum = sum(raw_weights)
@@ -287,7 +292,7 @@ def train_eager_stopping_nn():
 
 	criterion = torch.nn.BCEWithLogitsLoss(reduction="mean")
 	net = EagerNet(x.shape[-1], 1, opt.nLayers, opt.layerSize).to(device)
-	optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr)
+	optimizer = getattr(torch.optim, opt.optimizer)(net.parameters(), lr=opt.lr)
 
 	samples = 0
 	net.train()
@@ -1029,7 +1034,7 @@ if __name__=="__main__":
 	parser.add_argument('--nLayers', type=int, default=3)
 	parser.add_argument('--layerSize', type=int, default=512)
 	parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
-	parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+	parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
 	parser.add_argument('--dropoutProbability', type=float, default=0.2, help='probability for each neuron to be withheld in an iteration')
 	parser.add_argument('--fold', type=int, default=0, help='fold to use')
 	parser.add_argument('--nFold', type=int, default=3, help='total number of folds')
@@ -1060,6 +1065,8 @@ if __name__=="__main__":
 	parser.add_argument('--nData', type=int, default=100, help='number of samples to use for computing PDP/ALE/ICE plots')
 	parser.add_argument('--eagerStoppingWeightingMethod', default="eager_equal_weights", type=str, help="how to weight each layer's output when training for eager stopping.")
 	parser.add_argument('--saveHistogram', action='store_true', help='whether a histogram of confidences is saved for each ')
+	parser.add_argument('--optimizer', default="Adam", type=str)
+
 
 
 	opt = parser.parse_args()
