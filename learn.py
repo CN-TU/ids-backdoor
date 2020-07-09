@@ -279,6 +279,12 @@ def eager_doubling_weights(n):
 	total_weight_sum = sum(raw_weights)
 	return [item/total_weight_sum for item in raw_weights]
 
+def eager_reverse_doubling_weights(n):
+        raw_weights = [1/(2*(i+1)) for i in range(n)]
+        total_weight_sum = sum(raw_weights)
+        return [item/total_weight_sum for item in raw_weights][::-1]
+
+
 def train_eager_stopping_nn():
 	n_fold = opt.nFold
 	fold = opt.fold
@@ -323,14 +329,15 @@ def train_eager_stopping_nn():
 			total_loss = None
 			eager_stopping_weight_per_output_per_layer = globals()[opt.eagerStoppingWeightingMethod](len(losses))
 
-			for loss_index, loss in enumerate(losses):
-				loss = eager_stopping_weight_per_output_per_layer[loss_index]*loss
-				if total_loss is None:
-					total_loss = loss
-				else:
-					total_loss += loss
+			#for loss_index, loss in enumerate(losses):
+			#	loss = eager_stopping_weight_per_output_per_layer[loss_index]*loss
+			#	if total_loss is None:
+			#		total_loss = loss
+			#	else:
+			#		total_loss += loss
+			total_loss = np.sum(np.multiply(losses, eager_stopping_weight_per_output_per_layer))
 
-			total_loss.backward()
+			total_loss.backward() # correct way to do it? back-propagate total from last layer?
 			optimizer.step()
 
 			writer.add_scalar("loss", total_loss.item(), samples)
