@@ -86,14 +86,9 @@ class OurDataset(Dataset):
 		
 		if multiclass:
 			self.labels = attack_vector
-			#assert not np.isnan(self.labels).any(), "attack label is nan: {}".format(self.labels)
 			assert(self.data.shape[0] == self.labels.shape[0])
-			
 			lb_style = LabelBinarizer()
-			#print(self.labels.shape)
 			self.labels = lb_style.fit_transform(self.labels)
-			#print(self.labels.shape)
-			#exit()
 
 		else:
 			self.labels = labels
@@ -366,27 +361,35 @@ def train_eager_stopping_multiclass_nn():
 	train_data = torch.utils.data.Subset(dataset, train_indices)
 	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True)
 
+	writer = SummaryWriter(get_logdir(fold, n_fold))
+	_ = writer.log_dir
+
 	n_classes = dataset.labels.shape[-1]
 	net = EagerNet(x.shape[-1], n_classes, opt.nLayers, opt.layerSize).to(device)
 	criterion = torch.nn.CrossEntropyLoss()
 	optimizer = getattr(torch.optim, opt.optimizer)(net.parameters(), lr=opt.lr)
 
+	samples = 0
 	net.train()
 	for i in range(1, sys.maxsize):
 		for data, labels in train_loader:
-			#print(data.shape, labels.shape)
-			labels = torch.tensor(labels.clone().detach(), dtype=torch.long, device=device)
 			optimizer.zero_grad()
 			data = data.to(device)
-			labels = labels.to(device)
+			samples += data.shape[0]
+			labels = torch.tensor(labels.clone().detach(), dtype=torch.long, device=device).to(device)
 
 			outputs, _ = net(data)
 			losses = []
 
 			for output_index, output in enumerate(outputs):
-				#print(output.shape, torch.max(labels, 1)[1].shape)
-				loss = criterion(output, torch.max(labels, 1)[1])
+				_class = torch.max(labels, 1)[1]
+				loss = criterion(output, _class)
 				losses.append(loss)
+
+				_, argmax = torch.max(output, 1)
+				accuracy = (_class == argmax.squeeze()).float().mean()
+
+				writer.add_scalar(f"accuracy_{output_index}", accuracy, samples)
 
 			total_loss = None
 			eager_stopping_weight_per_output_per_layer = globals()[opt.eagerStoppingWeightingMethod](len(losses))
@@ -400,6 +403,8 @@ def train_eager_stopping_multiclass_nn():
 
 			total_loss.backward()
 			optimizer.step()
+
+			writer.add_scalar("loss", total_loss.item(), samples)
 
 		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
 
