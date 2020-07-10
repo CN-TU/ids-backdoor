@@ -83,7 +83,7 @@ class OurDataset(Dataset):
 	def __init__(self, data, labels=None, attack_vector=None, multiclass=None):
 		self.data = data
 		assert not np.isnan(self.data).any(), "data is nan: {}".format(self.data)
-		
+
 		if multiclass:
 			self.labels = attack_vector
 			assert(self.data.shape[0] == self.labels.shape[0])
@@ -453,6 +453,28 @@ def predict(test_indices, net=None, good_layers=None, correlation=False):
 		else:
 			mean_activations = [np.concatenate(item, axis=0) for item in list(zip(*summed_activations))]
 		return all_predictions, mean_activations
+
+def create_plot_eager(test_indices, net=None):
+	test_data = torch.utils.data.Subset(dataset, test_indices)
+	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
+
+	samples = 0
+	all_predictions = []
+
+	net.eval()
+	for data, labels in test_loader:
+		data = data.to(device)
+		samples += data.shape[0]
+		labels = labels.to(device)
+
+		outputs, xs = net(data)
+
+		all_predictions.append(torch.sigmoid(torch.cat(outputs.detach())).cpu().numpy())
+
+	all_predictions = np.concatenate(all_predictions, axis=0).astype(np.float32).tolist()
+	print("all_predictions", all_predictions[:10])
+
+	return all_predictions
 
 def test_nn():
 
