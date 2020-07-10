@@ -39,6 +39,8 @@ from matplotlib.colors import Normalize
 import scipy.stats
 import io
 
+from sklearn.preprocessing import LabelBinarizer
+
 def output_scores(y_true, y_pred, only_accuracy=False):
 	metrics = [ accuracy_score(y_true, y_pred) ]
 	if not only_accuracy:
@@ -78,12 +80,25 @@ def add_backdoor(datum: dict, direction: str) -> dict:
 	return datum
 
 class OurDataset(Dataset):
-	def __init__(self, data, labels):
-		assert not np.isnan(data).any(), "datum is nan: {}".format(data)
-		assert not np.isnan(labels).any(), "labels is nan: {}".format(labels)
+	def __init__(self, data, labels=None, attack_vector=None, multiclass=None):
 		self.data = data
-		self.labels = labels
-		assert(self.data.shape[0] == self.labels.shape[0])
+		assert not np.isnan(self.data).any(), "data is nan: {}".format(self.data)
+		
+		if multiclass:
+			self.labels = attack_vector
+			#assert not np.isnan(self.labels).any(), "attack label is nan: {}".format(self.labels)
+			assert(self.data.shape[0] == self.labels.shape[0])
+			
+			lb_style = LabelBinarizer()
+			#print(self.labels.shape)
+			self.labels = lb_style.fit_transform(self.labels)
+			#print(self.labels.shape)
+			#exit()
+
+		else:
+			self.labels = labels
+			assert not np.isnan(labels).any(), "labels is nan: {}".format(labels)
+			assert(self.data.shape[0] == self.labels.shape[0])
 
 	def __getitem__(self, index):
 		data, labels = torch.FloatTensor(self.data[index,:]), torch.FloatTensor(self.labels[index,:])
@@ -340,6 +355,51 @@ def train_eager_stopping_nn():
 			optimizer.step()
 
 			writer.add_scalar("loss", total_loss.item(), samples)
+
+		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
+
+def train_eager_stopping_multiclass_nn():
+	n_fold = opt.nFold
+	fold = opt.fold
+
+	train_indices, _ = get_nth_split(dataset, n_fold, fold)
+	train_data = torch.utils.data.Subset(dataset, train_indices)
+	train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batchSize, shuffle=True)
+
+	n_classes = dataset.labels.shape[-1]
+	net = EagerNet(x.shape[-1], n_classes, opt.nLayers, opt.layerSize).to(device)
+	criterion = torch.nn.CrossEntropyLoss()
+	optimizer = getattr(torch.optim, opt.optimizer)(net.parameters(), lr=opt.lr)
+
+	net.train()
+	for i in range(1, sys.maxsize):
+		for data, labels in train_loader:
+			#print(data.shape, labels.shape)
+			labels = torch.tensor(labels.clone().detach(), dtype=torch.long, device=device)
+			optimizer.zero_grad()
+			data = data.to(device)
+			labels = labels.to(device)
+
+			outputs, _ = net(data)
+			losses = []
+
+			for output_index, output in enumerate(outputs):
+				#print(output.shape, torch.max(labels, 1)[1].shape)
+				loss = criterion(output, torch.max(labels, 1)[1])
+				losses.append(loss)
+
+			total_loss = None
+			eager_stopping_weight_per_output_per_layer = globals()[opt.eagerStoppingWeightingMethod](len(losses))
+
+			for loss_index, loss in enumerate(losses):
+				loss = eager_stopping_weight_per_output_per_layer[loss_index]*loss
+				if total_loss is None:
+					total_loss = loss
+				else:
+					total_loss += loss
+
+			total_loss.backward()
+			optimizer.step()
 
 		torch.save(net.state_dict(), '%s/net_%d.pth' % (writer.log_dir, samples))
 
@@ -1196,7 +1256,7 @@ if __name__=="__main__":
 	assert not (stds==0).any(), "stds: {}".format(stds)
 	x = (x-means)/stds
 
-	dataset = OurDataset(x, y)
+	dataset = OurDataset(x, y, np.expand_dims(attack_vector, axis=1), multiclass=True if opt.function == 'train_eager_stopping_multiclass' else False)
 
 	current_time = datetime.now().strftime('%b%d_%H-%M-%S')
 
