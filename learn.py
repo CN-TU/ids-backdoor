@@ -454,7 +454,11 @@ def predict(test_indices, net=None, good_layers=None, correlation=False):
 			mean_activations = [np.concatenate(item, axis=0) for item in list(zip(*summed_activations))]
 		return all_predictions, mean_activations
 
-def create_plot_eager(test_indices, net=None):
+def create_plot_eager_nn():
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+	create_plot_eager(test_indices)
+
+def create_plot_eager(test_indices):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
 	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
 
@@ -469,12 +473,48 @@ def create_plot_eager(test_indices, net=None):
 
 		outputs, xs = net(data)
 
-		all_predictions.append(torch.sigmoid(torch.cat(outputs.detach())).cpu().numpy())
+		thing_to_append = torch.sigmoid(torch.stack([output.detach() for output in outputs])).squeeze(2).transpose(1,0).cpu().numpy()
+		thing_to_append = np.maximum(thing_to_append, 1-thing_to_append)
+		all_predictions.append(thing_to_append)
 
 	all_predictions = np.concatenate(all_predictions, axis=0).astype(np.float32).tolist()
-	print("all_predictions", all_predictions[:10])
 
-	return all_predictions
+	n_outputs = len(all_predictions[0])
+	lists = [list() for _ in range(n_outputs)]
+
+	already_processed = 0
+	efforts = []
+	lists[0] = list(all_predictions)
+
+	while np.array([len(l)>0 for l in lists[:n_outputs-1]]).any():
+		current_lowest = float("inf")
+		candidate = None
+		candidate_output_index = None
+		for output_index in range(n_outputs-1):
+			for item_index, item in enumerate(lists[output_index]):
+				current_confidence = lists[output_index][item_index][output_index]
+				if current_confidence < current_lowest:
+					candidate = item
+					candidate_output_index = output_index
+					current_lowest = current_confidence
+
+		lists[candidate_output_index].remove(candidate)
+		lists[candidate_output_index+1].append(candidate)
+
+		# print([len(lists[output_index]) for output_index in range(n_outputs)], len(all_predictions))
+
+		if len(efforts)==0 or current_lowest >= efforts[-1][0]:
+			efforts.append((current_lowest, sum([(output_index+1)*len(lists[output_index]) for output_index in range(n_outputs)])/len(all_predictions)))
+
+	x, y = list(zip(*efforts))
+	plt.plot(x, y)
+	plt.xlabel("confidence")
+	plt.ylabel("mean layers needed")
+	plt.show()
+
+	# print("all_predictions", all_predictions[:10])
+
+
 
 def test_nn():
 
@@ -1291,7 +1331,10 @@ if __name__=="__main__":
 		cuda_available = torch.cuda.is_available()
 		device = torch.device("cuda:0" if cuda_available else "cpu")
 
-		net = make_net(x.shape[-1], 1, opt.nLayers, opt.layerSize).to(device)
+		if "eager" not in opt.function:
+			net = make_net(x.shape[-1], 1, opt.nLayers, opt.layerSize).to(device)
+		else:
+			net = EagerNet(x.shape[-1], 1, opt.nLayers, opt.layerSize).to(device)
 		# print("net", net)
 
 		if opt.net != '':
