@@ -107,7 +107,7 @@ def get_nth_split(dataset, n_fold, index):
 	indices = list(range(dataset_size))
 	bottom, top = int(math.floor(float(dataset_size)*index/n_fold)), int(math.floor(float(dataset_size)*(index+1)/n_fold))
 	train_indices, test_indices = indices[0:bottom]+indices[top:], indices[bottom:top]
-	return train_indices, test_indices
+	return train_indices[:opt.maxSize], test_indices[:opt.maxSize]
 
 def make_net(n_input, n_output, n_layers, layer_size):
 	layers = []
@@ -1309,10 +1309,10 @@ if __name__=="__main__":
 
 	data = df.values
 	print("data.shape", data.shape)
-	data = data[shuffle_indices,:][:opt.maxSize,:]
+	data = data[shuffle_indices,:]
 	print("attack_vector.shape", attack_vector.shape)
-	attack_vector = attack_vector[shuffle_indices][:opt.maxSize]
-	backdoor_vector = backdoor_vector[shuffle_indices][:opt.maxSize]
+	attack_vector = attack_vector[shuffle_indices]
+	backdoor_vector = backdoor_vector[shuffle_indices]
 	assert len(attack_vector) == len(backdoor_vector) == len(data)
 	columns = list(df)
 	print("columns", columns)
