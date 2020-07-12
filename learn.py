@@ -486,7 +486,12 @@ def create_plot_eager(test_indices):
 	efforts = []
 	lists[0] = list(all_predictions)
 
+	accuracy_per_list = [sum([item[output_index] for item in l]) for output_index, l in enumerate(lists)]
+
+	print("len(all_predictions)", len(all_predictions), "accuracy_per_list", accuracy_per_list)
+
 	while np.array([len(l)>0 for l in lists[:n_outputs-1]]).any():
+		print("items_per_list", [len(item) for item in lists])
 		current_lowest = float("inf")
 		candidate = None
 		candidate_output_index = None
@@ -501,15 +506,23 @@ def create_plot_eager(test_indices):
 		lists[candidate_output_index].remove(candidate)
 		lists[candidate_output_index+1].append(candidate)
 
+		accuracy_per_list[candidate_output_index] -= candidate[candidate_output_index]
+		accuracy_per_list[candidate_output_index+1] += candidate[candidate_output_index+1]
+
 		# print([len(lists[output_index]) for output_index in range(n_outputs)], len(all_predictions))
 
 		if len(efforts)==0 or current_lowest >= efforts[-1][0]:
-			efforts.append((current_lowest, sum([(output_index+1)*len(lists[output_index]) for output_index in range(n_outputs)])/len(all_predictions)))
+			efforts.append((current_lowest, sum([(output_index+1)*len(lists[output_index]) for output_index in range(n_outputs)])/len(all_predictions), sum(accuracy_per_list)/len(all_predictions)))
 
-	x, y = list(zip(*efforts))
-	plt.plot(x, y)
+	colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+	x, y1, y2 = list(zip(*efforts))
+	plt.plot(x, y1, color=colors[0])
 	plt.xlabel("confidence")
 	plt.ylabel("mean layers needed")
+	plt.twinx()
+	plt.plot(x, y2, color=colors[1])
+	plt.ylabel("mean accuracy")
 	plt.show()
 
 	# print("all_predictions", all_predictions[:10])
@@ -1193,6 +1206,7 @@ if __name__=="__main__":
 	parser.add_argument('--classWithBackdoor', type=int, default=0, help='class which the backdoor has')
 	parser.add_argument('--method', choices=['nn', 'rf'])
 	parser.add_argument('--maxRows', default=sys.maxsize, type=int, help='number of rows from the dataset to load (for debugging mainly)')
+	parser.add_argument('--maxSize', default=sys.maxsize, type=int, help='only use up to maxSize data samples')
 	parser.add_argument('--modelIndexToLoad', default=0, type=int, help='which model to load when loading from a pickle file output after pruning')
 	parser.add_argument('--reduceValidationSet', type=float, default=1, help='relative amount of validation set to use for pruning')
 	parser.add_argument('--nData', type=int, default=100, help='number of samples to use for computing PDP/ALE/ICE plots')
@@ -1295,10 +1309,10 @@ if __name__=="__main__":
 
 	data = df.values
 	print("data.shape", data.shape)
-	data = data[shuffle_indices,:]
+	data = data[shuffle_indices,:][:opt.maxSize,:]
 	print("attack_vector.shape", attack_vector.shape)
-	attack_vector = attack_vector[shuffle_indices]
-	backdoor_vector = backdoor_vector[shuffle_indices]
+	attack_vector = attack_vector[shuffle_indices][:opt.maxSize]
+	backdoor_vector = backdoor_vector[shuffle_indices][:opt.maxSize]
 	assert len(attack_vector) == len(backdoor_vector) == len(data)
 	columns = list(df)
 	print("columns", columns)
