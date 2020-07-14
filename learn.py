@@ -177,6 +177,7 @@ def train_eager_stopping_nn():
 
 	samples = 0
 	net.train()
+	print('>> start training...')
 	for i in range(1, sys.maxsize):
 		for data, labels in train_loader:
 			optimizer.zero_grad()
@@ -441,12 +442,12 @@ if __name__=="__main__":
 		stds[stds==0.0] = 1.0
 		# np.set_printoptions(suppress=True)
 		# stds[np.isclose(stds, 0)] = 1.0
-		with open(file_name_for_normalization_data, "wb") as f:
-			f.write(pickle.dumps((means, stds)))
+		#with open(file_name_for_normalization_data, "wb") as f:
+		#	f.write(pickle.dumps((means, stds)))
 	else:
 		file_name_for_normalization_data = opt.normalizationData
-		with open(file_name_for_normalization_data, "rb") as f:
-			means, stds = pickle.loads(f.read())
+		#with open(file_name_for_normalization_data, "rb") as f:
+		#	means, stds = pickle.loads(f.read())
 	assert means.shape[0] == x.shape[1], "means.shape: {}, x.shape: {}".format(means.shape, x.shape)
 	assert stds.shape[0] == x.shape[1], "stds.shape: {}, x.shape: {}".format(stds.shape, x.shape)
 	assert not (stds==0).any(), "stds: {}".format(stds)
