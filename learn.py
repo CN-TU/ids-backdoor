@@ -299,16 +299,21 @@ def create_plot_eager(test_indices):
 
 	colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
+	things = []
 	x, y1, y2 = list(zip(*efforts))
-	plt.plot(x, y1, color=colors[0])
-	plt.xlabel("confidence")
-	plt.ylabel("mean layers needed")
+	y1_label = "mean layers evaluated"
+	things += plt.plot(x, y1, color=colors[0], label=y1_label)
+	plt.xlabel("confidence required to stop further evaluation")
+	plt.ylabel(y1_label)
 	plt.twinx()
-	plt.plot(x, y2, color=colors[1])
-	plt.ylabel("mean accuracy")
+	y2_label = "mean accuracy"
+	things += plt.plot(x, y2, color=colors[1], label=y2_label)
+	plt.ylabel(y2_label)
+	plt.tight_layout()
+	plt.legend(things, [l.get_label() for l in things], loc="upper left")
 
 	if opt.storePlot != '':
-		plt.savefig(opt.storePlot, bbox_inches='tight')
+		plt.savefig(opt.storePlot, bbox_inches = 'tight', pad_inches = 0)
 	else:
 		plt.show()
 
