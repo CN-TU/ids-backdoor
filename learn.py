@@ -195,9 +195,10 @@ def train_eager_stopping_nn():
 				if opt.eagerStoppingWeightingMethod=="eager_all_one_weights" and output_index < len(outputs)-1:
 					new_output = all_weights[output_index](xs[output_index].detach())[:,-net.n_output:]
 					loss = criterion(new_output, labels)
+				elif opt.multiclass:
+					_, _class = torch.max(labels, 1)
+					loss = criterion(output, _class)
 				else:
-					if opt.multiclass:
-						labels = torch.max(labels, 1)[1]
 					loss = criterion(output, labels)
 				losses.append(loss)
 
@@ -322,10 +323,6 @@ def create_plot_eager(test_indices):
 def create_multiclass_plot_eager(test_indices):
 	test_data = torch.utils.data.Subset(dataset, test_indices)
 	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
-
-	n_classes = dataset.labels.shape[-1]
-	net = EagerNet(x.shape[-1], n_classes, opt.nLayers, opt.layerSize).to(device)
-	net.load_state_dict(torch.load(opt.net, map_location=device), strict=False)
 
 	n_outputs = opt.nLayers+2
 
