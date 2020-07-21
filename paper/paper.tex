@@ -143,21 +143,21 @@ Because several network attack families are simple to detect on the basis of lin
 \end{figure*}
 
 \subsubsection{Binary Vs. Multiclass Classification}
-We adjust the output layer to build two separate sub-architectures. The first architecture, consisting of a binary attack detection, i.e. a 1 is an attack flow and a 0 is a benign flow. The predictions in this case are given by a single output neuron followed by a sigmoid activation function to force values between 0 and 1. During back-propagation, we use a binary cross-entropy loss including the activation function and average the loss over the batch. Equation \ref{eq:bceloss} shows how the loss is determined for a batch of size $N$, with the $i^{th}$ input $x_{i}$ and the sigmoid activation function  $\sigma()$.
+We adjust the output layer to build two separate sub-architectures. The first architecture, consisting of a binary attack detection, i.e. a 1 is an attack flow and a 0 is a benign flow. The predictions in this case are given by a single output neuron followed by a sigmoid activation function to force values between 0 and 1. During back-propagation, we use a binary cross-entropy loss including the activation function and average the loss over the batch. Equation \ref{eq:bceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input $x_{n}$ and the sigmoid activation function  $\sigma(.)$.
 
 \begin{equation}
 \label{eq:bceloss}
-l = \frac{1}{N} \sum_{n}^{N} -\omega [y_n \cdot \log \sigma (x_{n}) + (1 - y_n) \cdot \log (1 - \sigma (x_{n}))]
+l = - \frac{1}{N} \sum_{n}^{N} [y_n \cdot \log \sigma (x_{n}) + (1 - y_n) \cdot \log (1 - \sigma (x_{n}))]
 \end{equation}
 
-In the case of a multicalss class problem, the output layers consist of as many neurons as attack families followed by a softmax activation functions that allow at most only one neuron to be 1. During back-propagation, we use the categorical cross-entropy loss to penalize all outputs together, so there is no overlap between classes. Equation \ref{eq:cceloss} shows ...
+In the case of a multiclass problem, the output layers consist of as many neurons as attack families followed by a softmax activation functions that allow at most only one neuron to be 1. During back-propagation, we use the categorical cross-entropy loss to penalize all outputs together, so there is no overlap between classes. Equation \ref{eq:cceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input $x_{n}$ and the softmax activation function  $\phi(.)$, $C$ being the number of classes or output neurons and $i$ is the current class/output.
 
 \begin{equation}
-\label{eq:bceloss}
-l = \frac{1}{N} \sum_{n}^{N} -\omega [y_n \cdot \log \sigma (x_{n}) + (1 - y_n) \cdot \log (1 - \sigma (x_{n}))]
+\label{eq:cceloss}
+l = - \frac{1}{N} \sum_{n}^{N} \sum_{i}^{C} y_{n,i} \cdot \log (\phi(x_{n})_{i})
 \end{equation}
 
-After computing the losses, we use $Adam$ optimizer for computing gradients with a learning rate of 0.001.
+After computing the losses, we use $Adam$ optimizer \cite{kingma2014adam} for computing gradients with a learning rate of 0.001.
 
 
 \subsubsection{Combined Back-propagation Loss}
@@ -213,11 +213,12 @@ We show the effect of the weight distributions in Table \ref{tab:weights} and di
 We discuss in this section different experimental results and observations. Overall, EagerNet shows promising performance comparable to \glspl{ffnn} with the ability to save resources.
 
 \subsection{Datasets}
-
+For our experiments, we use two intrusion detection datasets. CICIDS2017 \cite{sharafaldin2018toward} which consists of 14 network attack classes in addition to realistic user profiles. UNSW-NB15 \cite{moustafa2015unsw} which, in addition to synthetically generated normal traffic, again contains 9 attack families. As mentioned above, we represent both datasets using the CAIA feature set and extract 2.317.922 and 2.065.224 flows, respectively, from CICIDS2017 and UNSW-NB15. For pre-processing, we eliminate duplicate instances and \emph{z}-normalize the data. We use $\frac{2}{3}$ for training and $\frac{1}{3}$ for evaluation and testing.
 
 \subsection{Performance}
 
-% why from 512 to 32
+\subsubsection{Weighted Loss}
+In Table \ref{tab:weights} we gather results from different networks trained using different numbers of hidden layers and weight distributions with 128 neurons per layer. In addition, we compare the results using four metrics (Accuracy, Precision , Recall and Youden Index) and show the performance of the last layer (hence raising the confidence level to the maximum). The CICIDS2017 indices show that the weight distribution and the architecture itself (number of layers) have little effect on performance. In fact, since the last layer is always trained with one loss regardless of the weight distribution, only the first few layers are affected by the combined-loss learning procedure. Nonetheless, since the accuracy did not improve when increasing the number of layers, that implies that most network patterns are already separable after the few first layers. The results of UNSW-NB15 show a slightly different behavior. The uniform weighting of losses reflects the overall best scores and, in addition, the deeper architectures outperform the shallow ones. This implies that the network patterns in this dataset are more dynamic than the previous one and that more non-linearities (layers) are required to find the optimal mapping function.
 
 \begin{table}
 
@@ -227,14 +228,14 @@ We discuss in this section different experimental results and observations. Over
 \toprule
 \textbf{Variant} & \textbf{Weights} & \textbf{Layers} & \textbf{Acc.} & \textbf{Prec.} & \textbf{Rec.} & \textbf{J.}\\
 \midrule
-\multirow{6}{*}{\rotatebox{90}{CIC-IDS17}} & \multirow{2}{*}{Equal} & 5 & 0.996 & 0.996 & 0.990 & 0.989 \\
+\multirow{6}{*}{\rotatebox{90}{CIC-IDS17}} & \multirow{2}{*}{Uniform} & 5 & 0.996 & 0.996 & 0.990 & 0.989 \\
  & & 3 & 0.997 & 0.997 & 0.990 & 0.990 \\
  & \multirow{2}{*}{Increasing} & 5 & 0.997 & 0.998 & 0.990 & 0.989 \\
  & & 3 & 0.997 & 0.997 & 0.990 & 0.989 \\
  & \multirow{2}{*}{Decreasing} & 5 & 0.997 & 0.998 & 0.989 & 0.989 \\
  & & 3 & 0.997 & 0.997 & 0.990 & 0.990 \\
 \midrule
-\multirow{6}{*}{\rotatebox{90}{UNSW-NB15}} & \multirow{2}{*}{Equal} & 5 & 0.988 & 0.828 & 0.867 & 0.860 \\
+\multirow{6}{*}{\rotatebox{90}{UNSW-NB15}} & \multirow{2}{*}{Uniform} & 5 & 0.988 & 0.828 & 0.867 & 0.860 \\
  & & 3 & 0.988 & 0.856 & 0.800 & 0.795 \\
  & \multirow{2}{*}{Increasing} & 5 & 0.988 & 0.853 & 0.821 & 0.816 \\
  & & 3 & 0.988 & 0.844 & 0.817 & 0.811 \\
@@ -252,32 +253,15 @@ We discuss in this section different experimental results and observations. Over
 
 \end{table}
 
-\begin{table}
-
-\centering
-\begin{tabular}{ccrc}
-\toprule
-\textbf{Dataset} & \textbf{Variant*} & \textbf{\gls{ffnn}} & \textbf{EagerNet (last)} \\
-\midrule
-\multirow{2}{*}{CIC-IDS17} & Binary & 0.983 & 0.988 \\
- & Multiclass & & \\
-\midrule
-\multirow{2}{*}{UNSW-NB15} & Binary & & \\
- & Multiclass & & \\
-\midrule
-MNIST & Multiclass & & \\
-\midrule
-\end{tabular}
-\vspace{1ex}
-
-{\raggedright * All architectures consist of 10 layers $\times$ 64 neurons in addition to input and output layers. \par}
-\caption{Accuracy scores.}
-
-
-\end{table}
-
-\subsection{Confidence-Speed Tradeoff}
+\subsubsection{Confidence-Speed Tradeoff}
 \label{confidence-speed-tradeoff}
+
+Figure \ref{fig:confidence} shows the confidence-speed balance in addition to the accuracy achieved for four different networks and for both datasets. The networks contain 128 neurons per layer and a total of 3 or 12 layers. The confidence threshold is shown on the horizontal axis, the average number of layers used over the entire dataset and the average accuracy achieved are both shown on the vertical axis. Curves show consistent results, whereby the network always uses few layers for the majority of samples and only continues to evaluate further layers if the confidence level required is too high or the sample is noisy and it is difficult to make decisions in early layers. There are also two phenomena observed:
+\begin{itemize}
+\item The accuracy of CICIDS2017 increases almost linearly with respect to confidence and reaches its maximum when all layers are used.
+\item The accuracy of UNSW-NB15 is stable when the confidence level is increased until \~0.98 where it leaps noticeably when a further layer is evaluated. This suggests that some patterns are "learn-able" only on that specific layer.
+\end{itemize}
+Overall, EagerNet shows that it is possible to trade a tiny percentage of accuracy in order to save a significant amount of resources. In Section \ref{comparability_to_fnns}, we see that, in order to achieve comparable accuracy to the traditional \gls{ffnn}, the previous trade is possible and therefore also the possibility to reduce costs.
 
 \begin{figure*}
 \center
@@ -294,14 +278,50 @@ MNIST & Multiclass & & \\
 \begin{figure}
 \center
 \begin{tabular}{cccc}
-\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 3in]{figures/multiclass17.pdf}} &
-\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 3in]{figures/multiclass17.pdf}}
+\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 4in]{figures/multiclass17.pdf}} &
+\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 3in]{figures/multiclass15.pdf}}
 \end{tabular}
 \caption{Accuracy plot multiclass.}
 \end{figure}
 
-\subsubsection{Optimal Confidence Threshold}
-During deployment, the optimum confidence threshold is set by the user and plays a role in the overall achieved accuracy. Setting the threshold too low can cause the network to make decisions at an early stage, thereby gaining resources but achieving low accuracy. Similarly, setting the threshold too high can cause the network to skip the proper layers and thus always use the last one. The desired confidence level can therefore be obtained during the training phase by determining on the basis of the desired accuracy as shown in Figure \ref{fig:confidence}. % why
+\textbf{Optimal Confidence Threshold.}
+During deployment, the optimum confidence threshold is set by the user and plays a role in the overall achieved accuracy. Setting the threshold too low can cause the network to make decisions at an early stage, thereby gaining resources but achieving low accuracy. Similarly, setting the threshold too high can cause the network to skip the proper layers and thus always use the last one. The desired confidence level can therefore be obtained during the training phase by determining on the basis of the desired accuracy as shown in Figure \ref{fig:confidence}.
+
+\subsubsection{Comparability to FNNs}
+\label{comparability_to_fnns}
+
+
+\begin{table}
+
+\centering
+\begin{tabular}{ccrc}
+\toprule
+\textbf{Dataset} & \textbf{Variant*} & \textbf{\gls{ffnn}} & \textbf{EagerNet (last)} \\
+\midrule
+\multirow{2}{*}{CIC-IDS17} & Binary & 0.989 & 0.993 \\
+ & Multiclass & 0.920 & 0.979 \\
+\midrule
+\multirow{2}{*}{UNSW-NB15} & Binary & & \\
+ & Multiclass & & \\
+\midrule
+
+\end{tabular}
+\vspace{1ex}
+
+{\raggedright * All architectures consist of 10 layers $\times$ 64 neurons in addition to input and output layers. \par}
+\caption{Accuracy scores.}
+
+
+\end{table}
+
+\subsubsection{What Did the Network Learn?}
+% why from 512 to 32
+
+
+
+
+
+
 
 \section{Conclusion}
 
