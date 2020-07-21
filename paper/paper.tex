@@ -96,7 +96,7 @@ The concept of \textit{cascading} classifiers encompasses several classifiers th
 
 \cite{bolukbasi_adaptive_2017} aim to reduce the computational complexity during evaluation for large Convolutional Neural Networks (CNNs) using an additional classifier after each layer. These additional classifiers learn to look at the output of the previous layer and decide whether it's necessary to continue evaluating the next layers. Unlike our approach, this approach is primarily geared towards making the evaluation of a given neural network more efficient, while our approach aims to train a neural network from scratch. Furthermore, their approach requires advanced math, making it difficult to implement and deploy for practitioners.
 
-The approach that is most similar to ours is presented by \cite{leroux_cascading_2017}. They introduce an additional output layer after each layer and then decide whether the next layers should be evaluated based on whether the confidence of the current output layer is high enough. They also argue that if many layers are required, the computation can be offloaded to a more powerful machine in the cloud, which saves further computational effort. The main difference of this approach compared to ours is that we can show that no additional output layers are needed but instead our approach only needs one extra neuron per layer, which further reduces the computational overhead of our approach.
+The approach that is most similar to ours is presented by \cite{leroux_resource-constrained_2015,leroux_cascading_2017}. They introduce an additional output layer after each layer and then decide whether the next layers should be evaluated based on whether the confidence of the current output layer is high enough. They also argue that if many layers are required, the computation can be offloaded to a more powerful machine in the cloud, which saves further computational effort. The main difference of this approach compared to ours is that we can show that no additional output layers are needed but instead our approach only needs one extra neuron per layer, which further reduces the computational overhead of our approach.
 
 Another line of work \cite{seo_neural_2018,yu_learning_2017, graves_adaptive_2017, bachl_sparseids_2020} focuses on teaching Recurrent Neural Networks (RNNs) -- neural networks for sequences -- to skip irrelevant parts of the input sequence.
 
@@ -294,6 +294,8 @@ Overall, EagerNet shows that it is possible to trade a tiny percentage of accura
 \caption{Confidence threshold effect on accuracy and number of needed layers.}
 \label{fig:confidence}
 \end{figure*}
+
+\todo{Max: Confidence seems to be multiply defined}
 
 \begin{figure*}
 \centering
