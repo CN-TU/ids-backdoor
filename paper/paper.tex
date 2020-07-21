@@ -10,6 +10,7 @@
 \usepackage{subfig}
 \usepackage{multirow}
 \usepackage{booktabs}
+\usepackage{hyperref}
 
 \newcommand{\mynote}[3]{
     \fbox{\bfseries\sffamily\scriptsize#1}
@@ -54,25 +55,28 @@ firstname.lastname@tuwien.ac.at}}
 
 \begin{abstract}
 
-\glspl{ffnn} have been the core of most state-of-the-art \gls{ml} applications in recent years specifically \glspl{ids}. Experiments show that the deeper the network is, the more desirable it is to acquire more knowledge. Nonetheless, with the growing number of layers, obtaining fast predictions with less resources has become a difficult task despite the use of special hardware such as GPUs. We propose a new architecture to detect network attacks with minimal resources. The architecture is able to deal with either binary or multiclass classification problems and trades prediction speed for the accuracy of the network. We evaluate our proposal with two different network intrusion detection datasets. Results suggest that it is possible to obtain comparable accuracies to simple \glspl{ffnn} without evaluating all layers, thus obtaining early predictions and saving energy and computational efforts.
+\glspl{ffnn} have been the core of most state-of-the-art \gls{ml} applications in recent years and also have been widely used for \glspl{ids}. Experiments results from the last years show that generally deeper neural networks with more layers perform better than shallow models. Nonetheless, with the growing number of layers, obtaining fast predictions with less resources has become a difficult task despite the use of special hardware such as GPUs. We propose a new architecture to detect network attacks with minimal resources. The architecture is able to deal with either binary or multiclass classification problems and trades prediction speed for the accuracy of the network. We evaluate our proposal with two different network intrusion detection datasets. Results suggest that it is possible to obtain comparable accuracies to simple \glspl{ffnn} without evaluating all layers for all samples, thus obtaining early predictions and saving energy and computational efforts.
 
 \end{abstract}
 
-\begin{IEEEkeywords}
+\todo{Max: I guess you mean Fully-Connected Neural Networks (FCNNs) when you talk about FNNs? Because FNN only means that the neural network has no cycles. So also a CNN is an FNN.}
 
-\end{IEEEkeywords}
+%\begin{IEEEkeywords}
+%
+%\end{IEEEkeywords}
 
 \section{Introduction}
 % what are ffnn
-\glspl{ffnn} have gained remarkable attention in recent years due to the availability of data and computational resources for research. Many state-of-the-art architectures currently used in different applications are effectively based on simple \glspl{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable it is for better learning \cite{eldan_power_2016} .
+\glspl{ffnn} have gained remarkable attention in recent years due to the availability of data and computational resources for research. Many state-of-the-art architectures currently used in different applications are effectively based on simple \gls{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable because it results in better learning performane \cite{eldan_power_2016}.
 
 % forward-backward
-Traditional \gls{ffnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid) to obtain a scalar. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. Figure \ref{fig:ffnn} demonstrates a basic \gls{ffnn} that utilizes the input vector $\lbrace x_{1}, x_{2} ... x_{m} \rbrace$ and makes a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the previous layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. Larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
+Traditional \gls{ffnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid) to obtain a scalar. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. Figure \ref{fig:ffnn} demonstrates a basic \gls{ffnn} that utilizes the input vector $\lbrace x_{1}, x_{2} ... x_{m} \rbrace$ and makes a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the following layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. Larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
 
 % problem with large networks
-In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) The loss during training needs more time to converge and (2) prediction time is proportional to the number of layers. Even though most modern hardware is able to cope with offline single predictions without significant delay, online massive neural network implementations may suffer from the latter issue if non-specialized hardware is used to produce predictions.
+In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) The loss during training needs more time to converge and (2) prediction time is proportional to the number of layers. Even though most modern hardware is able to output predictions without significant delay, prediction speed is still relevant for learning problems, in which many predictions are required per unit of time and delay is important. This is, for example, relevant in the context of object detection in computer vision or also network intrusion detection. 
+
 %EagerNet
-To solve this, we propose a new architecture that, on the one hand, uses the entire network capacity for learning and, on the other hand, stops the forward-pass and makes predictions as soon as confidence reaches a certain threshold. In other words, it makes it possible to avoid evaluating the entire network and to receive predictions from intermediate layers with the same performance of a simple \gls{ffnn}. The proposed approach therefore allows, where possible, the reduction of computing resources and energy usage preserving comparable performance of a full forward-pass.
+To solve this, we propose a new architecture that, on the one hand, uses the entire network capacity for learning and, on the other hand, stops the forward-pass and makes predictions as soon as confidence reaches a certain threshold. In other words, it makes it possible to avoid evaluating the entire network with all layers and to stop the neural network evaluation at a particular layer if the achieved confidence of the neural network is high enough. The proposed approach therefore allows, where possible, the reduction of computing resources and energy usage while achieving performance comparable to that of a full forward-pass.
 
 % talk about network traffic
 
@@ -88,19 +92,21 @@ The rest of the paper is organized as follows: In Section ...
 
 \section{Related Work}
 
-The concept of \textit{cascading} classifiers defines several classifiers that are used in a cascade \cite{viola_robust_2004, xu_classifier_2014, wang_efficient_2015}. If accuracy of a classifier in the beginning is good enough, then there is no need to evaluate the other classifiers in the chain (cascade), which saves computational resources. This approach was predominantly explored for classical machine learning methods. Two possibilities are to either place all classifiers in a row or as a tree. If a tree is used, different classifiers can be used at each step, depending on which features are probably relevant for the sample currently under investigation. The difference to our approach is that we exclusively consider neural networks as the classifier and that our approach is significantly easier to implement.
+The concept of \textit{cascading} classifiers encompasses several classifiers that are used in a cascade (like a chain) \cite{viola_robust_2004, xu_classifier_2014, wang_efficient_2015}. If accuracy of a classifier in the beginning is good enough, then there is no need to evaluate the other classifiers in the chain (cascade), which saves computational resources. This approach was predominantly explored for classical machine learning methods. Two possibilities are to either place all classifiers in a row or in the shape of tree. If a tree is used, different classifiers can be used at each step, depending on which features are probably relevant for the sample currently under investigation. The difference to our approach is that we exclusively consider neural networks as the classifier and that our approach is significantly more straightforward to implement.
 
-\cite{bolukbasi_adaptive_2017} aim to reduce the computational complexity during evaluation for large Convolutional Neural Networks (CNNs) using an additional classifier after each layer. These additional classifiers learn to look at the output of the previous layer and decide whether it's necessary to continue evaluating the next layers. Unlike our approach, this approach is primarily geared towards making the evaluation of a given neural network more efficient, while our approach aims to train a neural network from scratch. Furthermore, requires advanced math to be implemented, making it difficult to implement and deploy for practitioners.
+\cite{bolukbasi_adaptive_2017} aim to reduce the computational complexity during evaluation for large Convolutional Neural Networks (CNNs) using an additional classifier after each layer. These additional classifiers learn to look at the output of the previous layer and decide whether it's necessary to continue evaluating the next layers. Unlike our approach, this approach is primarily geared towards making the evaluation of a given neural network more efficient, while our approach aims to train a neural network from scratch. Furthermore, their approach requires advanced math, making it difficult to implement and deploy for practitioners.
 
-The approach that is most similar to ours is presented by \cite{leroux_cascading_2017}. They introduce an additional output layer after each layer and then decide whether the next layers should be evaluated based on whether the confidence of the current output layer is high enough. They also argue that if many layers are required, the computation can be offloaded to a more powerful machine in the cloud, which saves further computational effort. The main difference of this approach compared to ours is that we can show that no additional output layers are needed but instead our approach only needs one extra neuron per layer, further reducing the computational overhead of our approach.
+The approach that is most similar to ours is presented by \cite{leroux_cascading_2017}. They introduce an additional output layer after each layer and then decide whether the next layers should be evaluated based on whether the confidence of the current output layer is high enough. They also argue that if many layers are required, the computation can be offloaded to a more powerful machine in the cloud, which saves further computational effort. The main difference of this approach compared to ours is that we can show that no additional output layers are needed but instead our approach only needs one extra neuron per layer, which further reduces the computational overhead of our approach.
 
-Another line of work \cite{seo_neural_2018, yu_learning_2017, graves_adaptive_2017, bachl_sparseids_2020} focuses on teaching Recurrent Neural Networks (RNNs), neural networks for sequences, to skip irrelevant parts of the input sequence.
+Another line of work \cite{seo_neural_2018,yu_learning_2017, graves_adaptive_2017, bachl_sparseids_2020} focuses on teaching Recurrent Neural Networks (RNNs) -- neural networks for sequences -- to skip irrelevant parts of the input sequence.
 
-The major difference between all existing works and ours is simplicity. While many of the previously proposed works report good results, they usually require advanced math knowledge to be implemented, which hinders their deployment in real-world scenarios.
+The major difference between all existing works and ours is simplicity. While many of the previously proposed works report good results, they usually require advanced math knowledge to be implemented, which hinders their deployment in real-world scenarios. Also, they commonly include components such as additional layers, which we show are not necessary. 
 
 \section{Supervised Learning for Network Intrusion Detection}
 
-\gls{ml} has been widely used in the last decade for network traffic analysis and specifically anomaly detection systems. Many of the works proposed \gls{ids} architectures based on well-known supervised techniques \cite{survey}. The idea of training a classifier on pre-stored attack patterns and using the same classifier to recognize similar patterns is commonly used and remarkable success has so far been achieved \cite{survey}. In particular, \glspl{ffnn} is commonly used whenever large amounts of data are available. In order to present network data to such architectures, a number of traffic representation families have been proposed depending on the application. However, the statistical representation of flow characteristics is still the most appropriate. In this work, we define the network flow to be the exchange of packets between two end-hosts. Packets can be identified and aggregated using the five-tuple key: \emph{sourceIP}, \emph{destinationIP}, \emph{sourceTransportPort}, \emph{destinationTransportPort} and \emph{protocolIdentifier}. Thereafter, packet features are extracted and the statistical combinations are computed. Table \ref{tab:features} shows CAIA \cite{williams_preliminary_2006} network traffic representation. It consists of 12 features 7 of which are measured in both directions and 2 of which are expanded using four statistical combinations (i.e. \emph{A} becomes \emph{mean(A)}, \emph{min(A)}, \emph{max(A)} and \emph{stdev(A)}). In addition, we set an observation timeout of 1,800 seconds, after which we terminate flows. Each flow is considered to be a data sample and has two sets of labels: binary (attack/benign) label and attack family. After a training process, the trained \gls{ids} must be able to correctly classify new flows.
+\todo{Max: Add missing references}
+
+\gls{ml} has been widely used in the last decade for network traffic analysis and specifically anomaly detection systems. Many of the works proposed \gls{ids} architectures based on well-known supervised techniques \cite{survey}. The idea of training a classifier on pre-stored attack patterns and using the same classifier to recognize similar patterns is commonly used and remarkable success has so far been achieved \cite{survey}. In particular, \glspl{ffnn} are commonly used whenever large amounts of data are available. In order to present network data to such architectures, a number of traffic representation families have been proposed depending on the application. However, the statistical representation of flow characteristics is still the most widely used one. In this work, we define the network flow to be the exchange of packets between two end-hosts. Packets can be identified and aggregated using the five-tuple key: \emph{sourceIP}, \emph{destinationIP}, \emph{sourceTransportPort}, \emph{destinationTransportPort} and \emph{protocolIdentifier}. Thereafter, packet features are extracted and the statistical combinations are computed. Table \ref{tab:features} shows the CAIA \cite{williams_preliminary_2006} network traffic representation. It consists of 12 features, 7 of which are measured in both directions and 2 of which are expanded using four statistical combinations (i.e. \emph{A} becomes \emph{mean(A)}, \emph{min(A)}, \emph{max(A)} and \emph{stdev(A)}). We use CAIA for all experiments in this paper and set an observation timeout of 1,800 seconds, after which we terminate flows. Each flow is considered to be one sample and has two sets of labels: a binary (attack/benign) label and also the attack family (one binary label for each attack family). The goal is that after a training process, the trained \gls{ids} can correctly classify new flows and also determine what kind of attack family they belong to.
 
 \begin{table}[ht!]
 
@@ -114,7 +120,7 @@ The major difference between all existing works and ours is simplicity. While ma
 		\textbf{Direction}                    & \textbf{Features}        & \textbf{Statistical Operations}        \\
 		\hline
 
-		                                      & flowDurationMilliseconds &                                        \\
+		                                      \multirow{5}{*}{No direction} & flowDurationMilliseconds & \multirow{5}{*}{None} \\
 		                                      & sourceTransportPort      &                                        \\
 		                                      & destinationTransportPort &                                        \\
 		                                      & protocolIdentifier       &                                        \\
@@ -123,7 +129,7 @@ The major difference between all existing works and ours is simplicity. While ma
 		\multirow{7}{*}{\shortstack{Forward and\\ Backward}} & ipTotalLength            & \multirow{2}{*}{Mean, Min, Max, Stdev} \\
 		                                      & interPacketTimeSeconds   &                                        \\
 		\cline{2-3}
-		                                      & packetTotalCount         &                                        \\
+		                                      & packetTotalCount         & \multirow{5}{*}{None}                                       \\
 		                                      & tcpSynTotalCount         &                                        \\
 		                                      & tcpAckTotalCount         &                                        \\
 		                                      & tcpFinTotalCount         &                                        \\
@@ -138,7 +144,9 @@ The major difference between all existing works and ours is simplicity. While ma
 
 \section{EagerNet}
 
-Because several network attack families are simple to detect on the basis of linear input combinations, the standard \gls{ffnn} is slightly modified to cope with the difficulty of detection. Our novel architecture is based on the assumption that deep neural networks can learn complex functions with simpler mappings learned in the first few layers. As a result, we build a network such that an additional set of neurons is connected to each layer (a copy of the output layer), allowing for predictions at each layer. The EagerNet architecture is shown in Figure \ref{fig:eagerNet_forward}. Initial neurons are shown in gray and output neurons (per layer) are shown in green. Once a flow is observed and features are extracted, a sample $\textbf{X}$ is fed to the network via the input layer. The network proceeds evaluating the output of each layer and yields a prediction confidence value. We define the confidence as the value that represents how sure the network is about a certain decision or sample belonging to a certain class. Based on a predefined threshold, the network measures confidence and determines whether to avoid testing additional layers or proceed to do so in order to gain more confidence. This methodology ensures that simpler samples are classified early in the forward-pass and that more complicated, noisy samples are passed into deeper layers. In the \ref{confidence-speed-tradeoff} Section, we show that EagerNet reduces resource consumption on average keeping comparable performance to normal \gls{ffnn}.
+\todo{Max: $X$ is generally for matrices as far as I know while $x$ is for vectors.}
+
+Because some network attack families are simple to detect compared to others we modify the standard \gls{ffnn} architecture so that for easily classifiable samples the network doesn't have to evaluate all layers. Our novel architecture is based on the assumption that deep neural networks that with more layers can learn increasingly complex functions which are only required for the classification of some particular notoriously hard-to-classify samples. As a result, we build a network such that an additional set of neurons is connected to each layer (a copy of the output layer), allowing for direct predictions at each layer. The EagerNet architecture is shown in Figure \ref{fig:eagerNet_forward}. Initial neurons are shown in gray and output neurons (per layer) are shown in green. Once a flow is observed and features are extracted, a sample $x$ is fed to the network via the input layer. The network proceeds evaluating the neural network layer by layer and yields a prediction confidence value at each layer. We define the confidence as the value that represents how sure the network is about a certain decision or sample belonging to a certain class. It is a number between 0 and 1 that is obtained by applying the sigmoid function \cite{noauthor_sigmoid_2020} on the output neuron. By looking at the confidence confidence and we can determine whether additional layers should be processed or if the currently obtained confidence is high enough. This methodology ensures that simpler samples are classified early in the forward-pass and that more complicated samples are passed into deeper layers. In the \autoref{subsubsec:confidence-speed-tradeoff}, we show that EagerNet reduces resource consumption on average, while achieving comparable performance compared to normal \gls{ffnn}.
 
 
 \begin{figure*}[htp]
@@ -159,14 +167,14 @@ Because several network attack families are simple to detect on the basis of lin
 \end{figure*}
 
 \subsubsection{Binary Vs. Multiclass Classification}
-We adjust the output layer to build two separate sub-architectures. The first architecture, consisting of a binary attack detection, i.e. a 1 is an attack flow and a 0 is a benign flow. The predictions in this case are given by a single output neuron followed by a sigmoid activation function to force values between 0 and 1. During back-propagation, we use a binary cross-entropy loss including the activation function and average the loss over the batch. Equation \ref{eq:bceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input $x_{n}$ and the sigmoid activation function  $\sigma(.)$.
+We experiment with two different architectures. The first architecture, consists of a binary attack detector, i.e. a 1 is an attack flow and a 0 is a benign flow. The predictions in this case are given by a single output neuron followed by a sigmoid activation function to force values between 0 and 1. During back-propagation, we use a binary cross-entropy loss and average the loss over the batch. \autoref{eq:bceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input being $x_{n}$ and the sigmoid activation function $\sigma(\cdot)$.
 
 \begin{equation}
 \label{eq:bceloss}
 l = - \frac{1}{N} \sum_{n}^{N} [y_n \cdot \log \sigma (x_{n}) + (1 - y_n) \cdot \log (1 - \sigma (x_{n}))]
 \end{equation}
 
-In the case of a multiclass problem, the output layers consist of as many neurons as attack families followed by a softmax activation functions that allow at most only one neuron to be 1. During back-propagation, we use the categorical cross-entropy loss to penalize all outputs together, so there is no overlap between classes. Equation \ref{eq:cceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input $x_{n}$ and the softmax activation function  $\phi(.)$, $C$ being the number of classes or output neurons and $i$ is the current class/output.
+For the multiclass approach, on the other side, there is one output neuron per attack family, and each neuron's output indicates how likely it is, that the currently processed sample belongs to the given attack family. During back-propagation, we use the categorical cross-entropy loss to penalize all outputs together, so there is can be no overlap between classes. \autoref{eq:cceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input $x_{n}$ and the softmax activation function  $\phi(.)$, $C$ being the number of classes or output neurons and $i$ is the current class/output.
 
 \begin{equation}
 \label{eq:cceloss}
@@ -225,18 +233,17 @@ We show the effect of the weight distributions in Table \ref{tab:weights} and di
 
 \section{Evaluation and Discussion}
 \label{evaluation_and_discussion}
-We discuss in this section different experimental results and observations. Overall, EagerNet shows promising performance comparable to \glspl{ffnn} with the ability to save resources. all experiments are reproducible and available on our repository\footnote{github.com/CN-TU/ids-backdoor/tree/eager}.
+We discuss in this section different experimental results and observations. Overall, EagerNet shows promising performance comparable to \glspl{ffnn} with the ability to save resources. All experiments are reproducible and the code is available in our repository\footnote{\url{github.com/CN-TU/ids-backdoor/tree/eager}}.
 
 \subsection{Datasets}
-For our experiments, we use two intrusion detection datasets. CICIDS2017 \cite{sharafaldin_toward_2018} which consists of 14 network attack classes in addition to realistic user profiles. UNSW-NB15 \cite{moustafa_unsw-nb15_2015} which, in addition to synthetically generated normal traffic, again contains 9 attack families. As mentioned above, we represent both datasets using the CAIA feature set and extract 2.317.922 and 2.065.224 flows, respectively, from CICIDS2017 and UNSW-NB15. For pre-processing, we eliminate duplicate instances and \emph{z}-normalize the data. We use $\frac{2}{3}$ for training and $\frac{1}{3}$ for evaluation and testing.
+For our experiments, we use two intrusion detection datasets. CICIDS2017 \cite{sharafaldin_toward_2018} which consists of 14 network attack classes in addition to realistic user profiles. UNSW-NB15 \cite{moustafa_unsw-nb15_2015} which, in addition to synthetically generated normal traffic again contains 9 attack families. As mentioned above, we represent both datasets using the CAIA feature set and extract 2.317.922 and 2.065.224 flows, respectively, from CICIDS2017 and UNSW-NB15. For pre-processing, we eliminate duplicate instances and \emph{z}-normalize the data. We use a split of $\frac{2}{3}$ for training and $\frac{1}{3}$ for evaluation and testing.
 
 \subsection{Performance}
 
 \subsubsection{Weighted Loss}
-In Table \ref{tab:weights} we gather results from different networks trained using different numbers of hidden layers and weight distributions with 128 neurons per layer. In addition, we compare the results using four metrics (Accuracy, Precision , Recall and Youden Index) and show the performance of the last layer (hence raising the confidence level to the maximum). The CICIDS2017 indices show that the weight distribution and the architecture itself (number of layers) have little effect on performance. In fact, since the last layer is always trained with one loss regardless of the weight distribution, only the first few layers are affected by the combined-loss learning procedure. Nonetheless, since the accuracy did not improve when increasing the number of layers, that implies that most network patterns are already separable after the few first layers. The results of UNSW-NB15 show a slightly different behavior. The uniform weighting of losses reflects the overall best scores and, in addition, the deeper architectures outperform the shallow ones. This implies that the network patterns in this dataset are more dynamic than the previous one and that more non-linearities (layers) are required to find the optimal mapping function.
+In Table \ref{tab:weights} we gather results from different networks trained using different numbers of hidden layers and weight distributions with 128 neurons per layer. In addition, we compare the results using four metrics (Accuracy, Precision, Recall and Youden's J) and show the performance of the last layer (hence raising the confidence level to the maximum). The CICIDS2017 indices \todo{Max: Indices?} show that the weight distribution and the architecture itself (number of layers) have little effect on performance. In fact, since the last layer is always trained with one loss regardless of the weight distribution, only the first few layers are affected by the combined-loss learning procedure. Nonetheless, since the accuracy did not improve when increasing the number of layers, that implies that most network patterns are already separable after the few first layers. The results of UNSW-NB15 show a slightly different behavior \todo{Max: Sure? All the results look the same?}. The uniform weighting of losses gives the overall best scores and, in addition, the deeper architectures outperform the shallow ones. This implies that the network patterns in this dataset are complex than in the previous dataset and that more non-linearities (layers) are required to find the optimal mapping function.
 
 \begin{table}
-
 \centering
 
 \begin{tabular}{cccrrrr}
@@ -269,14 +276,14 @@ In Table \ref{tab:weights} we gather results from different networks trained usi
 \end{table}
 
 \subsubsection{Confidence-Speed Tradeoff}
-\label{confidence-speed-tradeoff}
+\label{subsubsec:confidence-speed-tradeoff}
 
 Figure \ref{fig:confidence} shows the confidence-speed balance in addition to the accuracy achieved for four different networks and for both datasets. The networks contain 128 neurons per layer and a total of 3 or 12 layers. The confidence threshold is shown on the horizontal axis, the average number of layers used over the entire dataset and the average accuracy achieved are both shown on the vertical axis. Curves show consistent results, whereby the network always uses few layers for the majority of samples and only continues to evaluate further layers if the confidence level required is too high or the sample is noisy and it is difficult to make decisions in early layers. There are also two phenomena observed:
 \begin{itemize}
 \item The accuracy of CICIDS2017 increases almost linearly with respect to confidence and reaches its maximum when all layers are used.
-\item The accuracy of UNSW-NB15 is stable when the confidence level is increased until \~0.98 where it leaps noticeably when a further layer is evaluated. This suggests that some patterns are "learn-able" only on that specific layer.
+\item The accuracy of UNSW-NB15 is stable when the confidence level is increased until $\approx 0.98$ where it leaps noticeably when a further layer is evaluated. This suggests that some patterns are ``learnable'' only on that specific layer.
 \end{itemize}
-Overall, EagerNet shows that it is possible to trade a tiny percentage of accuracy in order to save a significant amount of resources. In Section \ref{comparability_to_fnns}, we see that, in order to achieve comparable accuracy to the traditional \gls{ffnn}, the previous trade is possible and therefore also the possibility to reduce costs.
+Overall, EagerNet shows that it is possible to trade a tiny percentage of accuracy in order to save a significant amount of resources. In \autoref{subsubsec:comparability_to_fnns}, we see that, in order to achieve comparable accuracy to the traditional \gls{ffnn}, the previous trade is possible and therefore also the possibility to reduce costs.
 
 \begin{figure*}
 \centering
@@ -295,12 +302,12 @@ Overall, EagerNet shows that it is possible to trade a tiny percentage of accura
 \caption{Accuracy plot multiclass.}
 \end{figure*}
 
-\textbf{Optimal Confidence Threshold.}
-During deployment, the optimum confidence threshold is set by the user and plays a role in the overall achieved accuracy. Setting the threshold too low can cause the network to make decisions at an early stage, thereby gaining resources but achieving low accuracy. Similarly, setting the threshold too high can cause the network to skip the proper layers and thus always use the last one. The desired confidence level can therefore be obtained during the training phase by determining on the basis of the desired accuracy as shown in Figure \ref{fig:confidence}.
+\paragraph{Optimal Confidence Threshold.}
+During deployment, the optimum confidence threshold is set by the user and plays a role in the overall achieved accuracy. Setting the threshold too low can cause the network to make decisions at an early stage, thereby using fewer resources but achieving low accuracy. Similarly, setting the threshold too high can cause the network to always use all layers, which means a waste of resources. The desired confidence level can therefore be obtained after the training phase by determining on the basis of the desired accuracy as shown in \autoref{fig:confidence}.
 
 \subsubsection{Comparability to FNNs}
-\label{comparability_to_fnns}
-
+\label{subsubsec:comparability_to_fnns}
+\todo{Max: Don't understand}
 
 \begin{table}
 
@@ -326,28 +333,30 @@ During deployment, the optimum confidence threshold is set by the user and plays
 \end{table}
 
 \subsubsection{What Did the Network Learn?}
+\todo{Max: Don't understand}
 % why from 512 to 32
+
+\subsubsection{Advantage of backpropagating the losses of all outputs until the beginning}
+\todo{Max: Don't know if this has been already covered elsewhere?}
 
 \begin{figure*}
 \center
 \begin{tabular}{cccc}
-\subfloat[CIC-IDS17 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-3x128.pdf}} &
-\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-12x64.pdf}}\\
-\subfloat[UNSW-NB15 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-3x128.pdf}} &
-\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-12x64.pdf}}
+\subfloat[CIC-IDS17 (3 layers $\times$ 128 neurons).]{\includegraphics[width=0.98\columnwidth]{figures/conf-acc-17-3x128.pdf}} &
+\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width=0.98\columnwidth]{figures/conf-acc-17-12x64.pdf}}\\
+\subfloat[UNSW-NB15 (3 layers $\times$ 128 neurons).]{\includegraphics[width=0.98\columnwidth]{figures/conf-acc-15-3x128.pdf}} &
+\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width=0.98\columnwidth]{figures/conf-acc-15-12x64.pdf}}
 \end{tabular}
 \caption{Confidence threshold effect on accuracy and number of needed layers.}
 \label{fig:confidence}
 \end{figure*}
 
-\begin{figure}
-\center
-\begin{tabular}{cccc}
-\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 0.85\columnwidth]{figures/multiclass17.pdf}} \\
-\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = \columnwidth]{figures/multiclass15.pdf}}
-\end{tabular}
+\begin{figure*}
+\centering
+\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width=0.98\columnwidth]{figures/multiclass17.pdf}}
+\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width=0.98\columnwidth]{figures/multiclass15.pdf}}
 \caption{Accuracy plot multiclass.}
-\end{figure}
+\end{figure*}
 
 
 
