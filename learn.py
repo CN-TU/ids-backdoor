@@ -38,13 +38,15 @@ from sklearn.preprocessing import LabelBinarizer
 from tqdm import tqdm
 from matplotlib import cm
 
-def output_scores(y_true, y_pred, only_accuracy=False):
+# TODOs: unify the binary code
+
+def output_scores(y_true, y_pred, only_accuracy=False, average='binary'):
 	metrics = [ accuracy_score(y_true, y_pred) ]
 	if not only_accuracy:
 		metrics.extend([
-			precision_score(y_true, y_pred),
-			recall_score(y_true, y_pred),
-			f1_score(y_true, y_pred),
+			precision_score(y_true, y_pred, average=average),
+			recall_score(y_true, y_pred, average=average),
+			f1_score(y_true, y_pred, average=average),
 			balanced_accuracy_score(y_true, y_pred, adjusted=True)
 		])
 	names = ['Accuracy', 'Precision', 'Recall', 'F1', 'Youden'] if not only_accuracy else ["Accuracy"]
@@ -131,35 +133,65 @@ class EagerNet(torch.nn.Module):
 
 		return all_outputs, all_xs
 
-def eager_equal_weights(n):
+def eager_equal_weights(losses):
+	n = len(losses)
 	raw_weights = [1 for _ in range(n)]
 	total_weight_sum = sum(raw_weights)
 	return [item/total_weight_sum for item in raw_weights]
 
-def eager_all_one_weights(n):
+def eager_all_one_weights(losses):
+	n = len(losses)
 	return [1 for _ in range(n)]
 
-def eager_linearly_increasing_weights(n):
+def eager_linearly_increasing_weights(losses):
+	n = len(losses)
 	raw_weights = [i+1 for i in range(n)]
 	total_weight_sum = sum(raw_weights)
 	return [item/total_weight_sum for item in raw_weights]
 
-def eager_linearly_decreasing_weights(n):
+def eager_linearly_decreasing_weights(losses):
+	n = len(losses)
 	raw_weights = list(reversed([i+1 for i in range(n)]))
 	total_weight_sum = sum(raw_weights)
 	return [item/total_weight_sum for item in raw_weights]
 
-def eager_doubling_weights(n):
+def eager_doubling_weights(losses):
+	n = len(losses)
 	raw_weights = [2**i for i in range(n)]
 	total_weight_sum = sum(raw_weights)
 	return [item/total_weight_sum for item in raw_weights]
 
-def eager_reverse_doubling_weights(n):
-		raw_weights = [1/(2*(i+1)) for i in range(n)]
-		total_weight_sum = sum(raw_weights)
-		return [item/total_weight_sum for item in raw_weights][::-1]
+def eager_reverse_doubling_weights(losses):
+	n = len(losses)
+	raw_weights = [1/(2*(i+1)) for i in range(n)]
+	total_weight_sum = sum(raw_weights)
+	return [item/total_weight_sum for item in raw_weights][::-1]
+
+def eager_only_last_weights(losses):
+	""" FFNN """
+	n = len(losses)
+	raw_weights = [0 for i in range(n)]
+	raw_weights[-1] = 1
+	return raw_weights
+
+def eager_only_min_weights(losses):
+	n = len(losses)
+	which = losses.index(min(losses))
+	raw_weights = [0 for i in range(n)]
+	raw_weights[which] = 1
+	return raw_weights
+
+def eager_min_decreasing_weights(losses):
+	n = len(losses)
+	which = losses.index(min(losses))
+	raw_weights = [0 for i in range(n)]
+	#raw_weights[which] = 1
+	raw_weights[which:] = list(reversed([2**i for i in range(which, n)]))
+	total_weight_sum = sum(raw_weights)
+	return [item/total_weight_sum for item in raw_weights]
 
 def train_eager_stopping_nn():
+	""" Unified training of binary and multiclass """
 	n_fold = opt.nFold
 	fold = opt.fold
 
@@ -177,8 +209,10 @@ def train_eager_stopping_nn():
 
 	samples = 0
 	net.train()
-	print('>> start training...')
+
+	print('>> Start training...')
 	for i in range(1, sys.maxsize):
+		print(f">> Epoch {i}")
 		for data, labels in train_loader:
 			optimizer.zero_grad()
 			data = data.to(device)
@@ -219,7 +253,7 @@ def train_eager_stopping_nn():
 					writer.add_scalar(f"accuracy_{output_index}", accuracy, samples)
 
 			total_loss = None
-			eager_stopping_weight_per_output_per_layer = globals()[opt.eagerStoppingWeightingMethod](len(losses))
+			eager_stopping_weight_per_output_per_layer = globals()[opt.eagerStoppingWeightingMethod](losses)
 
 			for loss_index, loss in enumerate(losses):
 				loss = eager_stopping_weight_per_output_per_layer[loss_index]*loss
@@ -238,11 +272,21 @@ def train_eager_stopping_nn():
 def create_plot_eager_nn():
 	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
 	if opt.multiclass:
-		create_multiclass_plot_eager(test_indices)
+		multiclass_eager(test_indices)
 	else:
-		create_plot_eager(test_indices)
+		create_binary_plot_eager(test_indices)
 
-def create_plot_eager(test_indices):
+def predict_eager_nn():
+	_, test_indices = get_nth_split(dataset, opt.nFold, opt.fold)
+
+	if opt.multiclass:
+		multiclass_eager(test_indices, evaluate=True)
+	else:
+		create_binary_prediction_eager_original(test_indices)
+
+def create_binary_plot_eager(test_indices):
+	""" Create confidence-accuracy plot for binary """
+
 	test_data = torch.utils.data.Subset(dataset, test_indices)
 	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
 
@@ -300,31 +344,73 @@ def create_plot_eager(test_indices):
 
 	colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
+	plt.grid(linestyle='--', linewidth='0.5', color='gray', axis='x')
 	things = []
 	x, y1, y2 = list(zip(*efforts))
-	y1_label = "mean layers evaluated"
+	y1_label = "Mean layers needed"
 	things += plt.plot(x, y1, color=colors[0], label=y1_label)
-	plt.xlabel("confidence required to stop further evaluation")
-	plt.ylabel(y1_label)
+	plt.xlabel("Confidence required to stop further evaluation", size=15)
+	plt.ylabel(y1_label, size=15)
 	plt.twinx()
-	y2_label = "mean accuracy"
+	y2_label = "Mean accuracy achieved"
 	things += plt.plot(x, y2, color=colors[1], label=y2_label)
-	plt.ylabel(y2_label)
+	plt.ylabel(y2_label, size=15)
 	plt.tight_layout()
 	plt.legend(things, [l.get_label() for l in things], loc="upper left")
+	plt.rc('axes', axisbelow=True)
 
-	if opt.storePlot != '':
+	if opt.savePlot != '':
 		plt.savefig(opt.storePlot, bbox_inches = 'tight', pad_inches = 0)
 	else:
 		plt.show()
 
+	if opt.saveResults:
+		with open(f"efforts_{opt.net}", "wb") as fp:
+			pickle.dump(efforts, fp)
+
 	# print("all_predictions", all_predictions[:10])
 
-def create_multiclass_plot_eager(test_indices):
+def create_binary_prediction_eager(test_indices):
+	""" Get binary performance on test-set"""
+
 	test_data = torch.utils.data.Subset(dataset, test_indices)
 	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
 
+	samples = 0
 	n_outputs = opt.nLayers+2
+
+	y_pred_list = [[] for _ in range(n_outputs)]
+	y_list = []
+
+	net.eval()
+	with torch.no_grad():
+		for data, labels in tqdm(test_loader):
+			data = data.to(device)
+			samples += data.shape[0]
+			labels = labels.to(device)
+			outputs, _ = net(data)
+			for output_index, output in enumerate(outputs):
+				y_pred_list[output_index].append(torch.round(torch.sigmoid(output.detach()).squeeze()).cpu().numpy())
+
+			y_list.append(labels.cpu().numpy())
+		y_list = [a.squeeze().tolist() for a in y_list]
+		y_list = [item for sublist in y_list for item in sublist]
+		scores = {}
+		for i, output in enumerate(y_pred_list):
+			y_pred_list[i] = [a.squeeze().tolist() for a in output]
+			y_pred_list[i] = [item for sublist in y_pred_list[i] for item in sublist]
+			scores['Layer_{}'.format(i)] = output_scores(y_list, y_pred_list[i])
+
+def multiclass_eager(test_indices, evaluate=False):
+	""" Get test-set performance if evaluate is True
+	else create accuracy per layer and class plot """
+
+	opt.batchSize = 1 # FIXME: this is a workaround
+
+	test_data = torch.utils.data.Subset(dataset, test_indices)
+	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
+
+	n_outputs = opt.nLayers + 2
 
 	y_pred_list = [[] for _ in range(n_outputs)]
 	y_list = []
@@ -341,32 +427,37 @@ def create_multiclass_plot_eager(test_indices):
 			_, labels = torch.max(labels, dim = 1)
 			y_list.append(labels.cpu().numpy())
 
-	accuracies = np.empty((n_classes, n_outputs))
-	np.seterr(divide='ignore', invalid='ignore')
 	y_list = [a.squeeze().tolist() for a in y_list]
-	for i, output in enumerate(y_pred_list):
-		y_pred_list[i] = [a.squeeze().tolist() for a in output]
-		cr = confusion_matrix(y_list, y_pred_list[i], list(range(n_classes)))
-		accuracies[:,i] = cr.diagonal()/cr.sum(axis=1)
 
-	accuracies = np.nan_to_num(accuracies)
-	accuracies = np.take(accuracies, np.sum(accuracies, axis = 1).argsort(), axis=0) # sort
-	#np.save('accuracies', accuracies)
+	if opt.savePlot:
+		accuracies = np.empty((n_classes, n_outputs))
+		np.seterr(divide='ignore', invalid='ignore')
+		
+		scores = {}
+		for i, output in enumerate(y_pred_list):
+			y_pred_list[i] = [a.squeeze().tolist() for a in output]
 
-	plt.figure(figsize=(16,8))
-	plt.imshow(accuracies, cmap=cm.coolwarm, interpolation='nearest', )
-	clb = plt.colorbar()
-	clb.set_label('Accuracy', rotation=90, fontsize=30)
-	plt.yticks(list(range(n_classes)), labels=dataset.attacks, fontsize=20)
-	plt.xlabel('Layers', fontsize=30)
-	plt.ylabel('Attack Families', fontsize=30)
-	plt.xticks(list(range(n_outputs)), list(range(1,n_outputs+1)), fontsize=20)
+			cr = confusion_matrix(y_list, y_pred_list[i], list(range(n_classes)))
+			accuracies[:,i] = cr.diagonal()/cr.sum(axis=1)
 
-	if opt.storePlot != '':
+		accuracies = np.nan_to_num(accuracies)
+		accuracies = np.take(accuracies, np.sum(accuracies, axis = 1).argsort(), axis=0) # sort
+		if opt.saveResults:
+			np.save('accuracies_' + opt.net, accuracies)
+
+		plt.figure(figsize=(16,8))
+		plt.imshow(accuracies, cmap=cm.coolwarm, interpolation='nearest', )
+		clb = plt.colorbar()
+		clb.set_label('Accuracy', rotation=90, fontsize=30)
+		plt.yticks(list(range(n_classes)), labels=dataset.attacks, fontsize=20)
+		plt.xlabel('Layers', fontsize=30)
+		plt.ylabel('Attack Families', fontsize=30)
+		plt.xticks(list(range(n_outputs)), list(range(1,n_outputs+1)), fontsize=20)
 		plt.savefig(opt.storePlot, bbox_inches='tight')
-	else:
-		plt.show()
 
+	if evaluate:
+		for i, output in enumerate(y_pred_list):
+			output_scores(y_list, y_pred_list[i], average='micro')
 
 if __name__=="__main__":
 
@@ -392,11 +483,14 @@ if __name__=="__main__":
 	parser.add_argument('--saveHistogram', action='store_true', help='whether a histogram of confidences is saved for each ')
 	parser.add_argument('--optimizer', default="Adam", type=str)
 	parser.add_argument('--multiclass', action='store_true')
-	parser.add_argument('--storePlot', default='plot.pdf', type=str, help='the name of the figure to store after evaluation')
+	parser.add_argument('--savePlot', default='plot.pdf', type=str, help='the name of the figure to store after evaluation')
+	parser.add_argument('--saveResults', action='store_true', help='save output results of the main calculation in a numpy npy')
 
 
 	opt = parser.parse_args()
-	print(opt)
+	print('#'*40)
+	print('>> Configuration ' + opt)
+	print('#'*40)
 
 	seed = opt.manualSeed
 	# if seed is None:
@@ -421,19 +515,23 @@ if __name__=="__main__":
 
 	del df['Attack']
 	features = df.columns[:-1]
-	print("Final rows", df.shape)
+	#print("Final rows", df.shape)
 
 	shuffle_indices = np.array(list(range(df.shape[0])))
 	random.shuffle(shuffle_indices)
 
 	data = df.values
-	print("data.shape", data.shape)
+	print('#'*40)
+	print(">> Data shape ", data.shape)
+	print('#'*40)
 	data = data[shuffle_indices,:]
-	print("attack_vector.shape", attack_vector.shape)
+	#print("attack_vector.shape", attack_vector.shape)
 	attack_vector = attack_vector[shuffle_indices]
 	assert len(attack_vector) == len(data)
 	columns = list(df)
-	print("columns", columns)
+	print('#'*40)
+	print(">> Features ", columns)
+	print('#'*40)
 
 	x, y = data[:,:-1].astype(np.float32), data[:,-1:].astype(np.uint8)
 	file_name = opt.dataroot[:-4]+"_normal"
