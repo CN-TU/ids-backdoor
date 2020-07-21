@@ -36,7 +36,9 @@
 \begin{document}
 
 %\title{EagerNet: Early Intrusion Prediction\\in Feed Forward Neural Networks}
-\title{EagerNet: Early Predictions in Feedforward Neural Networks for Fast Network Intrusion Detection}
+%\title{EagerNet: Early Predictions in Feedforward Neural Networks for Fast Network Intrusion Detection}
+% Max Proposal
+\title{EagerNet: Early Predictions of Neural Networks for Computationally Efficient Intrusion Detection}
 
 \author{\IEEEauthorblockN{Fares Meghdouri, Maximilian Bachl and Tanja Zseby}
 \IEEEauthorblockA{Technische Universität Wien\\
@@ -59,10 +61,10 @@ firstname.lastname@tuwien.ac.at}}
 
 \section{Introduction}
 % what are ffnn
-\glspl{ffnn} has gained remarkable attention in recent years due to the availability of data and computational resources for research. Many of the state-of-the-art architectures currently used in different applications are effectively based on simple \glspl{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable it is for better learning \cite{eldan2016power} .
+\glspl{ffnn} has gained remarkable attention in recent years due to the availability of data and computational resources for research. Many of the state-of-the-art architectures currently used in different applications are effectively based on simple \glspl{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable it is for better learning \cite{eldan_power_2016}.
 
 % forward-backward
-Traditional \gls{ffnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid) to obtain a scalar. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. Figure \ref{fig:ffnn} demonstrates a basic \gls{ffnn} that utilizes the input vector $\lbrace X_{1}, X_{2} ... X_{m} \rbrace$ and makes a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the previous layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. Larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
+Traditional \gls{ffnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid) to obtain a scalar. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. Figure \ref{fig:ffnn} demonstrates a basic \gls{ffnn} that utilizes the input vector $\lbrace x_{1}, x_{2} ... x_{m} \rbrace$ and makes a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the previous layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. Larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
 
 % problem with large networks
 In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) The loss during training needs more time to converge and (2) prediction time is proportional to the number of layers. Even though most modern hardware is able to cope with offline single predictions without significant delay, online massive neural network implementations may suffer from the latter issue if non-specialized hardware is used to produce predictions. 
@@ -71,6 +73,10 @@ To solve this, we propose a new architecture that, on the one hand, uses the ent
 
 % conclusion
 The rest of the paper is organized as follows: In Section ...
+
+\section{Related Work}
+
+
  
 \section{Supervised Learning for Network Intrusion Detection}
 
@@ -81,7 +87,7 @@ The rest of the paper is organized as follows: In Section ...
 	\label{tab:cres}
 	     
 	\footnotesize
-	\begin{tabular}{|c|c|c|}
+	\begin{tabular}{ccc}
 		\toprule
 		\textbf{Direction}                    & \textbf{Features}        & \textbf{Statistical Operations}        \\
 		\midrule
@@ -136,7 +142,7 @@ l = \frac{1}{N} \sum_{n}^{N} -\omega [y_n \cdot \log \sigma (x_{n}) + (1 - y_n) 
 \end{equation}
 
 \[
-\nabla l = \underbrace{W_{current} \times \nabla l_{current}}_{\text{Current gradient}} + \underbrace{\sum_{i}^{} \nabla l_{i}}_{\text{Next layer gradients}}
+\nabla l = \underbrace{W_\textit{current} \times \nabla l_\textit{current}}_{\text{Current gradient}} + \underbrace{\sum_{i}^{} \nabla l_{i}}_{\text{Next layer gradients}}
 \]
 
 \subsubsection{Combined Back-propagation Loss}
