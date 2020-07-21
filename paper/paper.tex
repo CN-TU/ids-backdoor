@@ -1,27 +1,25 @@
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
-\usepackage{cite}
+%\usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
-\usepackage{textcomp}
+%\usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{subfig}
 \usepackage{multirow}
 \usepackage{booktabs}
-
-\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
-    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\usepackage{tabularx}
 
 \usepackage[nomain, toc, acronym]{glossaries}
-\glsdisablehyper
+%\glsdisablehyper
 
 \newcommand\note[2]{{\color{#1}#2}}
 \newcommand\todo[1]{{\note{red}{TODO: #1}}}
 
-\newcommand{\unsw}{UNSW-NB15}
-\newcommand{\cic}{CIC-IDS-2017}
+%\newcommand{\unsw}{UNSW-NB15}
+%\newcommand{\cic}{CIC-IDS-2017}
 
 \newacronym{dl}{DL}{Deep Learning}
 \newacronym{ad}{AD}{Anomaly Detection}
@@ -61,7 +59,7 @@ firstname.lastname@tuwien.ac.at}}
 
 \section{Introduction}
 % what are ffnn
-\glspl{ffnn} have gained remarkable attention in recent years due to the availability of data and computational resources for research. Many of the state-of-the-art architectures currently used in different applications are effectively based on simple \glspl{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable it is for better learning \cite{eldan2016power} .
+\glspl{ffnn} have gained remarkable attention in recent years due to the availability of data and computational resources for research. Many of the state-of-the-art architectures currently used in different applications are effectively based on simple \glspl{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable it is for better learning \cite{eldan_power_2016} .
 
 % forward-backward
 Traditional \gls{ffnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid) to obtain a scalar. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. Figure \ref{fig:ffnn} demonstrates a basic \gls{ffnn} that utilizes the input vector $\lbrace x_{1}, x_{2} ... x_{m} \rbrace$ and makes a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the previous layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. Larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
@@ -88,7 +86,7 @@ The rest of the paper is organized as follows: In Section ...
 
 \section{Supervised Learning for Network Intrusion Detection}
 
-\gls{ml} has been widely used in the last decade for network traffic analysis and specifically anomaly detection systems. Many of the works proposed \gls{ids} architectures based on well-known supervised techniques \cite{survey}. The idea of training a classifier on pre-stored attack patterns and using the same classifier to recognize similar patterns is commonly used and remarkable success has so far been achieved \cite{survey}. In particular, \glspl{ffnn} is commonly used whenever large amounts of data are available. In order to present network data to such architectures, a number of traffic representation families have been proposed depending on the application. However, the statistical representation of flow characteristics is still the most appropriate. In this work, we define the network flow to be the exchange of packets between two end-hosts. Packets can be identified and aggregated using the five-tuple key: \emph{sourceIP}, \emph{destinationIP}, \emph{sourceTransportPort}, \emph{destinationTransportPort} and \emph{protocolIdentifier}. Thereafter, packet features are extracted and the statistical combinations are computed. Table \ref{tab:features} shows CAIA \cite{williams2006preliminary} network traffic representation. It consists of 12 features 7 of which are measured in both directions and 2 of which are expanded using four statistical combinations (i.e. \emph{A} becomes \emph{mean(A)}, \emph{min(A)}, \emph{max(A)} and \emph{stdev(A)}). In addition, we set an observation timeout of 1,800 seconds, after which we terminate flows. Each flow is considered to be a data sample and has two sets of labels: binary (attack/benign) label and attack family. After a training process, the trained \gls{ids} must be able to correctly classify new flows.
+\gls{ml} has been widely used in the last decade for network traffic analysis and specifically anomaly detection systems. Many of the works proposed \gls{ids} architectures based on well-known supervised techniques \cite{survey}. The idea of training a classifier on pre-stored attack patterns and using the same classifier to recognize similar patterns is commonly used and remarkable success has so far been achieved \cite{survey}. In particular, \glspl{ffnn} is commonly used whenever large amounts of data are available. In order to present network data to such architectures, a number of traffic representation families have been proposed depending on the application. However, the statistical representation of flow characteristics is still the most appropriate. In this work, we define the network flow to be the exchange of packets between two end-hosts. Packets can be identified and aggregated using the five-tuple key: \emph{sourceIP}, \emph{destinationIP}, \emph{sourceTransportPort}, \emph{destinationTransportPort} and \emph{protocolIdentifier}. Thereafter, packet features are extracted and the statistical combinations are computed. Table \ref{tab:features} shows CAIA \cite{williams_preliminary_2006} network traffic representation. It consists of 12 features 7 of which are measured in both directions and 2 of which are expanded using four statistical combinations (i.e. \emph{A} becomes \emph{mean(A)}, \emph{min(A)}, \emph{max(A)} and \emph{stdev(A)}). In addition, we set an observation timeout of 1,800 seconds, after which we terminate flows. Each flow is considered to be a data sample and has two sets of labels: binary (attack/benign) label and attack family. After a training process, the trained \gls{ids} must be able to correctly classify new flows.
 
 \begin{table}[ht!]
 
@@ -97,31 +95,30 @@ The rest of the paper is organized as follows: In Section ...
 	\label{tab:features}
 
 	\footnotesize
-	\begin{tabular}{ccc}
-		\toprule
+	\begin{tabular}{|c|c|c|}
+		\hline
 		\textbf{Direction}                    & \textbf{Features}        & \textbf{Statistical Operations}        \\
-		\midrule
+		\hline
 
 		                                      & flowDurationMilliseconds &                                        \\
 		                                      & sourceTransportPort      &                                        \\
 		                                      & destinationTransportPort &                                        \\
 		                                      & protocolIdentifier       &                                        \\
 		                                      & octetTotalCount          &                                        \\
-		\midrule
-		\multirow{7}{*}{Forward and Backward} & ipTotalLength            & \multirow{2}{*}{Mean, Min, Max, Stdev} \\
+		\hline
+		\multirow{7}{*}{\shortstack{Forward and\\ Backward}} & ipTotalLength            & \multirow{2}{*}{Mean, Min, Max, Stdev} \\
 		                                      & interPacketTimeSeconds   &                                        \\
-		\cmidrule{2-3}
+		\cline{2-3}
 		                                      & packetTotalCount         &                                        \\
 		                                      & tcpSynTotalCount         &                                        \\
 		                                      & tcpAckTotalCount         &                                        \\
 		                                      & tcpFinTotalCount         &                                        \\
 		                                      & tcpCwrTotalCount         &                                        \\
 
-		\midrule
+		\hline
 
 
 	\end{tabular}
-	}
 
 \end{table}
 
@@ -162,7 +159,7 @@ In the case of a multiclass problem, the output layers consist of as many neuron
 l = - \frac{1}{N} \sum_{n}^{N} \sum_{i}^{C} y_{n,i} \cdot \log (\phi(x_{n})_{i})
 \end{equation}
 
-After computing the losses, we use $Adam$ optimizer \cite{kingma2014adam} for computing gradients with a learning rate of 0.001.
+After computing the losses, we use $Adam$ optimizer \cite{kingma_adam_2017} for computing gradients with a learning rate of 0.001.
 
 
 \subsubsection{Combined Back-propagation Loss}
@@ -218,7 +215,7 @@ We show the effect of the weight distributions in Table \ref{tab:weights} and di
 We discuss in this section different experimental results and observations. Overall, EagerNet shows promising performance comparable to \glspl{ffnn} with the ability to save resources.
 
 \subsection{Datasets}
-For our experiments, we use two intrusion detection datasets. CICIDS2017 \cite{sharafaldin2018toward} which consists of 14 network attack classes in addition to realistic user profiles. UNSW-NB15 \cite{moustafa2015unsw} which, in addition to synthetically generated normal traffic, again contains 9 attack families. As mentioned above, we represent both datasets using the CAIA feature set and extract 2.317.922 and 2.065.224 flows, respectively, from CICIDS2017 and UNSW-NB15. For pre-processing, we eliminate duplicate instances and \emph{z}-normalize the data. We use $\frac{2}{3}$ for training and $\frac{1}{3}$ for evaluation and testing.
+For our experiments, we use two intrusion detection datasets. CICIDS2017 \cite{sharafaldin_toward_2018} which consists of 14 network attack classes in addition to realistic user profiles. UNSW-NB15 \cite{moustafa_unsw-nb15_2015} which, in addition to synthetically generated normal traffic, again contains 9 attack families. As mentioned above, we represent both datasets using the CAIA feature set and extract 2.317.922 and 2.065.224 flows, respectively, from CICIDS2017 and UNSW-NB15. For pre-processing, we eliminate duplicate instances and \emph{z}-normalize the data. We use $\frac{2}{3}$ for training and $\frac{1}{3}$ for evaluation and testing.
 
 \subsection{Performance}
 

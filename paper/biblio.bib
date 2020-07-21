@@ -7,38 +7,247 @@
 	pages = {907--940}
 }
 
-@article{williams2006preliminary,
-  title={A preliminary performance comparison of five machine learning algorithms for practical IP traffic flow classification},
-  author={Williams, Nigel and Zander, Sebastian and Armitage, Grenville},
-  journal={ACM SIGCOMM Computer Communication Review},
-  volume={36},
-  number={5},
-  pages={5--16},
-  year={2006},
-  publisher={ACM New York, NY, USA}
+@inproceedings{bachl_sparseids_2020,
+	title = {{SparseIDS}: {Learning} {Packet} {Sampling} with {Reinforcement} {Learning}},
+	shorttitle = {{SparseIDS}},
+	abstract = {Recurrent Neural Networks (RNNs) have been shown to be valuable for constructing Intrusion Detection Systems (IDSs) for network data. They allow determining if a flow is malicious or not already before it is over, making it possible to take action immediately. However, considering the large number of packets that has to be inspected, for example in cloud/fog and edge computing, the question of computational efficiency arises. We show that by using a novel Reinforcement Learning (RL)-based approach called SparseIDS, we can reduce the number of consumed packets by more than three fourths while keeping classification accuracy high. To minimize the computational expenses of the RL-based sampling we show that a shared neural network can be used for both the classifier and the RL logic. Thus, no additional resources are consumed by the sampling in deployment. Comparing to various other sampling techniques, SparseIDS consistently achieves higher classification accuracy by learning to sample only relevant packets. A major novelty of our RL-based approach is that it can not only skip up to a predefined maximum number of samples like other approaches proposed in the domain of Natural Language Processing but can even skip arbitrarily many packets in one step. This enables saving even more computational resources for long sequences. Inspecting SparseIDS's behavior of choosing packets shows that it adopts different sampling strategies for different attack types and network flows. Finally we build an automatic steering mechanism that can guide SparseIDS in deployment to achieve a desired level of sparsity.},
+	booktitle = {2020 {IEEE} {Conference} on {Communications} and {Network} {Security} ({CNS})},
+	publisher = {IEEE},
+	author = {Bachl, Maximilian and Meghdouri, Fares and Fabini, Joachim and Zseby, Tanja},
+	year = {2020},
+	note = {arXiv: 2002.03872},
+	keywords = {Computer Science - Cryptography and Security, Computer Science - Machine Learning, Computer Science - Networking and Internet Architecture, Statistics - Machine Learning},
+	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/PNEWRQMK/Bachl et al. - 2020 - SparseIDS Learning Packet Sampling with Reinforce.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/YZU2AAZF/2002.html:text/html}
 }
 
-
-@inproceedings{sharafaldin2018toward,
-  title={Toward generating a new intrusion detection dataset and intrusion traffic characterization.},
-  author={Sharafaldin, Iman and Lashkari, Arash Habibi and Ghorbani, Ali A},
-  booktitle={ICISSP},
-  pages={108--116},
-  year={2018}
+@inproceedings{nakkiran_deep_2019,
+	title = {Deep {Double} {Descent}: {Where} {Bigger} {Models} and {More} {Data} {Hurt}},
+	booktitle = {International {Conference} on {Learning} {Representations}},
+	author = {Nakkiran, Preetum and Kaplun, Gal and Bansal, Yamini and Yang, Tristan and Barak, Boaz and Sutskever, Ilya},
+	year = {2019}
 }
 
-@inproceedings{moustafa2015unsw,
-  title={UNSW-NB15: a comprehensive data set for network intrusion detection systems (UNSW-NB15 network data set)},
-  author={Moustafa, Nour and Slay, Jill},
-  booktitle={2015 military communications and information systems conference (MilCIS)},
-  pages={1--6},
-  year={2015},
-  organization={IEEE}
+@inproceedings{yu_learning_2017,
+	address = {Vancouver, Canada},
+	title = {Learning to {Skim} {Text}},
+	url = {https://www.aclweb.org/anthology/P17-1172},
+	doi = {10.18653/v1/P17-1172},
+	abstract = {Recurrent Neural Networks are showing much promise in many sub-areas of natural language processing, ranging from document classification to machine translation to automatic question answering. Despite their promise, many recurrent models have to read the whole text word by word, making it slow to handle long documents. For example, it is difficult to use a recurrent network to read a book and answer questions about it. In this paper, we present an approach of reading text while skipping irrelevant information if needed. The underlying model is a recurrent network that learns how far to jump after reading a few words of the input text. We employ a standard policy gradient method to train the model to make discrete jumping decisions. In our benchmarks on four different tasks, including number prediction, sentiment analysis, news article classification and automatic Q\&A, our proposed model, a modified LSTM with jumping, is up to 6 times faster than the standard sequential LSTM, while maintaining the same or even better accuracy.},
+	urldate = {2020-02-09},
+	booktitle = {{ACL} 2017},
+	publisher = {ACL},
+	author = {Yu, Adams Wei and Lee, Hongrae and Le, Quoc},
+	month = jul,
+	year = {2017},
+	pages = {1880--1890},
+	file = {Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/B2S3827F/Yu et al. - 2017 - Learning to Skim Text.pdf:application/pdf}
 }
 
-@article{kingma2014adam,
-  title={Adam: A method for stochastic optimization},
-  author={Kingma, Diederik P and Ba, Jimmy},
-  journal={arXiv preprint arXiv:1412.6980},
-  year={2014}
+@inproceedings{seo_neural_2018,
+	title = {Neural {Speed} {Reading} via {Skim}-{RNN}},
+	url = {http://arxiv.org/abs/1711.02085},
+	abstract = {Inspired by the principles of speed reading, we introduce Skim-RNN, a recurrent neural network (RNN) that dynamically decides to update only a small fraction of the hidden state for relatively unimportant input tokens. Skim-RNN gives computational advantage over an RNN that always updates the entire hidden state. Skim-RNN uses the same input and output interfaces as a standard RNN and can be easily used instead of RNNs in existing models. In our experiments, we show that Skim-RNN can achieve significantly reduced computational cost without losing accuracy compared to standard RNNs across five different natural language tasks. In addition, we demonstrate that the trade-off between accuracy and speed of Skim-RNN can be dynamically controlled during inference time in a stable manner. Our analysis also shows that Skim-RNN running on a single CPU offers lower latency compared to standard RNNs on GPUs.},
+	urldate = {2020-01-21},
+	booktitle = {{ICLR}},
+	author = {Seo, Minjoon and Min, Sewon and Farhadi, Ali and Hajishirzi, Hannaneh},
+	month = mar,
+	year = {2018},
+	keywords = {Computer Science - Computation and Language},
+	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/L994QG5U/Seo et al. - 2018 - Neural Speed Reading via Skim-RNN.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/AYJQ46GM/1711.html:text/html}
+}
+
+@inproceedings{shen_reasonet_2017,
+	title = {Reasonet: {Learning} to stop reading in machine comprehension},
+	booktitle = {Proceedings of the 23rd {ACM} {SIGKDD} {International} {Conference} on {Knowledge} {Discovery} and {Data} {Mining}},
+	author = {Shen, Yelong and Huang, Po-Sen and Gao, Jianfeng and Chen, Weizhu},
+	year = {2017},
+	pages = {1047--1055}
+}
+
+@article{dechant_predicting_2019,
+	title = {Predicting the accuracy of neural networks from final and intermediate layer outputs},
+	author = {DeChant, Chad and Han, Seungwook and Lipson, Hod},
+	year = {2019}
+}
+
+@article{jernite_variable_2017,
+	title = {Variable {Computation} in {Recurrent} {Neural} {Networks}},
+	url = {http://arxiv.org/abs/1611.06188},
+	abstract = {Recurrent neural networks (RNNs) have been used extensively and with increasing success to model various types of sequential data. Much of this progress has been achieved through devising recurrent units and architectures with the flexibility to capture complex statistics in the data, such as long range dependency or localized attention phenomena. However, while many sequential data (such as video, speech or language) can have highly variable information flow, most recurrent models still consume input features at a constant rate and perform a constant number of computations per time step, which can be detrimental to both speed and model capacity. In this paper, we explore a modification to existing recurrent units which allows them to learn to vary the amount of computation they perform at each step, without prior knowledge of the sequence's time structure. We show experimentally that not only do our models require fewer operations, they also lead to better performance overall on evaluation tasks.},
+	urldate = {2020-07-20},
+	journal = {arXiv:1611.06188 [cs, stat]},
+	author = {Jernite, Yacine and Grave, Edouard and Joulin, Armand and Mikolov, Tomas},
+	month = mar,
+	year = {2017},
+	note = {arXiv: 1611.06188},
+	keywords = {Computer Science - Artificial Intelligence, Computer Science - Computation and Language, Computer Science - Machine Learning, Statistics - Machine Learning},
+	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/ZPLYI3X6/Jernite et al. - 2017 - Variable Computation in Recurrent Neural Networks.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/RWGC92WH/1611.html:text/html}
+}
+
+@article{graves_adaptive_2017,
+	title = {Adaptive {Computation} {Time} for {Recurrent} {Neural} {Networks}},
+	url = {http://arxiv.org/abs/1603.08983},
+	abstract = {This paper introduces Adaptive Computation Time (ACT), an algorithm that allows recurrent neural networks to learn how many computational steps to take between receiving an input and emitting an output. ACT requires minimal changes to the network architecture, is deterministic and differentiable, and does not add any noise to the parameter gradients. Experimental results are provided for four synthetic problems: determining the parity of binary vectors, applying binary logic operations, adding integers, and sorting real numbers. Overall, performance is dramatically improved by the use of ACT, which successfully adapts the number of computational steps to the requirements of the problem. We also present character-level language modelling results on the Hutter prize Wikipedia dataset. In this case ACT does not yield large gains in performance; however it does provide intriguing insight into the structure of the data, with more computation allocated to harder-to-predict transitions, such as spaces between words and ends of sentences. This suggests that ACT or other adaptive computation methods could provide a generic method for inferring segment boundaries in sequence data.},
+	language = {en},
+	urldate = {2020-07-20},
+	journal = {arXiv:1603.08983 [cs]},
+	author = {Graves, Alex},
+	month = feb,
+	year = {2017},
+	note = {arXiv: 1603.08983},
+	keywords = {Computer Science - Neural and Evolutionary Computing},
+	file = {Graves - 2017 - Adaptive Computation Time for Recurrent Neural Net.pdf:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/W6949FSZ/Graves - 2017 - Adaptive Computation Time for Recurrent Neural Net.pdf:application/pdf}
+}
+
+@article{schmidhuber_self-delimiting_2012,
+	title = {Self-{Delimiting} {Neural} {Networks}},
+	url = {http://arxiv.org/abs/1210.0118},
+	abstract = {Self-delimiting (SLIM) programs are a central concept of theoretical computer science, particularly algorithmic information \& probability theory, and asymptotically optimal program search (AOPS). To apply AOPS to (possibly recurrent) neural networks (NNs), I introduce SLIM NNs. Neurons of a typical SLIM NN have threshold activation functions. During a computational episode, activations are spreading from input neurons through the SLIM NN until the computation activates a special halt neuron. Weights of the NN's used connections define its program. Halting programs form a prefix code. The reset of the initial NN state does not cost more than the latest program execution. Since prefixes of SLIM programs influence their suffixes (weight changes occurring early in an episode influence which weights are considered later), SLIM NN learning algorithms (LAs) should execute weight changes online during activation spreading. This can be achieved by applying AOPS to growing SLIM NNs. To efficiently teach a SLIM NN to solve many tasks, such as correctly classifying many different patterns, or solving many different robot control tasks, each connection keeps a list of tasks it is used for. The lists may be efficiently updated during training. To evaluate the overall effect of currently tested weight changes, a SLIM NN LA needs to re-test performance only on the efficiently computable union of tasks potentially affected by the current weight changes. Future SLIM NNs will be implemented on 3-dimensional brain-like multi-processor hardware. Their LAs will minimize task-specific total wire length of used connections, to encourage efficient solutions of subtasks by subsets of neurons that are physically close. The novel class of SLIM NN LAs is currently being probed in ongoing experiments to be reported in separate papers.},
+	urldate = {2020-07-20},
+	journal = {arXiv:1210.0118 [cs]},
+	author = {Schmidhuber, Juergen},
+	month = sep,
+	year = {2012},
+	note = {arXiv: 1210.0118},
+	keywords = {Computer Science - Neural and Evolutionary Computing},
+	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/9KQDDCT7/Schmidhuber - 2012 - Self-Delimiting Neural Networks.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/SZQPWTU6/1210.html:text/html}
+}
+
+@article{bolukbasi_adaptive_2017,
+	title = {Adaptive {Neural} {Networks} for {Efficient} {Inference}},
+	url = {http://arxiv.org/abs/1702.07811},
+	abstract = {We present an approach to adaptively utilize deep neural networks in order to reduce the evaluation time on new examples without loss of accuracy. Rather than attempting to redesign or approximate existing networks, we propose two schemes that adaptively utilize networks. We first pose an adaptive network evaluation scheme, where we learn a system to adaptively choose the components of a deep network to be evaluated for each example. By allowing examples correctly classified using early layers of the system to exit, we avoid the computational time associated with full evaluation of the network. We extend this to learn a network selection system that adaptively selects the network to be evaluated for each example. We show that computational time can be dramatically reduced by exploiting the fact that many examples can be correctly classified using relatively efficient networks and that complex, computationally costly networks are only necessary for a small fraction of examples. We pose a global objective for learning an adaptive early exit or network selection policy and solve it by reducing the policy learning problem to a layer-by-layer weighted binary classification problem. Empirically, these approaches yield dramatic reductions in computational cost, with up to a 2.8x speedup on state-of-the-art networks from the ImageNet image recognition challenge with minimal ({\textless}1\%) loss of top5 accuracy.},
+	urldate = {2020-07-20},
+	journal = {arXiv:1702.07811 [cs, stat]},
+	author = {Bolukbasi, Tolga and Wang, Joseph and Dekel, Ofer and Saligrama, Venkatesh},
+	month = sep,
+	year = {2017},
+	note = {arXiv: 1702.07811},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, Computer Science - Neural and Evolutionary Computing, Statistics - Machine Learning},
+	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/NR78Y4BF/Bolukbasi et al. - 2017 - Adaptive Neural Networks for Efficient Inference.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/JKZ94HP8/1702.html:text/html}
+}
+
+@article{leroux_cascading_2017,
+	title = {The cascading neural network: building the {Internet} of {Smart} {Things}},
+	volume = {52},
+	issn = {0219-1377, 0219-3116},
+	shorttitle = {The cascading neural network},
+	url = {http://link.springer.com/10.1007/s10115-017-1029-1},
+	doi = {10.1007/s10115-017-1029-1},
+	abstract = {Most of the research on deep neural networks so far has been focused on obtaining higher accuracy levels by building increasingly large and deep architectures. Training and evaluating these models is only feasible when large amounts of resources such as processing power and memory are available. Typical applications that could benefit from these models are, however, executed on resource-constrained devices. Mobile devices such as smartphones already use deep learning techniques, but they often have to perform all processing on a remote cloud. We propose a new architecture called a cascading network that is capable of distributing a deep neural network between a local device and the cloud while keeping the required communication network traffic to a minimum. The network begins processing on the constrained device, and only relies on the remote part when the local part does not provide an accurate enough result. The cascading network allows for an early-stopping mechanism during the recall phase of the network. We evaluated our approach in an Internet of Things context where a deep neural network adds intelligence to a large amount of heterogeneous connected devices. This technique enables a whole variety of autonomous systems where sensors, actuators and computing nodes can work together. We show that the cascading architecture allows for a substantial improvement in evaluation speed on constrained devices while the loss in accuracy is kept to a minimum.},
+	language = {en},
+	number = {3},
+	urldate = {2020-07-21},
+	journal = {Knowledge and Information Systems},
+	author = {Leroux, Sam and Bohez, Steven and De Coninck, Elias and Verbelen, Tim and Vankeirsbilck, Bert and Simoens, Pieter and Dhoedt, Bart},
+	month = sep,
+	year = {2017},
+	pages = {791--814},
+	file = {Leroux et al. - 2017 - The cascading neural network building the Interne.pdf:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/VXJ3QQXS/Leroux et al. - 2017 - The cascading neural network building the Interne.pdf:application/pdf}
+}
+
+@incollection{wang_efficient_2015,
+	title = {Efficient {Learning} by {Directed} {Acyclic} {Graph} {For} {Resource} {Constrained} {Prediction}},
+	url = {http://papers.nips.cc/paper/5982-efficient-learning-by-directed-acyclic-graph-for-resource-constrained-prediction.pdf},
+	urldate = {2020-07-21},
+	booktitle = {Advances in {Neural} {Information} {Processing} {Systems} 28},
+	publisher = {Curran Associates, Inc.},
+	author = {Wang, Joseph and Trapeznikov, Kirill and Saligrama, Venkatesh},
+	editor = {Cortes, C. and Lawrence, N. D. and Lee, D. D. and Sugiyama, M. and Garnett, R.},
+	year = {2015},
+	pages = {2152--2160},
+	file = {NIPS Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/4FRD2LVK/Wang et al. - 2015 - Efficient Learning by Directed Acyclic Graph For R.pdf:application/pdf;NIPS Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/FJZRLQR5/5982-efficient-learning-by-directed-acyclic-graph-for-resource-constrained-prediction.html:text/html}
+}
+
+@article{viola_robust_2004,
+	title = {Robust real-time face detection},
+	volume = {57},
+	number = {2},
+	journal = {International journal of computer vision},
+	author = {Viola, Paul and Jones, Michael J},
+	year = {2004},
+	note = {Publisher: Springer},
+	pages = {137--154}
+}
+
+@incollection{lefakis_joint_2010,
+	title = {Joint {Cascade} {Optimization} {Using} {A} {Product} {Of} {Boosted} {Classifiers}},
+	url = {http://papers.nips.cc/paper/4148-joint-cascade-optimization-using-a-product-of-boosted-classifiers.pdf},
+	urldate = {2020-07-21},
+	booktitle = {Advances in {Neural} {Information} {Processing} {Systems} 23},
+	publisher = {Curran Associates, Inc.},
+	author = {Lefakis, Leonidas and Fleuret, Francois},
+	editor = {Lafferty, J. D. and Williams, C. K. I. and Shawe-Taylor, J. and Zemel, R. S. and Culotta, A.},
+	year = {2010},
+	pages = {1315--1323},
+	file = {NIPS Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/KCM76NBA/Lefakis and Fleuret - 2010 - Joint Cascade Optimization Using A Product Of Boos.pdf:application/pdf;NIPS Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/Q8CTY48X/4148-joint-cascade-optimization-using-a-product-of-boosted-classifiers.html:text/html}
+}
+
+@article{xu_classifier_2014,
+	title = {Classifier {Cascades} and {Trees} for {Minimizing} {Feature} {Evaluation} {Cost}},
+	volume = {15},
+	issn = {1533-7928},
+	url = {http://jmlr.org/papers/v15/xu14a.html},
+	number = {62},
+	urldate = {2020-07-21},
+	journal = {Journal of Machine Learning Research},
+	author = {Xu, Zhixiang (Eddie) and Kusner, Matt J. and Weinberger, Kilian Q. and Chen, Minmin and Chapelle, Olivier},
+	year = {2014},
+	pages = {2113--2144},
+	file = {Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/IGRE3R7Z/Xu et al. - 2014 - Classifier Cascades and Trees for Minimizing Featu.pdf:application/pdf;Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/U5PJR92W/xu14a.html:text/html}
+}
+
+@article{kingma_adam_2017,
+	title = {Adam: {A} {Method} for {Stochastic} {Optimization}},
+	shorttitle = {Adam},
+	url = {http://arxiv.org/abs/1412.6980},
+	abstract = {We introduce Adam, an algorithm for first-order gradient-based optimization of stochastic objective functions, based on adaptive estimates of lower-order moments. The method is straightforward to implement, is computationally efficient, has little memory requirements, is invariant to diagonal rescaling of the gradients, and is well suited for problems that are large in terms of data and/or parameters. The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. The hyper-parameters have intuitive interpretations and typically require little tuning. Some connections to related algorithms, on which Adam was inspired, are discussed. We also analyze the theoretical convergence properties of the algorithm and provide a regret bound on the convergence rate that is comparable to the best known results under the online convex optimization framework. Empirical results demonstrate that Adam works well in practice and compares favorably to other stochastic optimization methods. Finally, we discuss AdaMax, a variant of Adam based on the infinity norm.},
+	urldate = {2020-07-21},
+	journal = {arXiv:1412.6980 [cs]},
+	author = {Kingma, Diederik P. and Ba, Jimmy},
+	month = jan,
+	year = {2017},
+	note = {arXiv: 1412.6980},
+	keywords = {Computer Science - Machine Learning},
+	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/QLJGX9WD/Kingma and Ba - 2017 - Adam A Method for Stochastic Optimization.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/3Z36S4UN/1412.html:text/html}
+}
+
+@inproceedings{moustafa_unsw-nb15_2015,
+	title = {{UNSW}-{NB15}: a comprehensive data set for network intrusion detection systems ({UNSW}-{NB15} network data set)},
+	shorttitle = {{UNSW}-{NB15}},
+	doi = {10.1109/MilCIS.2015.7348942},
+	abstract = {One of the major research challenges in this field is the unavailability of a comprehensive network based data set which can reflect modern network traffic scenarios, vast varieties of low footprint intrusions and depth structured information about the network traffic. Evaluating network intrusion detection systems research efforts, KDD98, KDDCUP99 and NSLKDD benchmark data sets were generated a decade ago. However, numerous current studies showed that for the current network threat environment, these data sets do not inclusively reflect network traffic and modern low footprint attacks. Countering the unavailability of network benchmark data set challenges, this paper examines a UNSW-NB15 data set creation. This data set has a hybrid of the real modern normal and the contemporary synthesized attack activities of the network traffic. Existing and novel methods are utilised to generate the features of the UNSWNB15 data set. This data set is available for research purposes and can be accessed from the link.},
+	booktitle = {2015 {Military} {Communications} and {Information} {Systems} {Conference} ({MilCIS})},
+	author = {Moustafa, Nour and Slay, Jill},
+	month = nov,
+	year = {2015},
+	keywords = {Benchmark testing, computer network security, Data models, Feature extraction, IP networks, low footprint attacks, network intrusion detection systems, network traffic, NIDS, pcap files, Servers, telecommunication traffic, Telecommunication traffic, testbed, Training, UNSW-NB15 data set, UNSW-NB15 network data set},
+	pages = {1--6},
+	file = {IEEE Xplore Abstract Record:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/GMB8XJF4/7348942.html:text/html;IEEE Xplore Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/PYC9UAQ8/Moustafa and Slay - 2015 - UNSW-NB15 a comprehensive data set for network in.pdf:application/pdf}
+}
+
+@inproceedings{sharafaldin_toward_2018,
+	title = {Toward generating a new intrusion detection dataset and intrusion traffic characterization.},
+	booktitle = {{ICISSP}},
+	author = {Sharafaldin, Iman and Lashkari, Arash Habibi and Ghorbani, Ali A},
+	year = {2018},
+	pages = {108--116}
+}
+
+@article{williams_preliminary_2006,
+	title = {A preliminary performance comparison of five machine learning algorithms for practical {IP} traffic flow classification},
+	volume = {36},
+	issn = {0146-4833},
+	url = {https://doi.org/10.1145/1163593.1163596},
+	doi = {10.1145/1163593.1163596},
+	abstract = {The identification of network applications through observation of associated packet traffic flows is vital to the areas of network management and surveillance. Currently popular methods such as port number and payload-based identification exhibit a number of shortfalls. An alternative is to use machine learning (ML) techniques and identify network applications based on per-flow statistics, derived from payload-independent features such as packet length and inter-arrival time distributions. The performance impact of feature set reduction, using Consistency-based and Correlation-based feature selection, is demonstrated on Na{\"i}ve Bayes, C4.5, Bayesian Network and Na{\"i}ve Bayes Tree algorithms. We then show that it is useful to differentiate algorithms based on computational performance rather than classification accuracy alone, as although classification accuracy between the algorithms is similar, computational performance can differ significantly.},
+	number = {5},
+	urldate = {2020-07-21},
+	journal = {ACM SIGCOMM Computer Communication Review},
+	author = {Williams, Nigel and Zander, Sebastian and Armitage, Grenville},
+	month = oct,
+	year = {2006},
+	keywords = {machine learning, traffic classification},
+	pages = {5--16},
+	file = {Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/379TE2SS/Williams et al. - 2006 - A preliminary performance comparison of five machi.pdf:application/pdf}
 }
