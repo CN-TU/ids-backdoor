@@ -261,26 +261,6 @@ Figure \ref{fig:confidence} shows the confidence-speed balance in addition to th
 \end{itemize}
 Overall, EagerNet shows that it is possible to trade a tiny percentage of accuracy in order to save a significant amount of resources. In Section \ref{comparability_to_fnns}, we see that, in order to achieve comparable accuracy to the traditional \gls{ffnn}, the previous trade is possible and therefore also the possibility to reduce costs.
 
-\begin{figure*}
-\center
-\begin{tabular}{cccc}
-\subfloat[CIC-IDS17 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-3x128.pdf}} &
-\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-12x64.pdf}}\\
-\subfloat[UNSW-NB15 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-3x128.pdf}} &
-\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-12x64.pdf}}
-\end{tabular}
-\caption{Confidence threshold effect on accuracy and number of needed layers.}
-\label{fig:confidence}
-\end{figure*}
-
-\begin{figure}
-\center
-\begin{tabular}{cccc}
-\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 4in]{figures/multiclass17.pdf}} &
-\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 3in]{figures/multiclass15.pdf}}
-\end{tabular}
-\caption{Accuracy plot multiclass.}
-\end{figure}
 
 \textbf{Optimal Confidence Threshold.}
 During deployment, the optimum confidence threshold is set by the user and plays a role in the overall achieved accuracy. Setting the threshold too low can cause the network to make decisions at an early stage, thereby gaining resources but achieving low accuracy. Similarly, setting the threshold too high can cause the network to skip the proper layers and thus always use the last one. The desired confidence level can therefore be obtained during the training phase by determining on the basis of the desired accuracy as shown in Figure \ref{fig:confidence}.
@@ -315,7 +295,26 @@ During deployment, the optimum confidence threshold is set by the user and plays
 \subsubsection{What Did the Network Learn?}
 % why from 512 to 32
 
+\begin{figure*}
+\center
+\begin{tabular}{cccc}
+\subfloat[CIC-IDS17 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-3x128.pdf}} &
+\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-12x64.pdf}}\\
+\subfloat[UNSW-NB15 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-3x128.pdf}} &
+\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-12x64.pdf}}
+\end{tabular}
+\caption{Confidence threshold effect on accuracy and number of needed layers.}
+\label{fig:confidence}
+\end{figure*}
 
+\begin{figure}
+\center
+\begin{tabular}{cccc}
+\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 0.85\columnwidth]{figures/multiclass17.pdf}} \\
+\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = \columnwidth]{figures/multiclass15.pdf}}
+\end{tabular}
+\caption{Accuracy plot multiclass.}
+\end{figure}
 
 
 

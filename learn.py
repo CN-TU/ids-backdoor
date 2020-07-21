@@ -7,7 +7,6 @@ import math
 import random
 import torch
 from torch.utils.data import DataLoader, Dataset
-from torch.utils.data.sampler import SubsetRandomSampler
 from tensorboardX import SummaryWriter
 import socket
 from datetime import datetime
@@ -18,10 +17,8 @@ import gzip
 import copy
 
 import sklearn
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score,recall_score, precision_score, f1_score, balanced_accuracy_score, confusion_matrix, classification_report
-from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 
 import collections
 import pickle
@@ -39,6 +36,7 @@ from tqdm import tqdm
 from matplotlib import cm
 
 # TODOs: unify the binary code
+#		 add attack mapping json for better plotting of long names
 
 def output_scores(y_true, y_pred, only_accuracy=False, average='binary'):
 	metrics = [ accuracy_score(y_true, y_pred) ]
@@ -489,7 +487,7 @@ if __name__=="__main__":
 
 	opt = parser.parse_args()
 	print('#'*40)
-	print('>> Configuration ' + opt)
+	print('>> Configuration ' + str(opt))
 	print('#'*40)
 
 	seed = opt.manualSeed
