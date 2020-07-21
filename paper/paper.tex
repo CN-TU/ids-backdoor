@@ -88,15 +88,15 @@ The rest of the paper is organized as follows: In Section ...
 
 \section{Related Work}
 
-The concept of \textit{cascading} classifiers defines several classifiers that are used in a cascade \cite{viola_robust_2004, xu_classifier_2014, wang_efficient_2015}. If accuracy of a classifier in the beginning is good enough, then there is no need to evaluate the other classifiers in the chain (cascade), which saves computational resources. This approach was predominantly explored for classical machine learning methods. Two possibilities are to either place all classifiers in a row or as a tree. If a tree is used, different classifiers can be used at each step, depending on which features are probably relevant for the sample currently under investigation. The difference to our approach is that we exclusively consider neural networks as the classifier and that our approach is significantly easier to implement. 
+The concept of \textit{cascading} classifiers defines several classifiers that are used in a cascade \cite{viola_robust_2004, xu_classifier_2014, wang_efficient_2015}. If accuracy of a classifier in the beginning is good enough, then there is no need to evaluate the other classifiers in the chain (cascade), which saves computational resources. This approach was predominantly explored for classical machine learning methods. Two possibilities are to either place all classifiers in a row or as a tree. If a tree is used, different classifiers can be used at each step, depending on which features are probably relevant for the sample currently under investigation. The difference to our approach is that we exclusively consider neural networks as the classifier and that our approach is significantly easier to implement.
 
-\cite{bolukbasi_adaptive_2017} aim to reduce the computational complexity during evaluation for large Convolutional Neural Networks (CNNs) using an additional classifier after each layer. These additional classifiers learn to look at the output of the previous layer and decide whether it's necessary to continue evaluating the next layers. Unlike our approach, this approach is primarily geared towards making the evaluation of a given neural network more efficient, while our approach aims to train a neural network from scratch. Furthermore, requires advanced math to be implemented, making it difficult to implement and deploy for practitioners. 
+\cite{bolukbasi_adaptive_2017} aim to reduce the computational complexity during evaluation for large Convolutional Neural Networks (CNNs) using an additional classifier after each layer. These additional classifiers learn to look at the output of the previous layer and decide whether it's necessary to continue evaluating the next layers. Unlike our approach, this approach is primarily geared towards making the evaluation of a given neural network more efficient, while our approach aims to train a neural network from scratch. Furthermore, requires advanced math to be implemented, making it difficult to implement and deploy for practitioners.
 
-The approach that is most similar to ours is presented by \cite{leroux_cascading_2017}. They introduce an additional output layer after each layer and then decide whether the next layers should be evaluated based on whether the confidence of the current output layer is high enough. They also argue that if many layers are required, the computation can be offloaded to a more powerful machine in the cloud, which saves further computational effort. The main difference of this approach compared to ours is that we can show that no additional output layers are needed but instead our approach only needs one extra neuron per layer, further reducing the computational overhead of our approach. 
+The approach that is most similar to ours is presented by \cite{leroux_cascading_2017}. They introduce an additional output layer after each layer and then decide whether the next layers should be evaluated based on whether the confidence of the current output layer is high enough. They also argue that if many layers are required, the computation can be offloaded to a more powerful machine in the cloud, which saves further computational effort. The main difference of this approach compared to ours is that we can show that no additional output layers are needed but instead our approach only needs one extra neuron per layer, further reducing the computational overhead of our approach.
 
-Another line of work \cite{seo_neural_2018, yu_learning_2017, graves_adaptive_2017, bachl_sparseids_2020} focuses on teaching Recurrent Neural Networks (RNNs), neural networks for sequences, to skip irrelevant parts of the input sequence. 
+Another line of work \cite{seo_neural_2018, yu_learning_2017, graves_adaptive_2017, bachl_sparseids_2020} focuses on teaching Recurrent Neural Networks (RNNs), neural networks for sequences, to skip irrelevant parts of the input sequence.
 
-The major difference between all existing works and ours is simplicity. While many of the previously proposed works report good results, they usually require advanced math knowledge to be implemented, which hinders their deployment in real-world scenarios. 
+The major difference between all existing works and ours is simplicity. While many of the previously proposed works report good results, they usually require advanced math knowledge to be implemented, which hinders their deployment in real-world scenarios.
 
 \section{Supervised Learning for Network Intrusion Detection}
 
@@ -328,7 +328,26 @@ During deployment, the optimum confidence threshold is set by the user and plays
 \subsubsection{What Did the Network Learn?}
 % why from 512 to 32
 
+\begin{figure*}
+\center
+\begin{tabular}{cccc}
+\subfloat[CIC-IDS17 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-3x128.pdf}} &
+\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-17-12x64.pdf}}\\
+\subfloat[UNSW-NB15 (3 layers $\times$ 128 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-3x128.pdf}} &
+\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 2.5in]{figures/conf-acc-15-12x64.pdf}}
+\end{tabular}
+\caption{Confidence threshold effect on accuracy and number of needed layers.}
+\label{fig:confidence}
+\end{figure*}
 
+\begin{figure}
+\center
+\begin{tabular}{cccc}
+\subfloat[CIC-IDS17 (12 layers $\times$ 64 neurons).]{\includegraphics[width = 0.85\columnwidth]{figures/multiclass17.pdf}} \\
+\subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width = \columnwidth]{figures/multiclass15.pdf}}
+\end{tabular}
+\caption{Accuracy plot multiclass.}
+\end{figure}
 
 
 
