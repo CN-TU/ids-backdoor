@@ -13,7 +13,7 @@
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
-
+    
 \usepackage[nomain, toc, acronym]{glossaries}
 \glsdisablehyper
 
@@ -51,7 +51,7 @@ firstname.lastname@tuwien.ac.at}}
 
 \begin{abstract}
 
-\glspl{ffnn} have been the basis of most state-of-the-art \gls{ml} applications in recent years. Experiments show that the deeper the network is, the more desirable it is to acquire more knowledge. Nonetheless, with the growing number of layers, obtaining fast predictions has become a difficult task despite the use of special hardware such as GPUs. We propose a new architecture to obtain predictions without conducting a forward-pass until the last layer. The architecture is able to deal with either binary or multiclass classification problems and trades prediction speed for the confidence of the network. We evaluate our proposal with two different network intrusion detection datasets. Results suggest that it is possible to obtain comparable accuracies to simple \glspl{ffnn} without evaluating all layers, thus obtaining early predictions and saving energy and computational efforts.
+\glspl{ffnn} have been the core of most state-of-the-art \gls{ml} applications in recent years specifically \glspl{ids}. Experiments show that the deeper the network is, the more desirable it is to acquire more knowledge. Nonetheless, with the growing number of layers, obtaining fast predictions with less resources has become a difficult task despite the use of special hardware such as GPUs. We propose a new architecture to detect network attacks with minimal resources. The architecture is able to deal with either binary or multiclass classification problems and trades prediction speed for the accuracy of the network. We evaluate our proposal with two different network intrusion detection datasets. Results suggest that it is possible to obtain comparable accuracies to simple \glspl{ffnn} without evaluating all layers, thus obtaining early predictions and saving energy and computational efforts.
 
 \end{abstract}
 
@@ -61,47 +61,46 @@ firstname.lastname@tuwien.ac.at}}
 
 \section{Introduction}
 % what are ffnn
-\glspl{ffnn} have gained remarkable attention in recent years due to the availability of data and computational resources for research. Many of the state-of-the-art architectures currently used in different applications are effectively based on simple \glspl{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable it is for better learning \cite{eldan2016power} .
+\glspl{ffnn} have gained remarkable attention in recent years due to the availability of data and computational resources for research. Many state-of-the-art architectures currently used in different applications are effectively based on simple \glspl{ffnn} architectures. Experiments show that the more layers (and neurons) the network includes, the more desirable it is for better learning \cite{eldan_power_2016} .
 
 % forward-backward
 Traditional \gls{ffnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid) to obtain a scalar. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. Figure \ref{fig:ffnn} demonstrates a basic \gls{ffnn} that utilizes the input vector $\lbrace x_{1}, x_{2} ... x_{m} \rbrace$ and makes a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the previous layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. Larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
 
 % problem with large networks
-In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) The loss during training needs more time to converge and (2) prediction time is proportional to the number of layers. Even though most modern hardware is able to cope with offline single predictions without significant delay, online massive neural network implementations may suffer from the latter issue if non-specialized hardware is used to produce predictions.
-%EagerNet
+In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) The loss during training needs more time to converge and (2) prediction time is proportional to the number of layers. Even though most modern hardware is able to cope with offline single predictions without significant delay, online massive neural network implementations may suffer from the latter issue if non-specialized hardware is used to produce predictions. 
+%EagerNet 
 To solve this, we propose a new architecture that, on the one hand, uses the entire network capacity for learning and, on the other hand, stops the forward-pass and makes predictions as soon as confidence reaches a certain threshold. In other words, it makes it possible to avoid evaluating the entire network and to receive predictions from intermediate layers with the same performance of a simple \gls{ffnn}. The proposed approach therefore allows, where possible, the reduction of computing resources and energy usage preserving comparable performance of a full forward-pass.
 
 % talk about network traffic
 
 % conclusion
 The rest of the paper is organized as follows: In Section ...
-
-\section{Related Work}
-
-
-
+ 
  \begin{figure}
   \includegraphics[width=\linewidth]{figures/ffnn_new.pdf}
   \caption{Conventional \gls{ffnn} architecture.}
   \label{fig:ffnn}
 \end{figure}
 
+\section{Related Work}
+
 \section{Supervised Learning for Network Intrusion Detection}
 
 \gls{ml} has been widely used in the last decade for network traffic analysis and specifically anomaly detection systems. Many of the works proposed \gls{ids} architectures based on well-known supervised techniques \cite{survey}. The idea of training a classifier on pre-stored attack patterns and using the same classifier to recognize similar patterns is commonly used and remarkable success has so far been achieved \cite{survey}. In particular, \glspl{ffnn} is commonly used whenever large amounts of data are available. In order to present network data to such architectures, a number of traffic representation families have been proposed depending on the application. However, the statistical representation of flow characteristics is still the most appropriate. In this work, we define the network flow to be the exchange of packets between two end-hosts. Packets can be identified and aggregated using the five-tuple key: \emph{sourceIP}, \emph{destinationIP}, \emph{sourceTransportPort}, \emph{destinationTransportPort} and \emph{protocolIdentifier}. Thereafter, packet features are extracted and the statistical combinations are computed. Table \ref{tab:features} shows CAIA \cite{williams2006preliminary} network traffic representation. It consists of 12 features 7 of which are measured in both directions and 2 of which are expanded using four statistical combinations (i.e. \emph{A} becomes \emph{mean(A)}, \emph{min(A)}, \emph{max(A)} and \emph{stdev(A)}). In addition, we set an observation timeout of 1,800 seconds, after which we terminate flows. Each flow is considered to be a data sample and has two sets of labels: binary (attack/benign) label and attack family. After a training process, the trained \gls{ids} must be able to correctly classify new flows.
 
 \begin{table}[ht!]
-
+	
 	\centering
 	\caption{CAIA flow representation.}
 	\label{tab:features}
-
+	     
 	\footnotesize
-	\begin{tabular}{ccc}
+	\resizebox{\columnwidth}{!}{
+	\begin{tabular}{|c|c|c|}
 		\toprule
 		\textbf{Direction}                    & \textbf{Features}        & \textbf{Statistical Operations}        \\
 		\midrule
-
+		    
 		                                      & flowDurationMilliseconds &                                        \\
 		                                      & sourceTransportPort      &                                        \\
 		                                      & destinationTransportPort &                                        \\
@@ -116,13 +115,13 @@ The rest of the paper is organized as follows: In Section ...
 		                                      & tcpAckTotalCount         &                                        \\
 		                                      & tcpFinTotalCount         &                                        \\
 		                                      & tcpCwrTotalCount         &                                        \\
-
+		   
 		\midrule
-
-
+		
+		
 	\end{tabular}
 	}
-
+		
 \end{table}
 
 \section{EagerNet}
@@ -173,12 +172,12 @@ Conventional \gls{ffnn} uses the loss of the last layer to adjust the gradients.
 \mathcal{W_U} = \lbrace W_{0}, ..., W_{n} \rbrace = \lbrace \frac{1}{\sum_{i=0}^{n} 1}, ..., \frac{1}{\sum_{i=0}^{n} 1} \rbrace
 \end{equation}
 
-\item Increasing weights. losses are increasingly important from first to last layer.
+\item Increasing weights. losses are increasingly important from first to last layer. 
 \begin{equation}
 \mathcal{W_I} = \lbrace W_{0}, ..., W_{n} \rbrace = \lbrace \frac{1}{\sum_{i=0}^{n} i+1}, ..., \frac{n+1}{\sum_{i=0}^{n} i+1} \rbrace
 \end{equation}
 
-\item Decreasing weights. losses are decreasingly important from first to last layer.
+\item Decreasing weights. losses are decreasingly important from first to last layer. 
 \begin{equation}
 \mathcal{W_D} = \lbrace W_{0}, ..., W_{n} \rbrace = \lbrace \frac{n+1}{\sum_{i=0}^{n} i+1}, ..., \frac{1}{\sum_{i=0}^{n} i+1} \rbrace
 \end{equation}
@@ -211,11 +210,10 @@ We show the effect of the weight distributions in Table \ref{tab:weights} and di
 % summing up loss causes to learn the same pattern at all layers
 % assume that even in binary classifications, there are many subclasses
 
-\section{Related Work}
 
 \section{Evaluation and Discussion}
 \label{evaluation_and_discussion}
-We discuss in this section different experimental results and observations. Overall, EagerNet shows promising performance comparable to \glspl{ffnn} with the ability to save resources.
+We discuss in this section different experimental results and observations. Overall, EagerNet shows promising performance comparable to \glspl{ffnn} with the ability to save resources. all experiments are reproducible and available on our repository\footnote{github.com/CN-TU/ids-backdoor/tree/eager}.
 
 \subsection{Datasets}
 For our experiments, we use two intrusion detection datasets. CICIDS2017 \cite{sharafaldin2018toward} which consists of 14 network attack classes in addition to realistic user profiles. UNSW-NB15 \cite{moustafa2015unsw} which, in addition to synthetically generated normal traffic, again contains 9 attack families. As mentioned above, we represent both datasets using the CAIA feature set and extract 2.317.922 and 2.065.224 flows, respectively, from CICIDS2017 and UNSW-NB15. For pre-processing, we eliminate duplicate instances and \emph{z}-normalize the data. We use $\frac{2}{3}$ for training and $\frac{1}{3}$ for evaluation and testing.
