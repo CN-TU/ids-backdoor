@@ -15,6 +15,7 @@ import os
 import pickle
 import gzip
 import copy
+import itertools
 
 import sklearn
 from sklearn.linear_model import LogisticRegression
@@ -34,6 +35,8 @@ import io
 from sklearn.preprocessing import LabelBinarizer
 from tqdm import tqdm
 from matplotlib import cm
+
+from sklearn.model_selection import StratifiedKFold
 
 # TODOs: unify the binary code
 #		 add attack mapping json for better plotting of long names
@@ -76,11 +79,15 @@ class OurDataset(Dataset):
 	def __len__(self):
 		return self.data.shape[0]
 
-def get_nth_split(dataset, n_fold, index):
-	dataset_size = len(dataset)
-	indices = list(range(dataset_size))
-	bottom, top = int(math.floor(float(dataset_size)*index/n_fold)), int(math.floor(float(dataset_size)*(index+1)/n_fold))
-	train_indices, test_indices = indices[0:bottom]+indices[top:], indices[bottom:top]
+def get_nth_split(dataset, n_fold, index, stratify=True):
+	if stratify:
+		train_indices, test_indices = next(itertools.islice(StratifiedKFold(n_splits = n_fold).split(np.empty(len(attack_vector)), y = attack_vector), index, None))
+	else:
+		# old way, random
+		dataset_size = len(dataset)
+		indices = list(range(dataset_size))
+		bottom, top = int(math.floor(float(dataset_size)*index/n_fold)), int(math.floor(float(dataset_size)*(index+1)/n_fold))
+		train_indices, test_indices = indices[0:bottom]+indices[top:], indices[bottom:top]
 	return train_indices[:opt.maxSize], test_indices[:opt.maxSize]
 
 def make_net(n_input, n_output, n_layers, layer_size):
@@ -280,7 +287,7 @@ def predict_eager_nn():
 	if opt.multiclass:
 		multiclass_eager(test_indices, evaluate=True)
 	else:
-		create_binary_prediction_eager_original(test_indices)
+		create_binary_prediction_eager(test_indices)
 
 def create_binary_plot_eager(test_indices):
 	""" Create confidence-accuracy plot for binary """
@@ -358,7 +365,7 @@ def create_binary_plot_eager(test_indices):
 	plt.rc('axes', axisbelow=True)
 
 	if opt.savePlot != '':
-		plt.savefig(opt.storePlot, bbox_inches = 'tight', pad_inches = 0)
+		plt.savefig(opt.savePlot, bbox_inches = 'tight', pad_inches = 0)
 	else:
 		plt.show()
 
@@ -438,6 +445,11 @@ def multiclass_eager(test_indices, evaluate=False):
 			cr = confusion_matrix(y_list, y_pred_list[i], list(range(n_classes)))
 			accuracies[:,i] = cr.diagonal()/cr.sum(axis=1)
 
+		#with open(f"labels", "wb") as fp:
+		#	pickle.dump(y_list, fp)
+		#with open(f"predictions", "wb") as fp:
+		#	pickle.dump(y_pred_list, fp)
+
 		accuracies = np.nan_to_num(accuracies)
 		accuracies = np.take(accuracies, np.sum(accuracies, axis = 1).argsort(), axis=0) # sort
 		if opt.saveResults:
@@ -451,7 +463,7 @@ def multiclass_eager(test_indices, evaluate=False):
 		plt.xlabel('Layers', fontsize=30)
 		plt.ylabel('Attack Families', fontsize=30)
 		plt.xticks(list(range(n_outputs)), list(range(1,n_outputs+1)), fontsize=20)
-		plt.savefig(opt.storePlot, bbox_inches='tight')
+		plt.savefig(opt.savePlot, bbox_inches='tight')
 
 	if evaluate:
 		for i, output in enumerate(y_pred_list):
