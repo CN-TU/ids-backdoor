@@ -445,21 +445,24 @@ def multiclass_eager(test_indices, evaluate=False):
 			cr = confusion_matrix(y_list, y_pred_list[i], list(range(n_classes)))
 			accuracies[:,i] = cr.diagonal()/cr.sum(axis=1)
 
-		#with open(f"labels", "wb") as fp:
-		#	pickle.dump(y_list, fp)
-		#with open(f"predictions", "wb") as fp:
-		#	pickle.dump(y_pred_list, fp)
+		if opt.saveResults:
+			with open(f"{opt.net}_labels", "wb") as fp:
+				pickle.dump(y_list, fp)
+			with open(f"{opt.net}_predictions", "wb") as fp:
+				pickle.dump(y_pred_list, fp)
 
 		accuracies = np.nan_to_num(accuracies)
-		accuracies = np.take(accuracies, np.sum(accuracies, axis = 1).argsort(), axis=0) # sort
+		order = np.sum(accuracies, axis = 1).argsort()
+		accuracies = np.take(accuracies, order, axis=0) # sort
+
 		if opt.saveResults:
 			np.save('accuracies_' + opt.net, accuracies)
 
 		plt.figure(figsize=(16,8))
-		plt.imshow(accuracies, cmap=cm.coolwarm, interpolation='nearest', )
+		plt.imshow(accuracies, cmap=cm.coolwarm, interpolation='nearest')
 		clb = plt.colorbar()
 		clb.set_label('Accuracy', rotation=90, fontsize=30)
-		plt.yticks(list(range(n_classes)), labels=dataset.attacks, fontsize=20)
+		plt.yticks(list(range(n_classes)), labels=[dataset.attacks[i] for i in order], fontsize=20)
 		plt.xlabel('Layers', fontsize=30)
 		plt.ylabel('Attack Families', fontsize=30)
 		plt.xticks(list(range(n_outputs)), list(range(1,n_outputs+1)), fontsize=20)

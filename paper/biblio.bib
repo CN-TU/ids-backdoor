@@ -148,7 +148,6 @@
 
 @incollection{wang_efficient_2015,
 	title = {Efficient {Learning} by {Directed} {Acyclic} {Graph} {For} {Resource} {Constrained} {Prediction}},
-	url = {http://papers.nips.cc/paper/5982-efficient-learning-by-directed-acyclic-graph-for-resource-constrained-prediction.pdf},
 	urldate = {2020-07-21},
 	booktitle = {Advances in {Neural} {Information} {Processing} {Systems} 28},
 	publisher = {Curran Associates, Inc.},
@@ -410,4 +409,355 @@ A wide variety of sigmoid functions including the logistic and hyperbolic tangen
 	date = {2020-02-01},
 	langid = {english},
 	keywords = {Cyber security, Deep learning, Intrusion detection,, Machine learning}
+}
+
+
+@inreference{noauthor_softmax_2020,
+	title = {Softmax function},
+	rights = {Creative Commons Attribution-{ShareAlike} License},
+	url = {https://en.wikipedia.org/w/index.php?title=Softmax_function&oldid=968517329},
+	abstract = {In mathematics, the softmax function, also known as softargmax or normalized exponential function, is a function that takes as input a vector z of K real numbers, and normalizes it into a probability distribution consisting of K probabilities proportional to the exponentials of the input numbers. That is, prior to applying softmax, some vector components could be negative, or greater than one; and might not sum to 1; but after applying softmax, each component will be in the interval 
+  
+    
+      
+        (
+        0
+        ,
+        1
+        )
+      
+    
+    \{{\textbackslash}displaystyle (0,1)\}
+  , and the components will add up to 1, so that they can be interpreted as probabilities. Furthermore, the larger input components will correspond to larger probabilities. Softmax is often used in neural networks, to map the non-normalized output of a network to a probability distribution over predicted output classes.
+The standard (unit) softmax function 
+  
+    
+      
+        σ
+        :
+        
+          
+            R
+          
+          
+            K
+          
+        
+        →
+        
+          
+            R
+          
+          
+            K
+          
+        
+      
+    
+    \{{\textbackslash}displaystyle {\textbackslash}sigma :{\textbackslash}mathbb \{R\} {\textasciicircum}\{K\}{\textbackslash}to {\textbackslash}mathbb \{R\} {\textasciicircum}\{K\}\}
+  is defined by the formula
+
+  
+    
+      
+        σ
+        (
+        
+          z
+        
+        
+          )
+          
+            i
+          
+        
+        =
+        
+          
+            
+              e
+              
+                
+                  z
+                  
+                    i
+                  
+                
+              
+            
+            
+              
+                ∑
+                
+                  j
+                  =
+                  1
+                
+                
+                  K
+                
+              
+              
+                e
+                
+                  
+                    z
+                    
+                      j
+                    
+                  
+                
+              
+            
+          
+        
+        
+           for 
+        
+        i
+        =
+        1
+        ,
+        …
+        ,
+        K
+        
+           and 
+        
+        
+          z
+        
+        =
+        (
+        
+          z
+          
+            1
+          
+        
+        ,
+        …
+        ,
+        
+          z
+          
+            K
+          
+        
+        )
+        ∈
+        
+          
+            R
+          
+          
+            K
+          
+        
+      
+    
+    \{{\textbackslash}displaystyle {\textbackslash}sigma ({\textbackslash}mathbf \{z\} )\_\{i\}=\{{\textbackslash}frac \{e{\textasciicircum}\{z\_\{i\}\}\}\{{\textbackslash}sum \_\{j=1\}{\textasciicircum}\{K\}e{\textasciicircum}\{z\_\{j\}\}\}\}\{{\textbackslash}text\{ for \}\}i=1,{\textbackslash}dotsc ,K\{{\textbackslash}text\{ and \}\}{\textbackslash}mathbf \{z\} =(z\_\{1\},{\textbackslash}dotsc ,z\_\{K\}){\textbackslash}in {\textbackslash}mathbb \{R\} {\textasciicircum}\{K\}\}
+  In words: we apply the standard exponential function to each element 
+  
+    
+      
+        
+          z
+          
+            i
+          
+        
+      
+    
+    \{{\textbackslash}displaystyle z\_\{i\}\}
+   of the input vector 
+  
+    
+      
+        
+          z
+        
+      
+    
+    \{{\textbackslash}displaystyle {\textbackslash}mathbf \{z\} \}
+   and normalize these values by dividing by the sum of all these exponentials; this normalization ensures that the sum of the components of the output vector 
+  
+    
+      
+        σ
+        (
+        
+          z
+        
+        )
+      
+    
+    \{{\textbackslash}displaystyle {\textbackslash}sigma ({\textbackslash}mathbf \{z\} )\}
+   is 1.
+Instead of e, a different base b {\textgreater} 0 can be used; choosing a larger value of b will create a probability distribution that is more concentrated around the positions of the largest input values. Writing 
+  
+    
+      
+        b
+        =
+        
+          e
+          
+            β
+          
+        
+      
+    
+    \{{\textbackslash}displaystyle b=e{\textasciicircum}\{{\textbackslash}beta \}\}
+   or 
+  
+    
+      
+        b
+        =
+        
+          e
+          
+            −
+            β
+          
+        
+      
+    
+    \{{\textbackslash}displaystyle b=e{\textasciicircum}\{-{\textbackslash}beta \}\}
+   (for real β) yields the expressions:
+
+  
+    
+      
+        σ
+        (
+        
+          z
+        
+        
+          )
+          
+            i
+          
+        
+        =
+        
+          
+            
+              e
+              
+                β
+                
+                  z
+                  
+                    i
+                  
+                
+              
+            
+            
+              
+                ∑
+                
+                  j
+                  =
+                  1
+                
+                
+                  K
+                
+              
+              
+                e
+                
+                  β
+                  
+                    z
+                    
+                      j
+                    
+                  
+                
+              
+            
+          
+        
+        
+           or 
+        
+        σ
+        (
+        
+          z
+        
+        
+          )
+          
+            i
+          
+        
+        =
+        
+          
+            
+              e
+              
+                −
+                β
+                
+                  z
+                  
+                    i
+                  
+                
+              
+            
+            
+              
+                ∑
+                
+                  j
+                  =
+                  1
+                
+                
+                  K
+                
+              
+              
+                e
+                
+                  −
+                  β
+                  
+                    z
+                    
+                      j
+                    
+                  
+                
+              
+            
+          
+        
+        
+           for 
+        
+        i
+        =
+        1
+        ,
+        …
+        ,
+        K
+      
+    
+    \{{\textbackslash}displaystyle {\textbackslash}sigma ({\textbackslash}mathbf \{z\} )\_\{i\}=\{{\textbackslash}frac \{e{\textasciicircum}\{{\textbackslash}beta z\_\{i\}\}\}\{{\textbackslash}sum \_\{j=1\}{\textasciicircum}\{K\}e{\textasciicircum}\{{\textbackslash}beta z\_\{j\}\}\}\}\{{\textbackslash}text\{ or \}\}{\textbackslash}sigma ({\textbackslash}mathbf \{z\} )\_\{i\}=\{{\textbackslash}frac \{e{\textasciicircum}\{-{\textbackslash}beta z\_\{i\}\}\}\{{\textbackslash}sum \_\{j=1\}{\textasciicircum}\{K\}e{\textasciicircum}\{-{\textbackslash}beta z\_\{j\}\}\}\}\{{\textbackslash}text\{ for \}\}i=1,{\textbackslash}dotsc ,K\}
+  .In some fields, the base is fixed, corresponding to a fixed scale, while in others the parameter β is varied.},
+	booktitle = {Wikipedia},
+	urldate = {2020-07-23},
+	date = {2020-07-19},
+	langid = {english},
+	note = {Page Version {ID}: 968517329}
 }
