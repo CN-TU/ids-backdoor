@@ -365,11 +365,11 @@ In \autoref{tab:comparability}, we show the F1 score obtained at the last layer 
 \center
 \begin{tabular}{cccc}
 \subfloat[CICIDS2017 (12 layers $\times$ 64 neurons). \todo{Fares: Model is still running to generate a better figure.}]{\includegraphics[width=0.55\columnwidth]{figures/multiclass17.pdf}} &
-\subfloat[CICIDS2017 (3 layers $\times$ 128 neurons).]{\includegraphics[width=0.35\columnwidth]{figures/multiclass17-3.pdf}} 
+\subfloat[CICIDS2017 (5 layers $\times$ 128 neurons).]{\includegraphics[width=0.35\columnwidth]{figures/multiclass17-3.pdf}} 
 \subfloat[UNSW-NB15 (12 layers $\times$ 64 neurons).]{\includegraphics[width=0.68\columnwidth]{figures/multiclass15.pdf}} &
-\subfloat[UNSW-NB15 (3 layers $\times$ 128 neurons).]{\includegraphics[width=0.38\columnwidth]{figures/multiclass15-3.pdf}}
+\subfloat[UNSW-NB15 (5 layers $\times$ 128 neurons).]{\includegraphics[width=0.38\columnwidth]{figures/multiclass15-3.pdf}}
 \end{tabular}
-\caption{Accuracy achieved on a test set per layer and attack family. Some attacks have poor accuracy because only few samples are observed (refer to \autoref{fig:datasets}). Forcing the network to learn those samples might lead to over-fitting.}
+\caption{Accuracy achieved on a test set per layer and attack family (sorted vertically). Some attacks have poor accuracy because only few samples are observed (refer to \autoref{fig:datasets}). Forcing the network to learn those samples might lead to over-fitting.}
 \label{fig:multiclass}
 \end{figure*}
 
@@ -377,7 +377,7 @@ In \autoref{tab:comparability}, we show the F1 score obtained at the last layer 
 In order to understand how EagerNet determines at which layer the best to stop evaluation, we use the multiclass architecture and conduct an explanatory analysis. In \autoref{fig:multiclass}, we show the accuracy of the prediction obtained by different networks per layer and attack family. We obtain two conclusions:
 \begin{itemize}
 \item  On average, the accuracy of predictions increases the deeper we get into the network. This was somehow expected, as more layers allow for more abstraction of the input space and thus better separation of instances. However, only few layers are needed to obtain the maximum accuracy per attack family. This implies that the EagerNet architecture significantly decreases resources when used for intrusion detection applications keeping the accuracy at its best.
-\item  On the other hand, some attack families (Analysis, Worms, Web XSS etc.) show extremely poor accuracy. This is due to two reasons: (1) too few samples of a category are mostly ignored by the network to reduce over-fitting and (2) The loss optimized to learn such patterns at a specific layer is over-written by the loss that is optimized to learn the majority classes hence erasing this ``fragile'' knowledge.
+\item  On the other hand, some attack families (Analysis, Worms, Web XSS, DDoS Heart-bleed etc.) show extremely poor accuracy. This is due to two reasons: (1) too few samples of a category are mostly ignored by the network to reduce over-fitting and (2) The loss optimized to learn such patterns at a specific layer is over-written by the loss that is optimized to learn the majority classes hence erasing this ``fragile'' knowledge.
 \end{itemize}
 
 
