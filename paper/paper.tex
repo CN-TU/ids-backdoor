@@ -76,7 +76,7 @@ Fully Connected Neural Networks, Intrusion Detection, Early Predictions.
 Traditional \gls{fcnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid \cite{noauthor_sigmoid_2020}) to obtain a scalar which for the sake of consistency we call a prediction. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. \autoref{fig:fcnn} demonstrates a basic \gls{fcnn} that takes an input vector $\textbf{x}^{T} = \lbrace x_{1}, x_{2} ... x_{m} \rbrace$ and generates a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the following layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. In practice, larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
 
 % problem with large networks
-In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) The loss during training needs more time to converge and (2) the time necessary to make a prediction is proportional to the number of layers. Even though most modern hardware is able to compute predictions without significant delay, prediction speed is still relevant for learning problems, in which many predictions are required per unit of time and delay is important. This is, for example, relevant in the context of object detection in computer vision or also network intrusion detection. 
+In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) the loss during training needs more time to converge and (2) the time necessary to make a prediction is proportional to the number of layers. Even though most modern hardware is able to compute predictions without significant delay, prediction speed is still relevant for learning problems, in which many predictions are required per unit of time and delay is important. This is, for example, relevant in the context of object detection in computer vision or also network intrusion detection. 
 
 %EagerNet
 To obtain early predictions, we propose a new architecture that, on the one hand, uses the entire network capacity for learning network intrusions and, on the other hand, stops the forward-pass and makes predictions as soon as confidence reaches a certain threshold. In other words, it makes it possible to avoid evaluating the entire network with all layers for some samples and to stop the neural network evaluation at a particular layer if the achieved confidence at that point is high enough. We call different \glspl{fcnn} architectures that uses the same proposed approach \emph{EagerNets} (Eager Stopping Networks). EagerNets therefore allow, where possible, the reduction of computing resources and energy usage while achieving detection performance comparable to that of a full forward-pass.
@@ -175,15 +175,15 @@ Because some network attack families are simpler to detect compared to others we
 For our experiments, we use a neural network that consists of as many layers as needed with Leaky ReLU activations \cite{maas_rectifier_2013} ($\alpha = 0.1$) after each layer. Moreover and to reduce over-fitting, we use neurons dropout ($r=0.2$).
 
 
-\subsubsection{Binary Vs. Multiclass Classification}
-We experiment with two different architectures. The first architecture, consists of a binary attack detector, i.e. a 1 is an attack flow and a 0 is a benign flow. The predictions in this case are given by a single output neuron followed by a sigmoid activation function to force values between 0 and 1. During back-propagation, we use a binary cross-entropy loss and average the loss over the batch. \autoref{eq:bceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input being $x_{n}$ and the sigmoid activation function $\sigma(\cdot)$.
+\subsubsection{Binary vs. Multiclass Classification}
+We experiment with two different architectures. The first architecture, consists of a binary attack detector, i.e. a 1 is an attack flow and a 0 is a benign flow. The predictions in this case are given by a single output neuron followed by a sigmoid activation function to force values between 0 and 1. During back-propagation, we use a binary cross-entropy loss and average the loss over the batch. \autoref{eq:bceloss}. shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input being $x_{n}$ and the sigmoid activation function $\sigma(\cdot)$.
 
 \begin{equation}
 \label{eq:bceloss}
 l = - \frac{1}{N} \sum_{n}^{N} [y_n \cdot \log \sigma (x_{n}) + (1 - y_n) \cdot \log (1 - \sigma (x_{n}))]
 \end{equation}
 
-For the multiclass approach, on the other side, there is one output neuron per attack family, and each neuron's output indicates how likely it is, that the currently processed sample belongs to the given attack family. During back-propagation, we use the categorical cross-entropy loss to penalize all outputs together, so there can be no overlap between classes. \autoref{eq:cceloss} shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input $x_{n}$ and the softmax activation function \cite{noauthor_softmax_2020} $\phi(.)$, $C$ being the number of classes or output neurons and $i$ is the current class/output.
+For the multiclass approach, on the other side, there is one output neuron per attack family, and each neuron's output indicates how likely it is, that the currently processed sample belongs to the given attack family. During back-propagation, we use the categorical cross-entropy loss to penalize all outputs together, so there can be no overlap between classes. \autoref{eq:cceloss}. shows how the loss is determined for a batch of size $N$, with the $n^{th}$ input $x_{n}$ and the softmax activation function \cite{noauthor_softmax_2020} $\phi(.)$, $C$ being the number of classes or output neurons and $i$ is the current class/output.
 
 \begin{equation}
 \label{eq:cceloss}
@@ -361,7 +361,7 @@ Overall, EagerNet confirms that it is possible to trade a tiny percentage of acc
 
 
 
-\paragraph{Optimal Confidence Threshold.}
+\paragraph{Optimal Confidence Threshold}
 During deployment, the optimum confidence threshold is set by the user and plays a role in the overall achieved accuracy. Setting the threshold too low can cause the network to make decisions at an early stage, thereby using fewer resources but achieving low accuracy. Similarly, setting the threshold too high can cause the network to always use all layers, which means a waste of resources. The desired confidence level can therefore be obtained after the training phase by determining on the basis of the desired accuracy as shown in \autoref{fig:confidence}.
 
 
