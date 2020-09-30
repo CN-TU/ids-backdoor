@@ -38,6 +38,8 @@ from matplotlib import cm
 
 from sklearn.model_selection import StratifiedKFold
 
+import statistics
+
 # TODOs: unify the binary code
 #		 add attack mapping json for better plotting of long names
 
@@ -289,7 +291,7 @@ def predict_eager_nn():
 	else:
 		create_binary_prediction_eager(test_indices)
 
-def create_binary_plot_eager(test_indices):
+def create_binary_plot_eager_(test_indices):
 	""" Create confidence-accuracy plot for binary """
 
 	test_data = torch.utils.data.Subset(dataset, test_indices)
@@ -317,6 +319,7 @@ def create_binary_plot_eager(test_indices):
 
 	already_processed = 0
 	efforts = []
+	efforts_std = []
 	lists[0] = list(all_predictions)
 
 	accuracy_per_list = [sum([item[output_index] for item in l]) for output_index, l in enumerate(lists)]
@@ -346,22 +349,24 @@ def create_binary_plot_eager(test_indices):
 
 		if len(efforts)==0 or current_lowest >= efforts[-1][0]:
 			efforts.append((current_lowest, sum([(output_index+1)*len(lists[output_index]) for output_index in range(n_outputs)])/len(all_predictions), sum(accuracy_per_list)/len(all_predictions)))
+			efforts_std.append((current_lowest, statistics.stdev([(output_index+1)*len(lists[output_index]) for output_index in range(n_outputs)])/5, statistics.stdev(accuracy_per_list)))
 
 	colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 	plt.grid(linestyle='--', linewidth='0.5', color='gray', axis='x')
 	things = []
 	x, y1, y2 = list(zip(*efforts))
+	_, y1err, y2err = list(zip(*efforts))
 	y1_label = "Mean layers needed"
-	things += plt.plot(x, y1, color=colors[0], label=y1_label)
+	things += plt.errorbar(x, y1, yerr=y1err, color=colors[0], label=y1_label, errorevery=100)
 	plt.xlabel("Confidence required to stop further evaluation", size=15)
 	plt.ylabel(y1_label, size=15)
 	plt.twinx()
 	y2_label = "Mean accuracy achieved"
-	things += plt.plot(x, y2, color=colors[1], label=y2_label)
+	things += plt.errorbar(x, y2, color=colors[1], label=y2_label)
 	plt.ylabel(y2_label, size=15)
 	plt.tight_layout()
-	plt.legend(things, [l.get_label() for l in things], loc="upper left")
+	#plt.legend(things, [l.get_label() for l in things], loc="upper left")
 	plt.rc('axes', axisbelow=True)
 
 	if opt.savePlot != '':
@@ -372,6 +377,71 @@ def create_binary_plot_eager(test_indices):
 	if opt.saveResults:
 		with open(f"efforts_{opt.net}", "wb") as fp:
 			pickle.dump(efforts, fp)
+
+	# print("all_predictions", all_predictions[:10])
+
+def create_binary_plot_eager(test_indices):
+	""" Create confidence-accuracy plot for binary """
+
+	test_data = torch.utils.data.Subset(dataset, test_indices)
+	test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.batchSize, shuffle=False)
+
+	samples = 0
+	all_predictions = []
+
+	net.eval()
+	for data, labels in test_loader:
+		data = data.to(device)
+		samples += data.shape[0]
+		labels = labels.to(device)
+
+		outputs, _ = net(data)
+
+		thing_to_append = torch.sigmoid(torch.stack([output.detach() for output in outputs])).squeeze(2).transpose(1,0).cpu().numpy()
+		thing_to_append = np.maximum(thing_to_append, 1-thing_to_append)
+		all_predictions.append(thing_to_append)
+
+	all_predictions = np.concatenate(all_predictions, axis=0).astype(np.float32).tolist()
+
+	n_outputs = len(all_predictions[0])
+	lists = [list() for _ in range(n_outputs)]
+
+	already_processed = 0
+	efforts = []
+	efforts_std = []
+	lists[0] = list(all_predictions)
+
+	accuracy_per_list = [sum([item[output_index] for item in l]) for output_index, l in enumerate(lists)]
+
+	print("len(all_predictions)", len(all_predictions), "accuracy_per_list", accuracy_per_list)
+
+	while np.array([len(l)>0 for l in lists[:n_outputs-1]]).any():
+		print("items_per_list", [len(item) for item in lists])
+		current_lowest = float("inf")
+		candidate = None
+		candidate_output_index = None
+		for output_index in range(n_outputs-1):
+			for item_index, item in enumerate(lists[output_index]):
+				current_confidence = lists[output_index][item_index][output_index]
+				if current_confidence < current_lowest:
+					candidate = item
+					candidate_output_index = output_index
+					current_lowest = current_confidence
+
+		lists[candidate_output_index].remove(candidate)
+		lists[candidate_output_index+1].append(candidate)
+
+		accuracy_per_list[candidate_output_index] -= candidate[candidate_output_index]
+		accuracy_per_list[candidate_output_index+1] += candidate[candidate_output_index+1]
+
+		# print([len(lists[output_index]) for output_index in range(n_outputs)], len(all_predictions))
+
+		if len(efforts)==0 or current_lowest >= efforts[-1][0]:
+			efforts.append((current_lowest, sum([(output_index+1)*len(lists[output_index]) for output_index in range(n_outputs)])/len(all_predictions), sum(accuracy_per_list)/len(all_predictions)))
+			#efforts_std.append((current_lowest, statistics.stdev([(output_index+1)*len(lists[output_index]) for output_index in range(n_outputs)])/5, statistics.stdev(accuracy_per_list)))
+
+	with open("efforts", "wb") as fp:
+		pickle.dump(efforts, fp)
 
 	# print("all_predictions", all_predictions[:10])
 

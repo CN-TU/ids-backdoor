@@ -17,7 +17,6 @@
 	year = {2020},
 	note = {arXiv: 2002.03872},
 	keywords = {Computer Science - Networking and Internet Architecture, Computer Science - Machine Learning, Statistics - Machine Learning, Computer Science - Cryptography and Security},
-	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/PNEWRQMK/Bachl et al. - 2020 - SparseIDS Learning Packet Sampling with Reinforce.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/YZU2AAZF/2002.html:text/html}
 }
 
 @inproceedings{nakkiran_deep_2019,
@@ -30,7 +29,6 @@
 @inproceedings{yu_learning_2017,
 	address = {Vancouver, Canada},
 	title = {Learning to {Skim} {Text}},
-	url = {https://www.aclweb.org/anthology/P17-1172},
 	doi = {10.18653/v1/P17-1172},
 	abstract = {Recurrent Neural Networks are showing much promise in many sub-areas of natural language processing, ranging from document classification to machine translation to automatic question answering. Despite their promise, many recurrent models have to read the whole text word by word, making it slow to handle long documents. For example, it is difficult to use a recurrent network to read a book and answer questions about it. In this paper, we present an approach of reading text while skipping irrelevant information if needed. The underlying model is a recurrent network that learns how far to jump after reading a few words of the input text. We employ a standard policy gradient method to train the model to make discrete jumping decisions. In our benchmarks on four different tasks, including number prediction, sentiment analysis, news article classification and automatic Q\&A, our proposed model, a modified LSTM with jumping, is up to 6 times faster than the standard sequential LSTM, while maintaining the same or even better accuracy.},
 	urldate = {2020-02-09},
@@ -40,12 +38,10 @@
 	month = jul,
 	year = {2017},
 	pages = {1880--1890},
-	file = {Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/B2S3827F/Yu et al. - 2017 - Learning to Skim Text.pdf:application/pdf}
 }
 
 @inproceedings{seo_neural_2018,
 	title = {Neural {Speed} {Reading} via {Skim}-{RNN}},
-	url = {http://arxiv.org/abs/1711.02085},
 	abstract = {Inspired by the principles of speed reading, we introduce Skim-RNN, a recurrent neural network (RNN) that dynamically decides to update only a small fraction of the hidden state for relatively unimportant input tokens. Skim-RNN gives computational advantage over an RNN that always updates the entire hidden state. Skim-RNN uses the same input and output interfaces as a standard RNN and can be easily used instead of RNNs in existing models. In our experiments, we show that Skim-RNN can achieve significantly reduced computational cost without losing accuracy compared to standard RNNs across five different natural language tasks. In addition, we demonstrate that the trade-off between accuracy and speed of Skim-RNN can be dynamically controlled during inference time in a stable manner. Our analysis also shows that Skim-RNN running on a single CPU offers lower latency compared to standard RNNs on GPUs.},
 	urldate = {2020-01-21},
 	booktitle = {{ICLR}},
@@ -53,7 +49,6 @@
 	month = mar,
 	year = {2018},
 	keywords = {Computer Science - Computation and Language},
-	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/L994QG5U/Seo et al. - 2018 - Neural Speed Reading via Skim-RNN.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/AYJQ46GM/1711.html:text/html}
 }
 
 @inproceedings{shen_reasonet_2017,
@@ -72,7 +67,6 @@
 
 @article{jernite_variable_2017,
 	title = {Variable {Computation} in {Recurrent} {Neural} {Networks}},
-	url = {http://arxiv.org/abs/1611.06188},
 	abstract = {Recurrent neural networks (RNNs) have been used extensively and with increasing success to model various types of sequential data. Much of this progress has been achieved through devising recurrent units and architectures with the flexibility to capture complex statistics in the data, such as long range dependency or localized attention phenomena. However, while many sequential data (such as video, speech or language) can have highly variable information flow, most recurrent models still consume input features at a constant rate and perform a constant number of computations per time step, which can be detrimental to both speed and model capacity. In this paper, we explore a modification to existing recurrent units which allows them to learn to vary the amount of computation they perform at each step, without prior knowledge of the sequence's time structure. We show experimentally that not only do our models require fewer operations, they also lead to better performance overall on evaluation tasks.},
 	urldate = {2020-07-20},
 	journal = {arXiv:1611.06188 [cs, stat]},
@@ -81,12 +75,10 @@
 	year = {2017},
 	note = {arXiv: 1611.06188},
 	keywords = {Computer Science - Artificial Intelligence, Computer Science - Machine Learning, Statistics - Machine Learning, Computer Science - Computation and Language},
-	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/ZPLYI3X6/Jernite et al. - 2017 - Variable Computation in Recurrent Neural Networks.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/RWGC92WH/1611.html:text/html}
 }
 
 @article{graves_adaptive_2017,
 	title = {Adaptive {Computation} {Time} for {Recurrent} {Neural} {Networks}},
-	url = {http://arxiv.org/abs/1603.08983},
 	abstract = {This paper introduces Adaptive Computation Time (ACT), an algorithm that allows recurrent neural networks to learn how many computational steps to take between receiving an input and emitting an output. ACT requires minimal changes to the network architecture, is deterministic and diﬀerentiable, and does not add any noise to the parameter gradients. Experimental results are provided for four synthetic problems: determining the parity of binary vectors, applying binary logic operations, adding integers, and sorting real numbers. Overall, performance is dramatically improved by the use of ACT, which successfully adapts the number of computational steps to the requirements of the problem. We also present character-level language modelling results on the Hutter prize Wikipedia dataset. In this case ACT does not yield large gains in performance; however it does provide intriguing insight into the structure of the data, with more computation allocated to harder-to-predict transitions, such as spaces between words and ends of sentences. This suggests that ACT or other adaptive computation methods could provide a generic method for inferring segment boundaries in sequence data.},
 	language = {en},
 	urldate = {2020-07-20},
@@ -96,12 +88,10 @@
 	year = {2017},
 	note = {arXiv: 1603.08983},
 	keywords = {Computer Science - Neural and Evolutionary Computing},
-	file = {Graves - 2017 - Adaptive Computation Time for Recurrent Neural Net.pdf:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/W6949FSZ/Graves - 2017 - Adaptive Computation Time for Recurrent Neural Net.pdf:application/pdf}
 }
 
 @article{schmidhuber_self-delimiting_2012,
 	title = {Self-{Delimiting} {Neural} {Networks}},
-	url = {http://arxiv.org/abs/1210.0118},
 	abstract = {Self-delimiting (SLIM) programs are a central concept of theoretical computer science, particularly algorithmic information \& probability theory, and asymptotically optimal program search (AOPS). To apply AOPS to (possibly recurrent) neural networks (NNs), I introduce SLIM NNs. Neurons of a typical SLIM NN have threshold activation functions. During a computational episode, activations are spreading from input neurons through the SLIM NN until the computation activates a special halt neuron. Weights of the NN's used connections define its program. Halting programs form a prefix code. The reset of the initial NN state does not cost more than the latest program execution. Since prefixes of SLIM programs influence their suffixes (weight changes occurring early in an episode influence which weights are considered later), SLIM NN learning algorithms (LAs) should execute weight changes online during activation spreading. This can be achieved by applying AOPS to growing SLIM NNs. To efficiently teach a SLIM NN to solve many tasks, such as correctly classifying many different patterns, or solving many different robot control tasks, each connection keeps a list of tasks it is used for. The lists may be efficiently updated during training. To evaluate the overall effect of currently tested weight changes, a SLIM NN LA needs to re-test performance only on the efficiently computable union of tasks potentially affected by the current weight changes. Future SLIM NNs will be implemented on 3-dimensional brain-like multi-processor hardware. Their LAs will minimize task-specific total wire length of used connections, to encourage efficient solutions of subtasks by subsets of neurons that are physically close. The novel class of SLIM NN LAs is currently being probed in ongoing experiments to be reported in separate papers.},
 	urldate = {2020-07-20},
 	journal = {arXiv:1210.0118 [cs]},
@@ -110,12 +100,10 @@
 	year = {2012},
 	note = {arXiv: 1210.0118},
 	keywords = {Computer Science - Neural and Evolutionary Computing},
-	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/9KQDDCT7/Schmidhuber - 2012 - Self-Delimiting Neural Networks.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/SZQPWTU6/1210.html:text/html}
 }
 
 @article{bolukbasi_adaptive_2017,
 	title = {Adaptive {Neural} {Networks} for {Efficient} {Inference}},
-	url = {http://arxiv.org/abs/1702.07811},
 	abstract = {We present an approach to adaptively utilize deep neural networks in order to reduce the evaluation time on new examples without loss of accuracy. Rather than attempting to redesign or approximate existing networks, we propose two schemes that adaptively utilize networks. We first pose an adaptive network evaluation scheme, where we learn a system to adaptively choose the components of a deep network to be evaluated for each example. By allowing examples correctly classified using early layers of the system to exit, we avoid the computational time associated with full evaluation of the network. We extend this to learn a network selection system that adaptively selects the network to be evaluated for each example. We show that computational time can be dramatically reduced by exploiting the fact that many examples can be correctly classified using relatively efficient networks and that complex, computationally costly networks are only necessary for a small fraction of examples. We pose a global objective for learning an adaptive early exit or network selection policy and solve it by reducing the policy learning problem to a layer-by-layer weighted binary classification problem. Empirically, these approaches yield dramatic reductions in computational cost, with up to a 2.8x speedup on state-of-the-art networks from the ImageNet image recognition challenge with minimal ({\textless}1\%) loss of top5 accuracy.},
 	urldate = {2020-07-20},
 	journal = {arXiv:1702.07811 [cs, stat]},
@@ -124,7 +112,6 @@
 	year = {2017},
 	note = {arXiv: 1702.07811},
 	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning, Computer Science - Computer Vision and Pattern Recognition, Computer Science - Neural and Evolutionary Computing},
-	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/NR78Y4BF/Bolukbasi et al. - 2017 - Adaptive Neural Networks for Efficient Inference.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/JKZ94HP8/1702.html:text/html}
 }
 
 @article{leroux_cascading_2017,
@@ -132,7 +119,6 @@
 	volume = {52},
 	issn = {0219-1377, 0219-3116},
 	shorttitle = {The cascading neural network},
-	url = {http://link.springer.com/10.1007/s10115-017-1029-1},
 	doi = {10.1007/s10115-017-1029-1},
 	abstract = {Most of the research on deep neural networks so far has been focused on obtaining higher accuracy levels by building increasingly large and deep architectures. Training and evaluating these models is only feasible when large amounts of resources such as processing power and memory are available. Typical applications that could beneﬁt from these models are, however, executed on resource-constrained devices. Mobile devices such as smartphones already use deep learning techniques, but they often have to perform all processing on a remote cloud. We propose a new architecture called a cascading network that is capable of distributing a deep neural network between a local device and the cloud while keeping the required communication network trafﬁc to a minimum. The network begins processing on the constrained device, and only relies on the remote part when the local part does not provide an accurate enough result. The cascading network allows for an early-stopping mechanism during the recall phase of the network. We evaluated our approach in an Internet of Things context where a deep neural network adds intelligence to a large amount of heterogeneous connected devices. This technique enables a whole variety of autonomous systems where sensors, actuators and computing nodes can work together. We show that the cascading architecture allows for a substantial improvement in evaluation speed on constrained devices while the loss in accuracy is kept to a minimum.},
 	language = {en},
@@ -143,12 +129,10 @@
 	month = sep,
 	year = {2017},
 	pages = {791--814},
-	file = {Leroux et al. - 2017 - The cascading neural network building the Interne.pdf:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/VXJ3QQXS/Leroux et al. - 2017 - The cascading neural network building the Interne.pdf:application/pdf}
 }
 
 @incollection{wang_efficient_2015,
 	title = {Efficient {Learning} by {Directed} {Acyclic} {Graph} {For} {Resource} {Constrained} {Prediction}},
-	url = {http://papers.nips.cc/paper/5982-efficient-learning-by-directed-acyclic-graph-for-resource-constrained-prediction.pdf},
 	urldate = {2020-07-21},
 	booktitle = {Advances in {Neural} {Information} {Processing} {Systems} 28},
 	publisher = {Curran Associates, Inc.},
@@ -156,7 +140,6 @@
 	editor = {Cortes, C. and Lawrence, N. D. and Lee, D. D. and Sugiyama, M. and Garnett, R.},
 	year = {2015},
 	pages = {2152--2160},
-	file = {NIPS Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/4FRD2LVK/Wang et al. - 2015 - Efficient Learning by Directed Acyclic Graph For R.pdf:application/pdf;NIPS Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/FJZRLQR5/5982-efficient-learning-by-directed-acyclic-graph-for-resource-constrained-prediction.html:text/html}
 }
 
 @article{viola_robust_2004,
@@ -172,7 +155,6 @@
 
 @incollection{lefakis_joint_2010,
 	title = {Joint {Cascade} {Optimization} {Using} {A} {Product} {Of} {Boosted} {Classifiers}},
-	url = {http://papers.nips.cc/paper/4148-joint-cascade-optimization-using-a-product-of-boosted-classifiers.pdf},
 	urldate = {2020-07-21},
 	booktitle = {Advances in {Neural} {Information} {Processing} {Systems} 23},
 	publisher = {Curran Associates, Inc.},
@@ -180,27 +162,23 @@
 	editor = {Lafferty, J. D. and Williams, C. K. I. and Shawe-Taylor, J. and Zemel, R. S. and Culotta, A.},
 	year = {2010},
 	pages = {1315--1323},
-	file = {NIPS Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/KCM76NBA/Lefakis and Fleuret - 2010 - Joint Cascade Optimization Using A Product Of Boos.pdf:application/pdf;NIPS Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/Q8CTY48X/4148-joint-cascade-optimization-using-a-product-of-boosted-classifiers.html:text/html}
 }
 
 @article{xu_classifier_2014,
 	title = {Classifier {Cascades} and {Trees} for {Minimizing} {Feature} {Evaluation} {Cost}},
 	volume = {15},
 	issn = {1533-7928},
-	url = {http://jmlr.org/papers/v15/xu14a.html},
 	number = {62},
 	urldate = {2020-07-21},
 	journal = {Journal of Machine Learning Research},
 	author = {Xu, Zhixiang (Eddie) and Kusner, Matt J. and Weinberger, Kilian Q. and Chen, Minmin and Chapelle, Olivier},
 	year = {2014},
 	pages = {2113--2144},
-	file = {Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/IGRE3R7Z/Xu et al. - 2014 - Classifier Cascades and Trees for Minimizing Featu.pdf:application/pdf;Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/U5PJR92W/xu14a.html:text/html}
 }
 
 @article{kingma_adam_2017,
 	title = {Adam: {A} {Method} for {Stochastic} {Optimization}},
 	shorttitle = {Adam},
-	url = {http://arxiv.org/abs/1412.6980},
 	abstract = {We introduce Adam, an algorithm for first-order gradient-based optimization of stochastic objective functions, based on adaptive estimates of lower-order moments. The method is straightforward to implement, is computationally efficient, has little memory requirements, is invariant to diagonal rescaling of the gradients, and is well suited for problems that are large in terms of data and/or parameters. The method is also appropriate for non-stationary objectives and problems with very noisy and/or sparse gradients. The hyper-parameters have intuitive interpretations and typically require little tuning. Some connections to related algorithms, on which Adam was inspired, are discussed. We also analyze the theoretical convergence properties of the algorithm and provide a regret bound on the convergence rate that is comparable to the best known results under the online convex optimization framework. Empirical results demonstrate that Adam works well in practice and compares favorably to other stochastic optimization methods. Finally, we discuss AdaMax, a variant of Adam based on the infinity norm.},
 	urldate = {2020-07-21},
 	journal = {arXiv:1412.6980 [cs]},
@@ -209,7 +187,6 @@
 	year = {2017},
 	note = {arXiv: 1412.6980},
 	keywords = {Computer Science - Machine Learning},
-	file = {arXiv Fulltext PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/QLJGX9WD/Kingma and Ba - 2017 - Adam A Method for Stochastic Optimization.pdf:application/pdf;arXiv.org Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/3Z36S4UN/1412.html:text/html}
 }
 
 @inproceedings{moustafa_unsw-nb15_2015,
@@ -223,7 +200,6 @@
 	year = {2015},
 	keywords = {telecommunication traffic, Feature extraction, computer network security, IP networks, Servers, Benchmark testing, Data models, low footprint attacks, network intrusion detection systems, network traffic, NIDS, pcap files, Telecommunication traffic, testbed, Training, UNSW-NB15 data set, UNSW-NB15 network data set},
 	pages = {1--6},
-	file = {IEEE Xplore Abstract Record:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/GMB8XJF4/7348942.html:text/html;IEEE Xplore Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/PYC9UAQ8/Moustafa and Slay - 2015 - UNSW-NB15 a comprehensive data set for network in.pdf:application/pdf}
 }
 
 @inproceedings{sharafaldin_toward_2018,
@@ -238,7 +214,6 @@
 	title = {A preliminary performance comparison of five machine learning algorithms for practical {IP} traffic flow classification},
 	volume = {36},
 	issn = {0146-4833},
-	url = {https://doi.org/10.1145/1163593.1163596},
 	doi = {10.1145/1163593.1163596},
 	abstract = {The identification of network applications through observation of associated packet traffic flows is vital to the areas of network management and surveillance. Currently popular methods such as port number and payload-based identification exhibit a number of shortfalls. An alternative is to use machine learning (ML) techniques and identify network applications based on per-flow statistics, derived from payload-independent features such as packet length and inter-arrival time distributions. The performance impact of feature set reduction, using Consistency-based and Correlation-based feature selection, is demonstrated on Naïve Bayes, C4.5, Bayesian Network and Naïve Bayes Tree algorithms. We then show that it is useful to differentiate algorithms based on computational performance rather than classification accuracy alone, as although classification accuracy between the algorithms is similar, computational performance can differ significantly.},
 	number = {5},
@@ -249,7 +224,6 @@
 	year = {2006},
 	keywords = {machine learning, traffic classification},
 	pages = {5--16},
-	file = {Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/379TE2SS/Williams et al. - 2006 - A preliminary performance comparison of five machi.pdf:application/pdf}
 }
 
 @misc{noauthor_sigmoid_2020,
@@ -316,7 +290,6 @@ A wide variety of sigmoid functions including the logistic and hyperbolic tangen
 	month = jun,
 	year = {2020},
 	note = {Page Version ID: 964386757},
-	file = {Snapshot:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/RKM9YFEG/index.html:text/html}
 }
 
 @inproceedings{leroux_resource-constrained_2015,
@@ -330,12 +303,10 @@ A wide variety of sigmoid functions including the logistic and hyperbolic tangen
 	note = {ISSN: 2161-4407},
 	keywords = {Training, Neurons, deep neural network, pattern classification, Biological neural networks, neural net architecture, resource allocation, neural network architecture, resource-constrained classification, threshold confidence value},
 	pages = {1--7},
-	file = {IEEE Xplore Abstract Record:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/PVMXP7AF/7280601.html:text/html;IEEE Xplore Full Text PDF:/home/max/.zotero/zotero/zzt443zn.default/zotero/storage/MLICDN5M/Leroux et al. - 2015 - Resource-constrained classification using a cascad.pdf:application/pdf}
 }
 
 @misc{maas_rectifier_2013,
 	title = {Rectifier {Nonlinearities} {Improve} {Neural} {Network} {Acoustic} {Models}},
-	url = {https://www.semanticscholar.org/paper/Rectifier-Nonlinearities-Improve-Neural-Network-Maas/367f2c63a6f6a10b3b64b8729d601e69337ee3cc},
 	abstract = {Deep neural network acoustic models produce substantial gains in large vocabulary continuous speech recognition systems. Emerging work with rectified linear (ReL) hidden units demonstrates additional gains in final system performance relative to more commonly used sigmoidal nonlinearities. In this work, we explore the use of deep rectifier networks as acoustic models for the 300 hour Switchboard conversational speech recognition task. Using simple training procedures without pretraining, networks with rectifier nonlinearities produce 2\% absolute reductions in word error rates over their sigmoidal counterparts. We analyze hidden layer representations to quantify differences in how ReL units encode inputs as compared to sigmoidal units. Finally, we evaluate a variant of the ReL unit with a gradient more amenable to optimization in an attempt to further improve deep rectifier networks.},
 	language = {en},
 	urldate = {2020-07-25},
@@ -699,7 +670,6 @@ Instead of e, a different base b {\textgreater} 0 can be used; choosing a larger
 	volume = {50},
 	issn = {2214-2126},
 	shorttitle = {Deep learning for cyber security intrusion detection},
-	url = {http://www.sciencedirect.com/science/article/pii/S2214212619305046},
 	doi = {10.1016/j.jisa.2019.102419},
 	abstract = {In this paper, we present a survey of deep learning approaches for cyber security intrusion detection, the datasets used, and a comparative study. Specifically, we provide a review of intrusion detection systems based on deep learning approaches. The dataset plays an important role in intrusion detection, therefore we describe 35 well-known cyber datasets and provide a classification of these datasets into seven categories; namely, network traffic-based dataset, electrical network-based dataset, internet traffic-based dataset, virtual private network-based dataset, android apps-based dataset, IoT traffic-based dataset, and internet-connected devices-based dataset. We analyze seven deep learning models including recurrent neural networks, deep neural networks, restricted Boltzmann machines, deep belief networks, convolutional neural networks, deep Boltzmann machines, and deep autoencoders. For each model, we study the performance in two categories of classification (binary and multiclass) under two new real traffic datasets, namely, the CSE-CIC-IDS2018 dataset and the Bot-IoT dataset. In addition, we use the most important performance indicators, namely, accuracy, false alarm rate, and detection rate for evaluating the efficiency of several methods.},
 	language = {en},
@@ -715,8 +685,6 @@ Instead of e, a different base b {\textgreater} 0 can be used; choosing a larger
 @article{berman_survey_2019,
 	title = {A {Survey} of {Deep} {Learning} {Methods} for {Cyber} {Security}},
 	volume = {10},
-	copyright = {http://creativecommons.org/licenses/by/3.0/},
-	url = {https://www.mdpi.com/2078-2489/10/4/122},
 	doi = {10.3390/info10040122},
 	abstract = {This survey paper describes a literature review of deep learning (DL) methods for cyber security applications. A short tutorial-style description of each DL method is provided, including deep autoencoders, restricted Boltzmann machines, recurrent neural networks, generative adversarial networks, and several others. Then we discuss how each of the DL methods is used for security applications. We cover a broad array of attack types including malware, spam, insider threats, network intrusions, false data injection, and malicious domain names used by botnets.},
 	language = {en},
