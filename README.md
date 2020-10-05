@@ -1,13 +1,13 @@
 # EagerNet
 Contact: Fares Meghdouri, Maximilian Bachl
 
-This repository contains the code, the data, the plots and the tex files for our paper **EagerNet: Early Predictions of Neural Networks forComputationally Efficient Intrusion Detection** (pending)
+This repository contains the code, the data, the plots and the tex files for our paper **EagerNet: Early Predictions of Neural Networks for Computationally Efficient Intrusion Detection** (2020 4th Cyber Security in Networking Conference (CSNet))
 
 # Datasets
 We use two Intrusion Detection Datasets: [CICIDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) and [UNSW-NB15](https://www.unsw.adfa.edu.au/unsw-canberra-cyber/cybersecurity/ADFA-NB15-Datasets/).
 The raw PCAP files are converted into CAIA format using [go-flows](https://github.com/CN-TU/go-flows) and data is afterwards cleaned and z-normalized.
 
---Data is not yet available for download--
+Data is taken from [this](https://github.com/CN-TU/adversarial-recurrent-ids) repository. The instructions are also included there.
 
 
 If you want to produce the preprocessed files yourself: 

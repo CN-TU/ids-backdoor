@@ -53,8 +53,12 @@ Vienna, Austria\\
 firstname.lastname@tuwien.ac.at}}
 
 
+\IEEEoverridecommandlockouts
+\IEEEpubid{\makebox[\columnwidth]{978-0-7381-4292-0/20/\$31.00~\copyright2020 IEEE \hfill} \hspace{\columnsep}\makebox[\columnwidth]{ }}
 
 \maketitle
+
+\IEEEpubidadjcol
 
 \begin{abstract}
 
@@ -75,17 +79,19 @@ Fully Connected Neural Networks, Intrusion Detection, Early Predictions.
 % forward-backward
 Traditional \gls{fcnn} are based on simple logistic regression units that combine multiple inputs multiplied by a set of weights and passed through an activation function (e.g. sigmoid \cite{noauthor_sigmoid_2020}) to obtain a scalar which for the sake of consistency we call a prediction. The weights are adjusted to give the closest possible output to a ground-truth. As far as neural networks are concerned, logistic regression units are stacked together to create layers and then layers are stacked together again to create the network itself. \autoref{fig:fcnn} demonstrates a basic \gls{fcnn} that takes an input vector $\textbf{x}^{T} = \lbrace x_{1}, x_{2} ... x_{m} \rbrace$ and generates a prediction. Adjusting weights in such situations is a non-trivial problem since the weights of each layer may have an impact on the following layers. Fortunately, several algorithms have been proposed to reduce the complexity of the task (e.g. gradient descent learning) while achieving the same goal: reduce the "gap" (loss) between predictions and actual desired output. In practice, larger networks consist of more neurons and thus more weights, allowing more data patterns to be learned.
 
+ \begin{figure}
+  \includegraphics[width=\linewidth]{figures/fcnn_new1.pdf}
+  \caption{Conventional \gls{fcnn} architecture.}
+  \label{fig:fcnn}
+\end{figure}
+
 % problem with large networks
 In terms of efficiency, two problems arise when using an extremely deep neural networks: (1) the loss during training needs more time to converge and (2) the time necessary to make a prediction is proportional to the number of layers. Even though most modern hardware is able to compute predictions without significant delay, prediction speed is still relevant for learning problems, in which many predictions are required per unit of time and delay is important. This is, for example, relevant in the context of object detection in computer vision or also network intrusion detection. 
 
 %EagerNet
 To obtain early predictions, we propose a new architecture that, on the one hand, uses the entire network capacity for learning network intrusions and, on the other hand, stops the forward-pass and makes predictions as soon as confidence reaches a certain threshold. In other words, it makes it possible to avoid evaluating the entire network with all layers for some samples and to stop the neural network evaluation at a particular layer if the achieved confidence at that point is high enough. We call different \glspl{fcnn} architectures that uses the same proposed approach \emph{EagerNets} (Eager Stopping Networks). EagerNets therefore allow, where possible, the reduction of computing resources and energy usage while achieving detection performance comparable to that of a full forward-pass.
 
- \begin{figure}
-  \includegraphics[width=\linewidth]{figures/fcnn_new1.pdf}
-  \caption{Conventional \gls{fcnn} architecture.}
-  \label{fig:fcnn}
-\end{figure}
+
 % conclusion
 %\todo{Max: For such a short paper it might not be necessary to give an overview?}
 %\todo{Fares: I now added just a sentence}
